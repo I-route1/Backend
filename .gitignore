@@ -1,39 +1,69 @@
-HELP.md
-.gradle
+# macOS / Windows
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+~$*
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.sublime-workspace
+*.sublime-project
+out/
+
+# Gradle
+.gradle/
 build/
 !gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
+!**/src/main/**
+!**/src/test/**
+gradle-app.setting
+gradle.properties
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
+# Java
+*.class
+*.jar
+*.war
+*.ear
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
+# JVM logs
+hs_err_pid*
+replay_pid*
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
+# Env
+.env
+.env.local
+.env.*.local
 
-### VS Code ###
-.vscode/
+# Logs
+*.log
+*.tmp
+*.swp
+*.bak
+*.pid
+*.seed
+*.out
+/logs/
+tmp/
+*.lock
 
-src/main/resources/application.properties
+# Test
+/coverage
+/test-output
+/.classpath
+/.project
+/.settings/
+/bin/
+/target/
+/reports/
+
+# Docker
+docker-compose.override.yml
+/uploads/
+/temp/
+*.tar
+*.img
