@@ -5,9 +5,8 @@
 | **Java** | 17           |
 | **JDK** | 22.0.2       | 
 | **Spring Boot** | 4.0.6        | 
-| **Gradle** | Gradle 9.4.1 |
-| **MySQL** | ...          |
-| **Docker** | ... |
+| **Gradle** | 9.4.1 |
+| **MySQL** | 8.4.7          |
 ---
 
 ## 실행 방법
