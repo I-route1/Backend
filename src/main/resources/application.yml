@@ -12,3 +12,17 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  kakao:
+    mobility:
+      base-url: https://apis-navi.kakaomobility.com
+      rest-api-key: ${KAKAO_REST_API_KEY}
+
+  logging:
+    level:
+      org.hibernate.SQL: debug
