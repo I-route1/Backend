@@ -18,7 +18,6 @@ public class AiRecommendation {
     private String studentId;
 
     @Column(columnDefinition = "TEXT")
-    private String recommendedContext; // AI가 찾아준 족보 내용
 
     @Builder
     public AiRecommendation(String studentId, String recommendedContext) {
