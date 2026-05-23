@@ -1,11 +1,14 @@
 package com.i_route.backend.service;
 
 import com.i_route.backend.dto.MaterialRecommendationDto;
+import com.i_route.backend.dto.PeerSuccessPathDto;
 import com.i_route.backend.dto.StudyMethodDto;
 import com.i_route.backend.dto.StudyRoadmapDto;
+import com.i_route.backend.entity.Grade;
 import com.i_route.backend.entity.StudentEntity;
 import com.i_route.backend.entity.StudyTendency;
 import com.i_route.backend.entity.WrongAnswerEntity;
+import com.i_route.backend.repository.GradeRepository;
 import com.i_route.backend.repository.StudentRepository;
 import com.i_route.backend.repository.StudyMaterialRepository;
 import com.i_route.backend.repository.TargetGoalRepository;
@@ -18,6 +21,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -29,6 +33,7 @@ public class AiRecommendationService {
     private final StudyMaterialRepository materialRepository;
     private final WrongAnswerEntityRepository wrongAnswerRepository;
     private final TargetGoalRepository targetGoalRepository;
+    private final GradeRepository gradeRepository;
 
     public List<MaterialRecommendationDto> recommendMaterials(Long studentId) {
         StudentEntity student = studentRepository.findById(studentId)
@@ -104,6 +109,123 @@ public class AiRecommendationService {
                 .overallStrategy("목표 [" + goal.getTargetKeyword() + "] 달성을 위해 하루 " +
                         goal.getDailyStudyHours() + "시간 기준 " + remainingWeeks + "주 로드맵")
                 .build();
+    }
+
+    // 유사 성적대 사용자들이 선호하는 콘텐츠 매칭
+    public List<MaterialRecommendationDto> recommendByPeerContent(String studentId) {
+        Double myAvg = gradeRepository.getAverageScoreByStudent(studentId);
+        if (myAvg == null) {
+            return List.of();
+        }
+
+        List<Object[]> allAvgs = gradeRepository.findAllStudentAverageScores();
+        long peerCount = allAvgs.stream()
+                .filter(row -> {
+                    String sid = (String) row[0];
+                    double avg = ((Number) row[1]).doubleValue();
+                    return !sid.equals(studentId) && Math.abs(avg - myAvg) <= 10;
+                })
+                .count();
+
+        int peerLevel = scoreToLevel(myAvg);
+
+        List<MaterialRecommendationDto> result = materialRepository
+                .findByLevelLessThanEqualOrderByLevelDesc(peerLevel)
+                .stream()
+                .map(m -> MaterialRecommendationDto.builder()
+                        .materialId(m.getMaterialId())
+                        .title(m.getTitle())
+                        .materialType(m.getMaterialType())
+                        .matchReason(String.format(
+                                "유사 성적대(%d점대) %d명의 학생이 선호하는 자료입니다.",
+                                (int) Math.round(myAvg), peerCount))
+                        .build())
+                .collect(Collectors.toList());
+
+        log.info("학생 {} 피어 콘텐츠 추천 완료 — 유사 학생 {}명, 추천 {}건", studentId, peerCount, result.size());
+        return result;
+    }
+
+    // 동일 목표를 달성한 선배 사용자들의 성공 경로 추천
+    public PeerSuccessPathDto recommendPeerSuccessPath(String studentId, String subject) {
+        List<Grade> myGrades = gradeRepository.findByStudentIdAndSubjectOrderByExamDateDesc(studentId, subject);
+        if (myGrades.isEmpty()) {
+            return PeerSuccessPathDto.builder()
+                    .subject(subject)
+                    .similarStudentsCount(0)
+                    .successMessage("성적 데이터가 없어 선배 경로를 분석할 수 없습니다.")
+                    .keyInsights(List.of())
+                    .build();
+        }
+
+        // 가장 오래된 점수 (DESC 정렬이므로 마지막 요소)
+        double myFirstScore = myGrades.get(myGrades.size() - 1).getScore();
+
+        // 해당 과목 전체 학생 성적 (날짜 오름차순)
+        List<Grade> allSubjectGrades = gradeRepository.findBySubjectOrderByExamDateAsc(subject);
+        Map<String, List<Grade>> byStudent = allSubjectGrades.stream()
+                .collect(Collectors.groupingBy(Grade::getStudentId));
+
+        // 시작 점수가 비슷하고(±15점) 10점 이상 향상된 "성공한 선배" 추출
+        List<double[]> successData = byStudent.entrySet().stream()
+                .filter(e -> !e.getKey().equals(studentId))
+                .filter(e -> e.getValue().size() >= 2)
+                .filter(e -> {
+                    double first = e.getValue().get(0).getScore();
+                    double last  = e.getValue().get(e.getValue().size() - 1).getScore();
+                    return Math.abs(first - myFirstScore) <= 15 && (last - first) >= 10;
+                })
+                .map(e -> {
+                    double first = e.getValue().get(0).getScore();
+                    double last  = e.getValue().get(e.getValue().size() - 1).getScore();
+                    return new double[]{first, last, last - first};
+                })
+                .collect(Collectors.toList());
+
+        if (successData.isEmpty()) {
+            return PeerSuccessPathDto.builder()
+                    .subject(subject)
+                    .similarStudentsCount(0)
+                    .avgInitialScore(myFirstScore)
+                    .successMessage("아직 유사 경로 데이터가 충분하지 않습니다. 더 많은 학생이 사용할수록 정확도가 높아집니다.")
+                    .keyInsights(List.of(
+                            "취약 개념을 먼저 파악하고 반복 학습하세요",
+                            "오답 노트를 꾸준히 작성하세요",
+                            "에빙하우스 복습 주기를 지켜 망각을 방지하세요"
+                    ))
+                    .build();
+        }
+
+        double avgFirst = successData.stream().mapToDouble(d -> d[0]).average().orElse(0);
+        double avgLast  = successData.stream().mapToDouble(d -> d[1]).average().orElse(0);
+        double avgImprovement = successData.stream().mapToDouble(d -> d[2]).average().orElse(0);
+
+        return PeerSuccessPathDto.builder()
+                .subject(subject)
+                .similarStudentsCount(successData.size())
+                .avgInitialScore(Math.round(avgFirst * 10) / 10.0)
+                .avgFinalScore(Math.round(avgLast * 10) / 10.0)
+                .avgImprovement(Math.round(avgImprovement * 10) / 10.0)
+                .studyStrategyPattern(String.format(
+                        "%s 과목에서 비슷한 시작점을 가진 선배 %d명이 평균 %.1f점 향상에 성공했습니다.",
+                        subject, successData.size(), avgImprovement))
+                .successMessage(String.format(
+                        "시작 점수 %.0f점대에서 최종 %.0f점대까지 성장한 선배들의 경로입니다.",
+                        avgFirst, avgLast))
+                .keyInsights(List.of(
+                        "취약 개념 집중 반복 학습이 공통 전략입니다",
+                        "오답 유형을 분류하고 유형별로 집중 훈련했습니다",
+                        "목표 점수를 먼저 정하고 역산하여 주간 학습량을 계획했습니다"
+                ))
+                .build();
+    }
+
+    private int scoreToLevel(double avgScore) {
+        if (avgScore >= 85) return 5;
+        if (avgScore >= 75) return 4;
+        if (avgScore >= 65) return 3;
+        if (avgScore >= 50) return 2;
+        return 1;
     }
 
     public List<WrongAnswerEntity> recommendDailyReview(Long studentId) {

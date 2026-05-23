@@ -1,6 +1,7 @@
 package com.i_route.backend.controller;
 
 import com.i_route.backend.dto.AnalysisReportDto;
+import com.i_route.backend.dto.MetaCognitionGapDto;
 import com.i_route.backend.dto.PredictedScoreDto;
 import com.i_route.backend.dto.StrengthAnalysisDto;
 import com.i_route.backend.dto.StudyPatternDto;
@@ -72,5 +73,16 @@ public class AnalysisReportController {
             @RequestParam Long studentId,
             @RequestParam Long subjectId) {
         return ResponseEntity.ok(predictionService.predictNextScore(studentId, subjectId));
+    }
+
+    /**
+     * GET /api/analysis/meta-cognition?studentId=S-0155&subject=수학
+     * 자기평가 vs 실제 성적 괴리 분석 — 메타인지 역량 진단
+     */
+    @GetMapping("/meta-cognition")
+    public ResponseEntity<MetaCognitionGapDto> getMetaCognitionGap(
+            @RequestParam String studentId,
+            @RequestParam String subject) {
+        return ResponseEntity.ok(reportAnalysisService.analyzeMetaCognitionGap(studentId, subject));
     }
 }

@@ -2,8 +2,10 @@ package com.i_route.backend.repository;
 
 import com.i_route.backend.entity.LearningActivity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
 
 public interface LearningActivityRepository extends JpaRepository<LearningActivity, Long> {
-    // 나중에 특정 학생의 최신 활동 내역을 조회할 때 사용합니다.
-    LearningActivity findFirstByStudentIdOrderByCreatedAtDesc(String studentId);
+    // 🌟 특정 학생의 학습 기록을 '날짜 최신순'으로 불러오는 메서드
+    List<LearningActivity> findByStudentIdOrderByStudyDateDesc(String studentId);
+    List<LearningActivity> findByStudentIdAndSubject(String studentId, String subject);
 }
