@@ -1,5 +1,6 @@
 package com.i_route.backend.service;
 
+import com.i_route.backend.dto.ReviewTodayDto;
 import com.i_route.backend.entity.AiRecommendation;
 import com.i_route.backend.repository.AiRecommendationRepository;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -35,6 +37,42 @@ public class ReviewSchedulerService {
     }
 
     /**
+     * 앱 실행 시 프론트엔드가 호출 — 오늘 복습해야 할 항목 반환
+     */
+    public ReviewTodayDto getTodayReviews(String studentId) {
+        LocalDate today = LocalDate.now();
+        List<ReviewTodayDto.ReviewItem> items = new ArrayList<>();
+
+        collectReviewItems(studentId, today.minusDays(1), "1일 차 복습", items);
+        collectReviewItems(studentId, today.minusDays(3), "3일 차 복습", items);
+        collectReviewItems(studentId, today.minusDays(7), "7일 차 복습", items);
+
+        return ReviewTodayDto.builder()
+                .studentId(studentId)
+                .hasReview(!items.isEmpty())
+                .reviews(items)
+                .build();
+    }
+
+    private void collectReviewItems(String studentId, LocalDate targetDate, String dayLabel,
+                                    List<ReviewTodayDto.ReviewItem> items) {
+        LocalDateTime start = targetDate.atStartOfDay();
+        LocalDateTime end = targetDate.atTime(LocalTime.MAX);
+
+        List<AiRecommendation> found = aiRecommendationRepository
+                .findByStudentIdAndCreatedAtBetween(studentId, start, end);
+
+        for (AiRecommendation rec : found) {
+            items.add(ReviewTodayDto.ReviewItem.builder()
+                    .title(rec.getTitle())
+                    .dayLabel(dayLabel)
+                    .originalDate(targetDate.toString())
+                    .message("복습할 내용이 있습니다: " + rec.getTitle())
+                    .build());
+        }
+    }
+
+    /**
      * 특정 날짜에 저장된 AI 족보를 조회하여 복습 알림을 보내는 내부 메서드
      */
     private void processReviewForDate(LocalDate targetDate, String dayLabel) {
@@ -53,9 +91,7 @@ public class ReviewSchedulerService {
 
         for (AiRecommendation review : reviews) {
             // TODO: 실제 프론트엔드(앱)로 푸시 알림(FCM 등)을 전송하는 로직 연결
-            log.info(" 🔔 알림 발송 -> 학생 ID: {}, 복습 내용 요약: {}...",
-                    review.getStudentId(),
-                    review.getRecommendedContext().substring(0, Math.min(review.getRecommendedContext().length(), 20)));
+            log.info("📢 복습 알림 발송 대상: 학생 ID = {}", review.getStudentId());
         }
     }
 }
