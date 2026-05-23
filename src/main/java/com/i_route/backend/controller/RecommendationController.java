@@ -1,6 +1,8 @@
 package com.i_route.backend.controller;
 
 import com.i_route.backend.dto.MaterialRecommendationDto;
+import com.i_route.backend.dto.PeerSuccessPathDto;
+import com.i_route.backend.dto.StudyMethodDto;
 import com.i_route.backend.dto.StudyRoadmapDto;
 import com.i_route.backend.entity.WrongAnswerEntity;
 import com.i_route.backend.service.AiRecommendationService;
@@ -45,5 +47,37 @@ public class RecommendationController {
     public ResponseEntity<List<WrongAnswerEntity>> getDailyReviewTasks(
             @RequestParam Long studentId) {
         return ResponseEntity.ok(aiRecommendationService.recommendDailyReview(studentId));
+    }
+
+    /**
+     * GET /api/recommendations/study-method?studentId={id}&subjectId={id}
+     * 학습 성향(VISUAL/AUDITORY/KINESTHETIC) 기반 맞춤 공부법 제안
+     */
+    @GetMapping("/study-method")
+    public ResponseEntity<StudyMethodDto> getStudyMethod(
+            @RequestParam Long studentId,
+            @RequestParam Long subjectId) {
+        return ResponseEntity.ok(aiRecommendationService.suggestStudyMethod(studentId, subjectId));
+    }
+
+    /**
+     * GET /api/recommendations/peer-content?studentId={id}
+     * 유사 성적대 학생들이 선호하는 고효율 콘텐츠 매칭
+     */
+    @GetMapping("/peer-content")
+    public ResponseEntity<List<MaterialRecommendationDto>> getPeerContent(
+            @RequestParam String studentId) {
+        return ResponseEntity.ok(aiRecommendationService.recommendByPeerContent(studentId));
+    }
+
+    /**
+     * GET /api/recommendations/peer-path?studentId={id}&subject={subject}
+     * 동일 목표를 달성한 선배 학생들의 성공 학습 경로 추천
+     */
+    @GetMapping("/peer-path")
+    public ResponseEntity<PeerSuccessPathDto> getPeerSuccessPath(
+            @RequestParam String studentId,
+            @RequestParam String subject) {
+        return ResponseEntity.ok(aiRecommendationService.recommendPeerSuccessPath(studentId, subject));
     }
 }
