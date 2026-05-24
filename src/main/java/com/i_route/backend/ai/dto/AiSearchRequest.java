@@ -1,4 +1,4 @@
-﻿package com.i_route.backend.ai.dto;
+package com.i_route.backend.ai.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
