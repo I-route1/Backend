@@ -2,20 +2,25 @@ package com.i_route.backend.ai.service;
 
 import com.i_route.backend.ai.dto.AnalysisReportDto;
 import com.i_route.backend.ai.dto.MetaCognitionGapDto;
+import com.i_route.backend.ai.dto.RiskDetectionDto;
 import com.i_route.backend.ai.dto.StrengthAnalysisDto;
 import com.i_route.backend.ai.dto.StudyPatternDto;
+import com.i_route.backend.ai.entity.ErrorType;
 import com.i_route.backend.ai.entity.Grade;
 import com.i_route.backend.ai.entity.GradeEntity;
 import com.i_route.backend.ai.entity.LearningActivity;
 import com.i_route.backend.ai.entity.StudyLogEntity;
+import com.i_route.backend.ai.entity.WrongAnswer;
 import com.i_route.backend.ai.repository.GradeEntityRepository;
 import com.i_route.backend.ai.repository.GradeRepository;
 import com.i_route.backend.ai.repository.LearningActivityRepository;
 import com.i_route.backend.ai.repository.StudyLogRepository;
+import com.i_route.backend.ai.repository.WrongAnswerRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -29,6 +34,7 @@ public class ReportAnalysisService {
     private final GradeEntityRepository gradeEntityRepository;
     private final StudyLogRepository studyLogRepository;
     private final LearningActivityRepository learningActivityRepository;
+    private final WrongAnswerRepository wrongAnswerRepository;
 
     // 기존 String 기반 API — 표준편차·전회 대비 변동 추가
     public AnalysisReportDto getAnalysisReport(String studentId, String subject) {
@@ -54,6 +60,17 @@ public class ReportAnalysisService {
             trend = scoreChange > 0 ? "상승" : (scoreChange < 0 ? "하락" : "유지");
         }
 
+        // 오류 유형 분포 집계
+        List<WrongAnswer> wrongAnswers = wrongAnswerRepository.findTopWeaknessByStudentIdAndSubject(studentId, subject);
+        Map<ErrorType, Long> errorTypeCounts = wrongAnswers.stream()
+                .filter(w -> w.getErrorType() != null)
+                .collect(Collectors.groupingBy(WrongAnswer::getErrorType, Collectors.counting()));
+
+        String errorTypeSummary = errorTypeCounts.isEmpty() ? "" :
+                " 오류 유형: " + errorTypeCounts.entrySet().stream()
+                        .map(e -> errorTypeLabel(e.getKey()) + " " + e.getValue() + "건")
+                        .collect(Collectors.joining(", ")) + ".";
+
         return AnalysisReportDto.builder()
                 .subjectName(latestGrade.getSubject())
                 .myPercentile(latestGrade.getPercentile())
@@ -62,7 +79,7 @@ public class ReportAnalysisService {
                 .scoreChangeFromPrevious(scoreChange)
                 .trendSummary(trend)
                 .weakPointSummary(String.format("현재 %s 시험에서 '%s' 개념의 오답률이 높아 취약 단원으로 식별되었습니다.",
-                        latestGrade.getExamType(), latestGrade.getWeakConceptTag()))
+                        latestGrade.getExamType(), latestGrade.getWeakConceptTag()) + errorTypeSummary)
                 .build();
     }
 
@@ -74,6 +91,15 @@ public class ReportAnalysisService {
                 .average()
                 .orElse(0.0);
         return Math.sqrt(variance);
+    }
+
+    private String errorTypeLabel(ErrorType type) {
+        return switch (type) {
+            case CONCEPT_GAP -> "개념 부족";
+            case CALCULATION_ERROR -> "계산 실수";
+            case CARELESS_MISTAKE -> "부주의 실수";
+            case MEMORIZATION_GAP -> "암기 부족";
+        };
     }
 
     // 신규: Long 기반 특정 시험 종합 리포트
@@ -113,7 +139,7 @@ public class ReportAnalysisService {
             return StudyPatternDto.builder()
                     .studentId(studentId)
                     .goldenTime("데이터 없음")
-                    .subjectStudyMinutes(Map.of())
+                    .subjectStudyMinutes(Map.<String, Integer>of())
                     .studyBalanceSummary("아직 학습 기록이 없습니다.")
                     .build();
         }
@@ -131,10 +157,10 @@ public class ReportAnalysisService {
                 .map(e -> e.getKey() + "시~" + (e.getKey() + 1) + "시")
                 .orElse("분석 불가");
 
-        // 과목별 총 학습 시간
-        Map<Long, Integer> subjectMinutes = logs.stream()
+        // 과목별 총 학습 시간 (subjectId → String 키로 통일)
+        Map<String, Integer> subjectMinutes = logs.stream()
                 .collect(Collectors.groupingBy(
-                        StudyLogEntity::getSubjectId,
+                        l -> String.valueOf(l.getSubjectId()),
                         Collectors.summingInt(l -> l.getDurationMinutes() != null ? l.getDurationMinutes() : 0)
                 ));
 
@@ -146,6 +172,50 @@ public class ReportAnalysisService {
 
         return StudyPatternDto.builder()
                 .studentId(studentId)
+                .goldenTime(goldenTime)
+                .subjectStudyMinutes(subjectMinutes)
+                .studyBalanceSummary(summary)
+                .build();
+    }
+
+    // 신규: 학습 패턴 분석 (String studentId 기반 — LearningActivity.studyStartTime 사용)
+    public StudyPatternDto analyzeStudyPatternByStudentId(String studentId) {
+        List<LearningActivity> activities = learningActivityRepository.findByStudentId(studentId);
+
+        if (activities.isEmpty()) {
+            return StudyPatternDto.builder()
+                    .goldenTime("데이터 없음")
+                    .subjectStudyMinutes(Map.of())
+                    .studyBalanceSummary("아직 학습 기록이 없습니다.")
+                    .build();
+        }
+
+        Map<Integer, Integer> hourlyMinutes = activities.stream()
+                .filter(a -> a.getStudyStartTime() != null)
+                .collect(Collectors.groupingBy(
+                        a -> a.getStudyStartTime().getHour(),
+                        Collectors.summingInt(LearningActivity::getStudyDurationMinutes)
+                ));
+
+        String goldenTime = hourlyMinutes.isEmpty() ? "시간 데이터 없음" :
+                hourlyMinutes.entrySet().stream()
+                        .max(Map.Entry.comparingByValue())
+                        .map(e -> e.getKey() + "시~" + (e.getKey() + 1) + "시")
+                        .orElse("분석 불가");
+
+        Map<String, Integer> subjectMinutes = activities.stream()
+                .collect(Collectors.groupingBy(
+                        LearningActivity::getSubject,
+                        Collectors.summingInt(LearningActivity::getStudyDurationMinutes)
+                ));
+
+        int totalMinutes = subjectMinutes.values().stream().mapToInt(Integer::intValue).sum();
+        String summary = String.format("총 학습 시간 %d분 | 집중 골든타임: %s | 과목 수: %d개",
+                totalMinutes, goldenTime, subjectMinutes.size());
+
+        log.info("학생 {} 학습 패턴 분석 완료 (LearningActivity 기반) - 골든타임: {}", studentId, goldenTime);
+
+        return StudyPatternDto.builder()
                 .goldenTime(goldenTime)
                 .subjectStudyMinutes(subjectMinutes)
                 .studyBalanceSummary(summary)
@@ -211,6 +281,54 @@ public class ReportAnalysisService {
                 .gapLevel(gapLevel)
                 .gapSummary(summary)
                 .advice(advice)
+                .build();
+    }
+
+    // 신규: 위험 학생 탐지 (연속 성적 하락 감지)
+    public RiskDetectionDto analyzeRisk(String studentId) {
+        List<String> subjects = gradeRepository.findDistinctSubjectsByStudentId(studentId);
+        List<RiskDetectionDto.SubjectRisk> subjectRisks = new ArrayList<>();
+
+        for (String subject : subjects) {
+            List<Grade> grades = gradeRepository.findByStudentIdAndSubjectOrderByExamDateDesc(studentId, subject);
+            if (grades.size() < 3) continue;
+
+            int drops = 0;
+            for (int i = 0; i < grades.size() - 1; i++) {
+                if (grades.get(i).getScore() < grades.get(i + 1).getScore()) {
+                    drops++;
+                } else {
+                    break;
+                }
+            }
+
+            if (drops >= 2) {
+                double dropAmount = grades.get(drops).getScore() - grades.get(0).getScore();
+                subjectRisks.add(RiskDetectionDto.SubjectRisk.builder()
+                        .subject(subject)
+                        .consecutiveDrops(drops)
+                        .dropAmount(Math.abs(dropAmount))
+                        .message(String.format("%s 과목에서 %d회 연속 성적이 %.0f점 하락했습니다.", subject, drops, Math.abs(dropAmount)))
+                        .build());
+            }
+        }
+
+        boolean atRisk = !subjectRisks.isEmpty();
+        String riskLevel = subjectRisks.stream().anyMatch(r -> r.getConsecutiveDrops() >= 3) ? "HIGH"
+                : atRisk ? "LOW" : "NONE";
+
+        String summary = atRisk
+                ? String.format("주의 필요: %d개 과목에서 연속 성적 하락이 감지되었습니다.", subjectRisks.size())
+                : "성적 하락 위험 신호가 감지되지 않았습니다.";
+
+        log.info("학생 {} 위험도 분석 완료 - 레벨: {}", studentId, riskLevel);
+
+        return RiskDetectionDto.builder()
+                .studentId(studentId)
+                .atRisk(atRisk)
+                .riskLevel(riskLevel)
+                .riskSummary(summary)
+                .subjectRisks(subjectRisks)
                 .build();
     }
 

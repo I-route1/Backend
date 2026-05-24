@@ -3,6 +3,7 @@ package com.i_route.backend.ai.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Entity
 @Getter
@@ -20,6 +21,8 @@ public class LearningActivity {
     private String subject;             // 학습 과목 (예: 국어, 수학, 영어)
 
     private LocalDate studyDate;        // 학습 진행 일자
+
+    private LocalTime studyStartTime;   // 학습 시작 시각 (골든타임 분석용)
 
     private int studyDurationMinutes;   // 앱 접속/학습 지속 시간 (분 단위)
 
