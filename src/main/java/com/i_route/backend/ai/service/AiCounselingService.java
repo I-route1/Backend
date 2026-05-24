@@ -5,6 +5,7 @@ import com.i_route.backend.ai.dto.AiReportResponse;
 import com.i_route.backend.ai.entity.AiRecommendation;
 import com.i_route.backend.ai.entity.StudentInfo;
 import com.i_route.backend.ai.repository.AiRecommendationRepository;
+import com.i_route.backend.ai.repository.LearningActivityRepository;
 import com.i_route.backend.ai.repository.StudentInfoRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -23,17 +24,19 @@ import java.util.List;
 // ❌ @RequiredArgsConstructor 제거 (수동 생성자와의 충돌 방지)
 public class AiCounselingService {
 
-    private final WebClient fastApiWebClient; // 3분 타임아웃 설정을 담을 변수
+    private final WebClient fastApiWebClient;
     private final AiRecommendationRepository aiRecommendationRepository;
     private final StudentInfoRepository studentInfoRepository;
+    private final LearningActivityRepository learningActivityRepository;
 
-    // ⭕ 수동 생성자에서 @Qualifier로 3분짜리 빈을 정확히 매칭한 후, 위의 fastApiWebClient 필드에 대입합니다.
     public AiCounselingService(@Qualifier("fastApiWebClient") WebClient webClient,
                                AiRecommendationRepository aiRecommendationRepository,
-                               StudentInfoRepository studentInfoRepository) {
-        this.fastApiWebClient = webClient; // 👈 이름 매칭 수정!
+                               StudentInfoRepository studentInfoRepository,
+                               LearningActivityRepository learningActivityRepository) {
+        this.fastApiWebClient = webClient;
         this.aiRecommendationRepository = aiRecommendationRepository;
         this.studentInfoRepository = studentInfoRepository;
+        this.learningActivityRepository = learningActivityRepository;
     }
 
     // 1️⃣ [수학 메타인지 모델 가동]
@@ -59,18 +62,27 @@ public class AiCounselingService {
 
     // 🔍 [리액티브 특화 방어막] DB 블로킹 조회 격리
     private Mono<AiReportRequest> fetchRealStudentData(String studentId) {
-        return Mono.fromCallable(() -> studentInfoRepository.findById(studentId)
-                        .orElseThrow(() -> new ResponseStatusException(
-                                HttpStatus.NOT_FOUND, "DB에 존재하지 않는 학생 ID입니다: " + studentId
-                        )))
-                .subscribeOn(Schedulers.boundedElastic())
-                .map(studentInfo -> AiReportRequest.builder()
-                        .studentId(studentInfo.getStudentId())
-                        .currentKoreanGrade(studentInfo.getCurrentKoreanGrade())
-                        .studyTime(studentInfo.getStudyTime())
-                        .studentNote(studentInfo.getStudentNote())
-                        .recommendContext(studentInfo.getRecommendContext())
-                        .build());
+        return Mono.fromCallable(() -> {
+                    StudentInfo studentInfo = studentInfoRepository.findById(studentId)
+                            .orElseThrow(() -> new ResponseStatusException(
+                                    HttpStatus.NOT_FOUND, "DB에 존재하지 않는 학생 ID입니다: " + studentId
+                            ));
+
+                    String latestFeedback = learningActivityRepository
+                            .findFirstByStudentIdAndInstructorFeedbackIsNotNullOrderByStudyDateDesc(studentId)
+                            .map(activity -> activity.getInstructorFeedback())
+                            .orElse(null);
+
+                    return AiReportRequest.builder()
+                            .studentId(studentInfo.getStudentId())
+                            .currentKoreanGrade(studentInfo.getCurrentKoreanGrade())
+                            .studyTime(studentInfo.getStudyTime())
+                            .studentNote(studentInfo.getStudentNote())
+                            .recommendContext(studentInfo.getRecommendContext())
+                            .instructorFeedback(latestFeedback)
+                            .build();
+                })
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     // 🔄 공통 파이썬 통신 + 비동기 DB 저장 헬퍼 메서드
