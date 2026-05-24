@@ -1,12 +1,15 @@
 package com.i_route.backend.ai.service;
 
+import com.i_route.backend.ai.dto.FeedbackRequest;
 import com.i_route.backend.ai.dto.LearningActivityRequest;
 import com.i_route.backend.ai.dto.LearningActivityResponse;
 import com.i_route.backend.ai.entity.LearningActivity;
 import com.i_route.backend.ai.repository.LearningActivityRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -41,5 +44,14 @@ public class LearningActivityService {
                 .stream()
                 .map(LearningActivityResponse::from)
                 .collect(Collectors.toList());
+    }
+
+    // 🌟 강사 피드백 수정
+    @Transactional
+    public LearningActivityResponse updateFeedback(Long activityId, FeedbackRequest request) {
+        LearningActivity activity = learningActivityRepository.findById(activityId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "학습 기록을 찾을 수 없습니다."));
+        activity.updateFeedback(request.getInstructorFeedback());
+        return LearningActivityResponse.from(activity);
     }
 }
