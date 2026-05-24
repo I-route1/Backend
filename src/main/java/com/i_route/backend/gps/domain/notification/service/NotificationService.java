@@ -27,20 +27,12 @@ public class NotificationService {
         System.out.println("[FCM] 학생 하차 알림 studentId=" + studentId);
     }
 
-    public void sendLateRisk(
-            Long studentId,
-            Integer delayMinutes
-    ) {
+    public void sendLateRisk(Long studentId, Integer delayMinutes) {
         if (!dedupRepository.canSend(NotificationType.LATE_RISK, studentId)) {
             return;
         }
 
-        System.out.println(
-                "[FCM] 지각 위험 알림 studentId="
-                        + studentId
-                        + ", delay="
-                        + delayMinutes
-        );
+        System.out.println("[FCM] 지각 위험 알림 studentId=" + studentId + ", delay=" + delayMinutes);
     }
 
     public void sendAbnormalStop(Long busId) {
