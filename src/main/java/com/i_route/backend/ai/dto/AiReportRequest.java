@@ -15,4 +15,5 @@ public class AiReportRequest {
     private Double studyTime;
     private String studentNote;
     private String recommendContext;
+    private String instructorFeedback;
 }
