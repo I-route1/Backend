@@ -285,6 +285,20 @@ Content-Type: application/json
 > Python AI 서버(`http://localhost:8082`)와 연동되는 비동기 API입니다.  
 > AI 서버가 실행 중이지 않으면 오류가 발생합니다.
 
+**AI 분석 데이터 구성**
+
+리포트 생성 시 다음 데이터를 자동으로 수집하여 Python AI 서버로 전송합니다.
+
+| 데이터 | 출처 | 설명 |
+|--------|------|------|
+| `currentKoreanGrade` | StudentInfo | 현재 국어 성적 |
+| `studyTime` | StudentInfo | 평균 학습 시간 |
+| `studentNote` | StudentInfo | 학생 특이사항 |
+| `recommendContext` | StudentInfo | 추천 컨텍스트 |
+| `instructorFeedback` | LearningActivity | 가장 최근 강사 피드백 (없으면 null) |
+
+---
+
 ### 3-1. 수학 메타인지 분석 리포트
 
 ```
@@ -319,6 +333,13 @@ POST /api/counseling/premium?studentId={studentId}
   "learningGuide": "개념 위주의 반복 학습을 권장합니다..."
 }
 ```
+
+**Error**
+
+| 상태코드 | 설명 |
+|----------|------|
+| `404 Not Found` | 존재하지 않는 학생 ID |
+| `503 Service Unavailable` | Python AI 서버 연결 실패 |
 
 ---
 
