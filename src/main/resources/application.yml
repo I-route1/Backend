@@ -12,3 +12,15 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+  mvc:
+    async:
+      request-timeout: 180000
+
+server:
+  error:
+    include-message=always:
+
+ai:
+  server:
+    url: http://localhost:8082

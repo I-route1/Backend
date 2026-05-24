@@ -1,11 +1,123 @@
-### i-Route 프리미엄 AI 리포트 통신 테스트
-POST http://localhost:8080/api/counseling/generate-report
+### 5. 비교 분석용 세 번째 성적 입력 (2학기 중간고사)
+POST http://localhost:8080/api/grades
 Content-Type: application/json
 
 {
   "studentId": "S-6750",
-  "currentKoreanGrade": 15.5,
-  "studyHours": 3.5,
-  "studentNote": "수학은 재미있는데 국어 비문학 읽을 때 집중이 너무 안 돼요.",
-  "teacherFeedback": "열정은 있으나 가끔 감정적임, 방송부 활동 중"
+  "subject": "국어",
+  "score": 90,
+  "gradeLevel": 1,
+  "examType": "2학기 중간고사",
+  "examDate": "2026-10-19"
 }
+
+### 6. 대망의 성적 분석 리포트 조회 테스트 (GET)
+GET http://localhost:8080/api/grades/S-6750/analysis
+Accept: application/json
+
+### 7. 학습 기록 저장 테스트 (POST)
+POST http://localhost:8080/api/activities
+Content-Type: application/json
+
+{
+  "studentId": "S-6750",
+  "subject": "국어",
+  "studyDate": "2026-05-23",
+  "studyDurationMinutes": 120,
+  "understandingScore": 4,
+  "concentrationScore": 5,
+  "instructorFeedback": "집중력이 매우 높고, 개념 이해도가 빠른 편임."
+}
+
+###
+
+### 8. 학습 기록 조회 테스트 (GET)
+GET http://localhost:8080/api/activities/S-6750
+Accept: application/json
+
+### 9. AI 프리미엄 리포트 생성 요청 테스트 (POST)
+POST http://localhost:8080/api/counseling/report
+Content-Type: application/json
+
+{
+  "studentId": "S-6750",
+  "currentKoreanGrade": 90.0,
+  "studyTime": 120.0,
+  "studentNote": "국어 성적이 꾸준히 오르고 있는데, 앞으로 학습 방향을 어떻게 잡아야 할까?",
+  "recommendContext": "학습 의지가 강함"
+}
+
+### 9-1. [수학 LLM] 메타인지 리포트 생성 (iroute-math-llm-v2-16bit)
+POST http://localhost:8080/api/counseling/math?studentId=S-0155
+Content-Type: application/json
+
+{
+  "studentId": "S-6750",
+  "currentKoreanGrade": 90.0,
+  "studyTime": 120.0,
+  "studentNote": "수학 삼각함수 단원이 취약한 것 같습니다. 스스로는 잘 안다고 생각했는데 점수가 안 나와요.",
+  "recommendContext": "수학 메타인지 집중 분석 필요"
+}
+
+###
+
+### 9-2. [진로/작문 AI] 진로 탐색 리포트 생성 (iroute-writing-ai)
+POST http://localhost:8080/api/counseling/writing?studentId=S-0155
+Content-Type: application/json
+
+{
+  "studentId": "S-6750",
+  "currentKoreanGrade": 90.0,
+  "studyTime": 120.0,
+  "studentNote": "컴퓨터 공학이나 데이터 사이언스 분야로 진로를 희망하고 있습니다.",
+  "recommendContext": "IT/소프트웨어 진로 성향 매칭"
+}
+
+### 9-3. [AI 프리미엄] 프리미엄 통합 리포트 생성 테스트 (POST)
+POST http://localhost:8080/api/counseling/report/premium
+Content-Type: application/json
+
+{
+  "studentId": "S-6750",
+  "currentKoreanGrade": 90.0,
+  "studyTime": 120.0,
+  "studentNote": "국어와 수학 성적이 전체적으로 균형을 이루고 있으나 통합적인 학습 가이드라인이 필요합니다.",
+  "recommendContext": "종합 프리미엄 리포트 집중 분석 요망"
+}
+
+
+### 진짜 S-0115 학생 데이터 기반 프리미엄 통합 리포트 생성
+POST http://localhost:8080/api/counseling/premium?studentId=S-0155
+Content-Type: application/json
+
+
+### 1. S-0155 학생의 수학 성적 샘플 데이터 등록
+POST http://localhost:8080/api/grades
+Content-Type: application/json
+
+{
+  "studentId": "S-0155",
+  "subject": "수학",
+  "score": 85,
+  "gradeLevel": 2,
+  "percentile": 89.5,
+  "examType": "3월모의고사",
+  "examDate": "2026-03-12",
+  "weakConceptTag": "삼각함수-활용"
+}
+
+### 📊 신규 성적 분석 및 시계열 통계 리포트 조회
+GET http://localhost:8080/api/analysis/report?studentId=S-0155&subject=수학
+Accept: application/json
+
+### ❌ 1. S-0155 학생이 수학 지수함수 문제를 처음 틀렸을 때 (fail_count = 1 기대)
+POST http://localhost:8080/api/wrong-answer/record?studentId=S-0155&subject=수학&questionId=Q-MATH-001&conceptTag=지수함수와 로그함수
+
+### ❌ 2. 동일한 문제를 한 번 더 틀렸을 때 (fail_count = 2로 업데이트되는지 확인)
+POST http://localhost:8080/api/wrong-answer/record?studentId=S-0155&subject=수학&questionId=Q-MATH-001&conceptTag=지수함수와 로그함수
+
+### 🤖 [통합 테스트] 파이썬 AI 서버가 자바 데이터를 가져와서 유사 문제 추천받기
+POST http://localhost:8082/api/ai/report/subject-recommend?student_id=S-0155&subject=수학
+
+####
+POST http://localhost:8082/api/ai/report/subject-recommend?student_id=S-0155&subject=과학
