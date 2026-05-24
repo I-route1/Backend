@@ -31,4 +31,8 @@ public interface GradeRepository extends JpaRepository<Grade, Long> {
 
     // 선배 성공 경로용 — 특정 과목 전체 성적 (날짜 오름차순)
     List<Grade> findBySubjectOrderByExamDateAsc(String subject);
+
+    // 위험 학생 탐지용 — 특정 학생의 과목 목록
+    @Query("SELECT DISTINCT g.subject FROM Grade g WHERE g.studentId = :studentId")
+    List<String> findDistinctSubjectsByStudentId(@Param("studentId") String studentId);
 }

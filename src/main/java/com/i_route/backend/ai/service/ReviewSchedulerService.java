@@ -2,7 +2,9 @@ package com.i_route.backend.ai.service;
 
 import com.i_route.backend.ai.dto.ReviewTodayDto;
 import com.i_route.backend.ai.entity.AiRecommendation;
+import com.i_route.backend.ai.entity.ReviewNotification;
 import com.i_route.backend.ai.repository.AiRecommendationRepository;
+import com.i_route.backend.ai.repository.ReviewNotificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -20,6 +22,7 @@ import java.util.List;
 public class ReviewSchedulerService {
 
     private final AiRecommendationRepository aiRecommendationRepository;
+    private final ReviewNotificationRepository reviewNotificationRepository;
 
     // 매일 아침 9시 정각에 자동 실행
     @Scheduled(cron = "0 0 9 * * *")
@@ -73,6 +76,37 @@ public class ReviewSchedulerService {
     }
 
     /**
+     * 프론트엔드 요청 — 특정 학생의 에빙하우스 복습 알림을 즉시 생성
+     */
+    public int triggerReviewNotificationsForStudent(String studentId) {
+        LocalDate today = LocalDate.now();
+        int count = 0;
+        count += createNotificationsForStudent(studentId, today.minusDays(1), "1일 차");
+        count += createNotificationsForStudent(studentId, today.minusDays(3), "3일 차");
+        count += createNotificationsForStudent(studentId, today.minusDays(7), "7일 차");
+        log.info("학생 {} 복습 알림 {}건 생성 완료", studentId, count);
+        return count;
+    }
+
+    private int createNotificationsForStudent(String studentId, LocalDate targetDate, String dayLabel) {
+        LocalDateTime start = targetDate.atStartOfDay();
+        LocalDateTime end = targetDate.atTime(LocalTime.MAX);
+
+        List<AiRecommendation> recs = aiRecommendationRepository
+                .findByStudentIdAndCreatedAtBetween(studentId, start, end);
+
+        for (AiRecommendation rec : recs) {
+            String title = rec.getTitle() != null ? rec.getTitle() : "[" + dayLabel + "] 복습 알림";
+            reviewNotificationRepository.save(ReviewNotification.builder()
+                    .studentId(studentId)
+                    .title(title)
+                    .message(dayLabel + " 복습할 내용이 있습니다: " + title)
+                    .build());
+        }
+        return recs.size();
+    }
+
+    /**
      * 특정 날짜에 저장된 AI 족보를 조회하여 복습 알림을 보내는 내부 메서드
      */
     private void processReviewForDate(LocalDate targetDate, String dayLabel) {
@@ -90,8 +124,16 @@ public class ReviewSchedulerService {
         log.info("📅 [{} 복습] {} 날짜의 복습 대상자 {}명 발견!", dayLabel, targetDate, reviews.size());
 
         for (AiRecommendation review : reviews) {
-            // TODO: 실제 프론트엔드(앱)로 푸시 알림(FCM 등)을 전송하는 로직 연결
-            log.info("📢 복습 알림 발송 대상: 학생 ID = {}", review.getStudentId());
+            String title = review.getTitle() != null ? review.getTitle() : "[" + dayLabel + "] 복습 알림";
+            String message = dayLabel + " 복습할 내용이 있습니다: " + title;
+
+            ReviewNotification notification = ReviewNotification.builder()
+                    .studentId(review.getStudentId())
+                    .title(title)
+                    .message(message)
+                    .build();
+            reviewNotificationRepository.save(notification);
+            log.info("📢 인앱 복습 알림 저장 완료: 학생 ID = {}", review.getStudentId());
         }
     }
 }
