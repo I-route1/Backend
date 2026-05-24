@@ -1,4 +1,16 @@
 spring:
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: tjrgml8435@yu.ac.kr
+    password: "jh@9400821"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
   datasource:
     url: jdbc:mysql://localhost:3306/i_route_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
     username: ${I_ROUTE_DB_USERNAME}
@@ -12,6 +24,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
+<<<<<<< HEAD
 
   data:
     redis:
@@ -26,3 +39,23 @@ spring:
   logging:
     level:
       org.hibernate.SQL: debug
+=======
+  data:
+    web:
+      pageable:
+        default-page-size: 10
+        max-page-size: 100
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 1800000
+  refresh-expiration: 1209600000
+
+kakao:
+  client-id: ${KAKAO_CLIENT_ID}
+  redirect-uri: ${KAKAO_REDIRECT_URI}
+
+email:
+  verification-expiration: 3600
+  base-url: "http://localhost:8080"
+>>>>>>> origin/develop

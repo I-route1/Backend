@@ -4,9 +4,16 @@
 |------|--------------|
 | **Java** | 17           |
 | **JDK** | 22.0.2       | 
+<<<<<<< HEAD
 | **Spring Boot** | 4.0.6        | 
 | **Gradle** | 9.4.1 |
 | **MySQL** | 8.4.7          |
+=======
+| **Spring Boot** | 3.5.6         | 
+| **Gradle** | Gradle 9.4.1 |
+| **MySQL** | ...          |
+| **Docker** | ...          |
+>>>>>>> origin/develop
 ---
 
 ## 실행 방법
