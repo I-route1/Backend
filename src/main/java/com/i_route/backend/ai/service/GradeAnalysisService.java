@@ -27,7 +27,7 @@ public class GradeAnalysisService {
     /**
      * [규칙 기반 처리 + AI 연동 + DB 저장]
      */
-    public void processStudentGrade(int studentScore, List<Integer> allScores, String weakConceptTag) {
+    public void processStudentGrade(String studentId, int studentScore, List<Integer> allScores, String weakConceptTag) {
         log.info("📊 [규칙 기반 엔지니어링] 성적 분석 시작...");
 
         // 1. 순수 자바(규칙 기반)로 평균 및 표준편차 초고속 계산
@@ -53,8 +53,7 @@ public class GradeAnalysisService {
                     log.info("🎯 [AI 서버 응답 도착] 맞춤형 복습 족보 데이터 수신 완료! 건수: {}건", recommendedContexts.size());
 
                     // 🌟 TODO 해결: 수신한 족보(Contexts)를 DB 테이블에 실시간 매핑 및 저장
-                    // 지금은 테스트용 임시 학생 ID를 사용합니다. (추후 로그인 세션과 연동)
-                    String currentStudentId = "test_student_001";
+                    String currentStudentId = studentId;
 
                     for (String context : recommendedContexts) {
                         AiRecommendation recommendation = AiRecommendation.builder()

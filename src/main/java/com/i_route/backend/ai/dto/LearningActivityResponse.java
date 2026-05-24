@@ -4,6 +4,7 @@ import com.i_route.backend.ai.entity.LearningActivity;
 import lombok.Builder;
 import lombok.Getter;
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Getter
 @Builder
@@ -11,6 +12,7 @@ public class LearningActivityResponse {
     private Long id;
     private String subject;
     private LocalDate studyDate;
+    private LocalTime studyStartTime;
     private int studyDurationMinutes;
     private int understandingScore;
     private int concentrationScore;
@@ -22,6 +24,7 @@ public class LearningActivityResponse {
                 .id(activity.getId())
                 .subject(activity.getSubject())
                 .studyDate(activity.getStudyDate())
+                .studyStartTime(activity.getStudyStartTime())
                 .studyDurationMinutes(activity.getStudyDurationMinutes())
                 .understandingScore(activity.getUnderstandingScore())
                 .concentrationScore(activity.getConcentrationScore())
