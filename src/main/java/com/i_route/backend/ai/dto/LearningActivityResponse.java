@@ -1,4 +1,4 @@
-﻿package com.i_route.backend.ai.dto;
+package com.i_route.backend.ai.dto;
 
 import com.i_route.backend.ai.entity.LearningActivity;
 import lombok.Builder;

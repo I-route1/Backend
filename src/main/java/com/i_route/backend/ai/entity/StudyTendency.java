@@ -1,4 +1,4 @@
-﻿package com.i_route.backend.ai.entity;
+package com.i_route.backend.ai.entity;
 
 public enum StudyTendency {
     VISUAL,      // 시각형
