@@ -79,13 +79,13 @@ public class EtaService {
 
         if (lateRisk) {
             notificationService.sendLateRisk(
-                    student.getId(),
+                    student.getStudentId(),
                     delayMinutes
             );
         }
 
         return EtaResponse.builder()
-                .studentId(student.getId())
+                .studentId(student.getStudentId())
                 .studentName(student.getName())
                 .stopId(targetStop.getId())
                 .stopName(targetStop.getStopName())
