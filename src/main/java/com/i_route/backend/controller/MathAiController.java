@@ -1,27 +1,35 @@
 package com.i_route.backend.controller;
 
-import com.i_route.backend.dto.AiDto;
-import com.i_route.backend.service.MathAiService;
+import com.i_route.backend.dto.AiReportRequest;
+import com.i_route.backend.dto.AiReportResponse;
+import com.i_route.backend.service.AiCounselingService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping("/api/ai")
+@RequestMapping("/api/counseling")
 @RequiredArgsConstructor
 public class MathAiController {
 
-    private final MathAiService mathAiService;
+    private final AiCounselingService aiCounselingService;
 
-    /**
-     * 리액트(Frontend)에서 수학 질문을 보낼 통로
-     * 주소: POST http://localhost:8080/api/ai/math
-     */
+    // 📐 1. 수학 메타인지 분석 리포트 API
     @PostMapping("/math")
-    public Mono<String> askMathQuestion(@RequestBody AiDto.Request request) {
-        return mathAiService.getMathExplanation(request.getQuestion());
+    public Mono<AiReportResponse> generateMathReport(@RequestParam("studentId") String studentId) {
+        return aiCounselingService.generateMathReport(studentId);
+    }
+
+    // ✍️ 2. 인공지능 기반 진로 탐색 리포트 API
+    @PostMapping("/writing")
+    public Mono<AiReportResponse> generateWritingReport(@RequestParam("studentId") String studentId) {
+        return aiCounselingService.generateWritingReport(studentId);
+    }
+
+    // 🚀 3. i-Route 프리미엄 통합 리포트 API
+    @PostMapping("/premium") // 👈 여기가 /premium 인지 확인!
+    public Mono<AiReportResponse> generatePremiumReport(@RequestParam("studentId") String studentId) {
+        return aiCounselingService.generatePremiumReport(studentId);
     }
 }

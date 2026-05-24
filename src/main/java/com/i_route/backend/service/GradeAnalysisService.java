@@ -59,7 +59,7 @@ public class GradeAnalysisService {
                     for (String context : recommendedContexts) {
                         AiRecommendation recommendation = AiRecommendation.builder()
                                 .studentId(currentStudentId)
-                                .recommendedContext(context)
+                                .careerAnalysis(context)
                                 .build();
 
                         // JPA를 통해 DB에 꽂아 넣기

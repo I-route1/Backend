@@ -1,13 +1,13 @@
 package com.i_route.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
+@Builder // 🔥 클래스 레벨 빌더
+@AllArgsConstructor // 🔥 빌더 짝꿍 추가!
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AiRecommendation {
 
@@ -17,11 +17,13 @@ public class AiRecommendation {
 
     private String studentId;
 
-    @Column(columnDefinition = "TEXT")
+    private String title;
 
-    @Builder
-    public AiRecommendation(String studentId, String recommendedContext) {
-        this.studentId = studentId;
-        this.recommendedContext = recommendedContext;
-    }
+    @Column(columnDefinition = "TEXT")
+    private String careerAnalysis;
+
+    @Column(columnDefinition = "TEXT")
+    private String learningGuide;
+
+    private LocalDateTime createdAt;
 }
