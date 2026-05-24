@@ -9,7 +9,7 @@ import com.i_route.backend.domain.ai.entity.StudentEntity;
 import com.i_route.backend.domain.ai.entity.StudyTendency;
 import com.i_route.backend.domain.ai.entity.WrongAnswerEntity;
 import com.i_route.backend.domain.ai.repository.GradeRepository;
-import com.i_route.backend.domain.ai.repository.StudentRepository;
+import com.i_route.backend.domain.ai.repository.StudentEntityRepository;
 import com.i_route.backend.domain.ai.repository.StudyMaterialRepository;
 import com.i_route.backend.domain.ai.repository.TargetGoalRepository;
 import com.i_route.backend.domain.ai.repository.WrongAnswerEntityRepository;
@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AiRecommendationService {
 
-    private final StudentRepository studentRepository;
+    private final StudentEntityRepository studentRepository;
     private final StudyMaterialRepository materialRepository;
     private final WrongAnswerEntityRepository wrongAnswerRepository;
     private final TargetGoalRepository targetGoalRepository;
