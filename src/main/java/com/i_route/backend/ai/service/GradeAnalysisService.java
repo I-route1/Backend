@@ -1,4 +1,4 @@
-﻿package com.i_route.backend.ai.service;
+package com.i_route.backend.ai.service;
 
 import com.i_route.backend.ai.dto.AiSearchRequest;
 import com.i_route.backend.ai.dto.AiSearchResponse;
