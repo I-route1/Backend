@@ -78,22 +78,29 @@ public class ReportAnalysisService {
 
     // 신규: Long 기반 특정 시험 종합 리포트
     public AnalysisReportDto generateScoreReport(Long studentId, Long testId) {
-        GradeEntity grade = gradeEntityRepository.findById(testId)
-                .filter(g -> g.getStudentId().equals(studentId))
+        Grade grade = gradeRepository.findById(testId)
+                .filter(g -> g.getStudentId().equals(String.valueOf(studentId)))
                 .orElseThrow(() -> new IllegalArgumentException("해당 시험 데이터를 찾을 수 없습니다."));
 
-        List<GradeEntity> allGrades = gradeEntityRepository.findByStudentIdAndSubjectIdOrderByTestDateAsc(
-                studentId, grade.getSubjectId());
+        List<Grade> allGrades = gradeRepository.findByStudentIdAndSubjectOrderByExamDateDesc(
+                String.valueOf(studentId), grade.getSubject());
 
         double avg = allGrades.stream()
-                .mapToInt(GradeEntity::getScore)
+                .mapToInt(Grade::getScore)
                 .average()
                 .orElse(0.0);
 
+        double scoreChange = allGrades.size() >= 2
+                ? allGrades.get(0).getScore() - allGrades.get(1).getScore()
+                : 0.0;
+        String trend = scoreChange > 0 ? "상승" : (scoreChange < 0 ? "하락" : "유지");
+
         return AnalysisReportDto.builder()
-                .subjectName("과목 ID: " + grade.getSubjectId())
+                .subjectName(grade.getSubject())
                 .myPercentile(grade.getPercentile())
                 .averageScore(Math.round(avg * 10) / 10.0)
+                .scoreChangeFromPrevious(scoreChange)
+                .trendSummary(trend)
                 .weakPointSummary(String.format("해당 시험 점수: %d점, 과목 평균: %.1f점", grade.getScore(), avg))
                 .build();
     }
