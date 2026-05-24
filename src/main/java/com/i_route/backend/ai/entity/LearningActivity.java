@@ -29,6 +29,10 @@ public class LearningActivity {
     private int concentrationScore;     // 주관적 집중도 별점 (1~5점)
 
     // 🌟 강사 피드백 영역
-    @Column(length = 1000)              // 피드백은 길어질 수 있으므로 글자 수 넉넉히 확보
-    private String instructorFeedback;  // 담당 강사의 정성적 평가 및 코멘트
+    @Column(length = 1000)
+    private String instructorFeedback;
+
+    public void updateFeedback(String feedback) {
+        this.instructorFeedback = feedback;
+    }
 }
