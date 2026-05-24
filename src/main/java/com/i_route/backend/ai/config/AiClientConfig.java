@@ -3,7 +3,7 @@ package com.i_route.backend.ai.config;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
-import org.springframework.beans.factory.annotation.Value; // 🔥 주소 주입을 위해 추가됨
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -32,7 +32,7 @@ public class AiClientConfig {
                         .addHandlerLast(new WriteTimeoutHandler(180, TimeUnit.SECONDS)));
 
         return WebClient.builder()
-                .baseUrl(aiServerUrl) // 👈 하드코딩된 주소("http://localhost:8082") 대신 설정 파일 변수 대입!
+                .baseUrl(aiServerUrl)
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .build();
     }

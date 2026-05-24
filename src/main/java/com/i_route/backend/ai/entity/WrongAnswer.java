@@ -29,6 +29,10 @@ public class WrongAnswer {
     @Column(name = "concept_tag", nullable = false)
     private String conceptTag;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "error_type")
+    private ErrorType errorType;
+
     @Column(name = "fail_count")
     private int failCount;
 

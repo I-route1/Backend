@@ -3,6 +3,7 @@ package com.i_route.backend.ai.controller;
 import com.i_route.backend.ai.dto.AnalysisReportDto;
 import com.i_route.backend.ai.dto.MetaCognitionGapDto;
 import com.i_route.backend.ai.dto.PredictedScoreDto;
+import com.i_route.backend.ai.dto.RiskDetectionDto;
 import com.i_route.backend.ai.dto.StrengthAnalysisDto;
 import com.i_route.backend.ai.dto.StudyPatternDto;
 import com.i_route.backend.ai.service.PredictionService;
@@ -55,6 +56,16 @@ public class AnalysisReportController {
     }
 
     /**
+     * GET /api/analysis/study-pattern-v2?studentId={studentId}
+     * LearningActivity.studyStartTime 기반 골든타임 분석 (String studentId)
+     */
+    @GetMapping("/study-pattern-v2")
+    public ResponseEntity<StudyPatternDto> getStudyPatternV2(
+            @RequestParam String studentId) {
+        return ResponseEntity.ok(reportAnalysisService.analyzeStudyPatternByStudentId(studentId));
+    }
+
+    /**
      * GET /api/analysis/strengths?studentId={id}
      * 정답률이 높은 강점 단원 결과 응답
      */
@@ -84,5 +95,15 @@ public class AnalysisReportController {
             @RequestParam String studentId,
             @RequestParam String subject) {
         return ResponseEntity.ok(reportAnalysisService.analyzeMetaCognitionGap(studentId, subject));
+    }
+
+    /**
+     * GET /api/analysis/risk?studentId=S-0155
+     * 연속 성적 하락 기반 위험 학생 탐지
+     */
+    @GetMapping("/risk")
+    public ResponseEntity<RiskDetectionDto> getRiskDetection(
+            @RequestParam String studentId) {
+        return ResponseEntity.ok(reportAnalysisService.analyzeRisk(studentId));
     }
 }
