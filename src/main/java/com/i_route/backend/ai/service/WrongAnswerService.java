@@ -1,5 +1,6 @@
 package com.i_route.backend.ai.service;
 
+import com.i_route.backend.ai.entity.ErrorType;
 import com.i_route.backend.ai.entity.WrongAnswer;
 import com.i_route.backend.ai.repository.WrongAnswerRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,23 +20,25 @@ public class WrongAnswerService {
      * ✍️ 1. 학생의 오답 이력을 실시간으로 기록 및 누적하는 로직
      */
     @Transactional
-    public WrongAnswer recordWrongAnswer(String studentId, String subject, String questionId, String conceptTag) {
-        // 이미 해당 학생이 과거에 동일한 문제를 틀린 적이 있는지 DB에서 조회
+    public WrongAnswer recordWrongAnswer(String studentId, String subject, String questionId,
+                                        String conceptTag, ErrorType errorType) {
         Optional<WrongAnswer> existingWrong = wrongAnswerRepository.findByStudentIdAndQuestionId(studentId, questionId);
 
         if (existingWrong.isPresent()) {
-            // [CASE A] 이미 틀렸던 문제라면 -> 오답 횟수(failCount)를 +1 가중치 부여
             WrongAnswer wrongAnswer = existingWrong.get();
             wrongAnswer.setFailCount(wrongAnswer.getFailCount() + 1);
+            if (errorType != null) {
+                wrongAnswer.setErrorType(errorType);
+            }
             return wrongAnswerRepository.save(wrongAnswer);
         } else {
-            // [CASE B] 처음 틀린 새로운 변형 문제라면 -> 새 오답 로그 생성
             WrongAnswer newWrong = WrongAnswer.builder()
                     .studentId(studentId)
                     .subject(subject)
                     .questionId(questionId)
                     .conceptTag(conceptTag)
-                    .build(); // prePersist에 의해 failCount는 자동으로 1이 세팅됩니다.
+                    .errorType(errorType)
+                    .build();
             return wrongAnswerRepository.save(newWrong);
         }
     }

@@ -9,6 +9,6 @@ import java.util.Map;
 public class StudyPatternDto {
     private Long studentId;
     private String goldenTime;
-    private Map<Long, Integer> subjectStudyMinutes;
+    private Map<String, Integer> subjectStudyMinutes;
     private String studyBalanceSummary;
 }
