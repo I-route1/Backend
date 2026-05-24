@@ -1,14 +1,13 @@
 package com.i_route.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import java.time.LocalDateTime;
+import lombok.*;
+import java.time.LocalDate;
 
 @Entity
 @Getter
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class LearningActivity {
 
@@ -16,30 +15,20 @@ public class LearningActivity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String studentId;
+    private String studentId;           // 학생 ID
 
-    // 학생 메타인지 (자기 평가)
-    private int understandingScore; // 이해도 (1~5점)
-    private int focusScore;         // 집중도 (1~5점)
-    @Column(columnDefinition = "TEXT")
-    private String studentNote;     // 학생이 직접 쓴 소감
+    private String subject;             // 학습 과목 (예: 국어, 수학, 영어)
 
-    // 강사 정성 평가
-    @Column(columnDefinition = "TEXT")
-    private String teacherFeedback; // 담당 강사가 쓴 태도 및 특이사항
-    private String teacherName;
+    private LocalDate studyDate;        // 학습 진행 일자
 
-    private LocalDateTime createdAt;
+    private int studyDurationMinutes;   // 앱 접속/학습 지속 시간 (분 단위)
 
-    @Builder
-    public LearningActivity(String studentId, int understandingScore, int focusScore,
-                            String studentNote, String teacherFeedback, String teacherName) {
-        this.studentId = studentId;
-        this.understandingScore = understandingScore;
-        this.focusScore = focusScore;
-        this.studentNote = studentNote;
-        this.teacherFeedback = teacherFeedback;
-        this.teacherName = teacherName;
-        this.createdAt = LocalDateTime.now();
-    }
+    // 🌟 메타인지 영역 (학생 자기 평가)
+    private int understandingScore;     // 주관적 이해도 별점 (1~5점)
+
+    private int concentrationScore;     // 주관적 집중도 별점 (1~5점)
+
+    // 🌟 강사 피드백 영역
+    @Column(length = 1000)              // 피드백은 길어질 수 있으므로 글자 수 넉넉히 확보
+    private String instructorFeedback;  // 담당 강사의 정성적 평가 및 코멘트
 }

@@ -1,21 +1,39 @@
 package com.i_route.backend.config;
 
+import io.netty.channel.ChannelOption;
+import io.netty.handler.timeout.ReadTimeoutHandler;
+import io.netty.handler.timeout.WriteTimeoutHandler;
+import org.springframework.beans.factory.annotation.Value; // 🔥 주소 주입을 위해 추가됨
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
+
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 @Configuration
 public class AiClientConfig {
 
-    // 1. Ollama (로컬 5070Ti 추론 엔진 포트)
-    @Bean
-    public WebClient ollamaWebClient(WebClient.Builder builder) {
-        return builder.baseUrl("http://localhost:11434").build();
-    }
+    // 🔥 application.yml 또는 properties에서 주소를 읽어옵니다.
+    @Value("${ai.server.url}")
+    private String aiServerUrl;
 
-    // 2. 파이썬 FastAPI (FAISS out_db 검색 사이드카 포트)
-    @Bean
-    public WebClient fastApiWebClient(WebClient.Builder builder) {
-        return builder.baseUrl("http://localhost:8000").build();
+    @Bean(name = "fastApiWebClient")
+    public WebClient fastApiWebClient() {
+
+        // 🛑 핵심: 기존의 소중한 3분(180초) 타임아웃 설정은 그대로 완벽하게 유지합니다!
+        HttpClient httpClient = HttpClient.create()
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 180000) // 연결 타임아웃 3분
+                .responseTimeout(Duration.ofSeconds(180))            // 응답 타임아웃 3분
+                .doOnConnected(conn -> conn
+                        .addHandlerLast(new ReadTimeoutHandler(180, TimeUnit.SECONDS))
+                        .addHandlerLast(new WriteTimeoutHandler(180, TimeUnit.SECONDS)));
+
+        return WebClient.builder()
+                .baseUrl(aiServerUrl) // 👈 하드코딩된 주소("http://localhost:8082") 대신 설정 파일 변수 대입!
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .build();
     }
 }

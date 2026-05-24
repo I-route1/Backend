@@ -1,14 +1,18 @@
 package com.i_route.backend.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-@Data
+@Getter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AiReportRequest {
     private String studentId;
-    private double currentKoreanGrade;
-    private double studyHours;
+    private Double currentKoreanGrade;
+    private Double studyTime;
     private String studentNote;
-    private String teacherFeedback;
+    private String recommendContext;
 }

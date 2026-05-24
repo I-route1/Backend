@@ -1,9 +1,13 @@
 package com.i_route.backend.dto;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-@Data
+@Getter
+@NoArgsConstructor
 public class AiReportResponse {
     private String studentId;
-    private String reportHtml; // LLaMA가 작성한 마크다운 리포트 본문
+    private String title;
+    private String careerAnalysis;  
+    private String learningGuide;
 }

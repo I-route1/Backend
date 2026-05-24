@@ -1,14 +1,13 @@
 package com.i_route.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import java.time.LocalDateTime;
+import lombok.*;
+import java.time.LocalDate;
 
 @Entity
 @Getter
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Grade {
 
@@ -16,21 +15,26 @@ public class Grade {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String studentId; // 학생 식별자
-    private int score;        // 획득 점수
-    private double average;   // 당시 전체 평균
-    private double stdDev;    // 당시 표준편차
-    private String weakTag;   // 취약 개념 태그
+    private String studentId; // 학생 ID (예: S-0155)
 
-    private LocalDateTime createdAt; // 성적 입력 시간
+    private String subject;   // 과목명 (예: 국어, 수학, 영어)
 
-    @Builder
-    public Grade(String studentId, int score, double average, double stdDev, String weakTag) {
-        this.studentId = studentId;
+    private int score;        // 원점수
+
+    private int gradeLevel;   // 등급 (1~9등급)
+
+    private double percentile; // 🚀 추가: 백분위 (전체 평균 대비 위치 분석 및 AI 예측용)
+
+    private String examType;  // 시험 종류 (예: 중간고사, 기말고사, 3월모의고사)
+
+    private LocalDate examDate; // 시행 일자
+
+    private String weakConceptTag; // 🚀 추가: 오답 기반 취약 개념 태그 (RAG 검색 및 복습 추천용)
+
+    // 🚀 추가: 기획 명세서에 정의된 비즈니스 편의 메서드 (엔티티 내부에서 안전하게 값 변경)
+    public void updateScore(int score, int gradeLevel, double percentile) {
         this.score = score;
-        this.average = average;
-        this.stdDev = stdDev;
-        this.weakTag = weakTag;
-        this.createdAt = LocalDateTime.now();
+        this.gradeLevel = gradeLevel;
+        this.percentile = percentile;
     }
 }
