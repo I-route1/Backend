@@ -1,24 +1,5 @@
 package com.i_route.backend.global.config;
 
-<<<<<<< HEAD
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
-
-@Configuration
-public class SecurityConfig {
-
-    @Bean
-    public SecurityFilterChain securityFilterChain(
-            HttpSecurity http
-    ) throws Exception {
-
-        http
-                .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll()
-=======
 import com.i_route.backend.global.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -54,6 +35,15 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/oauth/**",
+                                "/api/grades/**",
+                                "/api/activities/**",
+                                "/api/review/**",
+                                "/api/wrong-answer/**",
+                                "/api/counseling/**",
+                                "/api/analysis/**",
+                                "/api/recommendations/**",
+                                "/api/study-plan/**",
+                                "/api/math/**",
                                 "/error",
                                 "/favicon.ico"
                         ).permitAll()
@@ -62,13 +52,8 @@ public class SecurityConfig {
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
->>>>>>> origin/develop
                 );
 
         return http.build();
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> origin/develop
