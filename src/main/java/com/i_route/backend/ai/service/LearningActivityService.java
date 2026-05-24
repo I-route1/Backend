@@ -27,6 +27,7 @@ public class LearningActivityService {
                 .studentId(request.getStudentId())
                 .subject(request.getSubject())
                 .studyDate(request.getStudyDate())
+                .studyStartTime(request.getStudyStartTime())
                 .studyDurationMinutes(request.getStudyDurationMinutes())
                 .understandingScore(request.getUnderstandingScore())
                 .concentrationScore(request.getConcentrationScore())

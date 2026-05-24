@@ -1,5 +1,6 @@
 package com.i_route.backend.ai.controller;
 
+import com.i_route.backend.ai.entity.ErrorType;
 import com.i_route.backend.ai.entity.WrongAnswer;
 import com.i_route.backend.ai.service.WrongAnswerService;
 import lombok.RequiredArgsConstructor;
@@ -24,9 +25,10 @@ public class WrongAnswerController {
             @RequestParam String studentId,
             @RequestParam String subject,
             @RequestParam String questionId,
-            @RequestParam String conceptTag) {
+            @RequestParam String conceptTag,
+            @RequestParam(required = false) ErrorType errorType) {
 
-        WrongAnswer recorded = wrongAnswerService.recordWrongAnswer(studentId, subject, questionId, conceptTag);
+        WrongAnswer recorded = wrongAnswerService.recordWrongAnswer(studentId, subject, questionId, conceptTag, errorType);
         return Mono.just(ResponseEntity.ok(recorded));
     }
 
