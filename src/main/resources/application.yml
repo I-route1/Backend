@@ -1,4 +1,16 @@
 spring:
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
   datasource:
     url: jdbc:mysql://localhost:3306/i_route_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
     username: ${I_ROUTE_DB_USERNAME}
@@ -12,3 +24,40 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+    web:
+      pageable:
+        default-page-size: 10
+        max-page-size: 100
+
+  mvc:
+    async:
+      request-timeout: 180000
+
+server:
+  error:
+    include-message=always:
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 1800000
+  refresh-expiration: 1209600000
+
+kakao:
+  client-id: ${KAKAO_CLIENT_ID}
+  redirect-uri: ${KAKAO_REDIRECT_URI}
+  mobility:
+    base-url: https://apis-navi.kakaomobility.com
+    rest-api-key: test
+
+email:
+  verification-expiration: 3600
+  base-url: "http://localhost:8080"
+
+ai:
+  server:
+    url: http://localhost:8082
