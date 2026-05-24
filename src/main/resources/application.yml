@@ -13,6 +13,15 @@ spring:
       hibernate:
         format_sql: true
 
+  data:
+    redis:
+      host: localhost
+      port: 6379
+    web:
+      pageable:
+        default-page-size: 10
+        max-page-size: 100
+
   mvc:
     async:
       request-timeout: 180000
@@ -20,6 +29,22 @@ spring:
 server:
   error:
     include-message=always:
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 1800000
+  refresh-expiration: 1209600000
+
+kakao:
+  client-id: ${KAKAO_CLIENT_ID}
+  redirect-uri: ${KAKAO_REDIRECT_URI}
+  mobility:
+    base-url: https://apis-navi.kakaomobility.com
+    rest-api-key: ${KAKAO_REST_API_KEY}
+
+email:
+  verification-expiration: 3600
+  base-url: "http://localhost:8080"
 
 ai:
   server:
