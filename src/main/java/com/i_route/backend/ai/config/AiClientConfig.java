@@ -1,4 +1,4 @@
-﻿package com.i_route.backend.ai.config;
+package com.i_route.backend.ai.config;
 
 import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
