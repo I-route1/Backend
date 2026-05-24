@@ -1,4 +1,4 @@
-﻿package com.i_route.backend.ai.entity;
+package com.i_route.backend.ai.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

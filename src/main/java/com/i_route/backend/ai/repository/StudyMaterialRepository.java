@@ -1,4 +1,4 @@
-﻿package com.i_route.backend.ai.repository;
+package com.i_route.backend.ai.repository;
 
 import com.i_route.backend.ai.entity.StudyMaterial;
 import org.springframework.data.jpa.repository.JpaRepository;

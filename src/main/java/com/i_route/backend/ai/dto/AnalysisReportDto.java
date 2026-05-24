@@ -1,4 +1,4 @@
-﻿// 💡 AnalysisReportDto.java (컨트롤러 반환용 데이터 규격)
+// 💡 AnalysisReportDto.java (컨트롤러 반환용 데이터 규격)
 package com.i_route.backend.ai.dto;
 
 import lombok.*;

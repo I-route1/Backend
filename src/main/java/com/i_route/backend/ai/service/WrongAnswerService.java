@@ -1,4 +1,4 @@
-﻿package com.i_route.backend.ai.service;
+package com.i_route.backend.ai.service;
 
 import com.i_route.backend.ai.entity.WrongAnswer;
 import com.i_route.backend.ai.repository.WrongAnswerRepository;
