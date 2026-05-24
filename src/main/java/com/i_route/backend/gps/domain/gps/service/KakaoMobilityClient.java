@@ -1,5 +1,5 @@
 package com.i_route.backend.gps.domain.gps.service;
-
+/*
 import com.i_route.backend.gps.domain.route.entity.RouteStop;
 import com.i_route.backend.gps.global.exception.CustomException;
 import com.i_route.backend.gps.global.exception.ErrorCode;
@@ -107,5 +107,25 @@ public class KakaoMobilityClient {
         }
 
         return sb.toString();
+    }
+}*/
+
+import com.i_route.backend.gps.domain.route.entity.RouteStop;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+
+@Component
+public class KakaoMobilityClient {
+
+    public Integer getDurationSeconds(
+            Double originLat,
+            Double originLng,
+            RouteStop destinationStop,
+            List<RouteStop> waypoints
+    ) {
+
+        // 테스트용 Mock 데이터
+        return 600;
     }
 }
