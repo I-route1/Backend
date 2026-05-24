@@ -195,7 +195,8 @@ Content-Type: application/json
 | `studyDurationMinutes` | int | ✅ | 학습 시간 (분) |
 | `understandingScore` | int | ✅ | 자기 이해도 평가 (1~5) |
 | `concentrationScore` | int | ✅ | 집중도 평가 (1~5) |
-| `instructorFeedback` | String | ❌ | 강사 피드백 |
+
+> 강사 피드백은 학습 기록 생성 후 `PATCH /api/activities/{activityId}/feedback`으로 별도 입력합니다.
 
 **Request Example**
 
@@ -206,8 +207,7 @@ Content-Type: application/json
   "studyDate": "2025-05-20",
   "studyDurationMinutes": 90,
   "understandingScore": 4,
-  "concentrationScore": 3,
-  "instructorFeedback": "삼각함수 개념 보완 필요"
+  "concentrationScore": 3
 }
 ```
 
@@ -221,7 +221,7 @@ Content-Type: application/json
   "studyDurationMinutes": 90,
   "understandingScore": 4,
   "concentrationScore": 3,
-  "instructorFeedback": "삼각함수 개념 보완 필요"
+  "instructorFeedback": null
 }
 ```
 
