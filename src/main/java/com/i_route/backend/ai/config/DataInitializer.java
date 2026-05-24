@@ -1,4 +1,4 @@
-﻿package com.i_route.backend.ai.config;
+package com.i_route.backend.ai.config;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

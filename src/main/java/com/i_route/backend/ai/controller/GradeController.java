@@ -1,4 +1,4 @@
-﻿package com.i_route.backend.ai.controller;
+package com.i_route.backend.ai.controller;
 
 import com.i_route.backend.ai.dto.GradeRequest;
 import com.i_route.backend.ai.dto.GradeResponse;

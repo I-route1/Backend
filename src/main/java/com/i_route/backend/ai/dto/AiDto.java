@@ -1,4 +1,4 @@
-﻿package com.i_route.backend.ai.dto; // 🌟 사용자님의 실제 패키지 경로에 맞췄습니다.
+package com.i_route.backend.ai.dto; // 🌟 사용자님의 실제 패키지 경로에 맞췄습니다.
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
