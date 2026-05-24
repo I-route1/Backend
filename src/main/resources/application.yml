@@ -34,9 +34,17 @@ spring:
         default-page-size: 10
         max-page-size: 100
 
+  mvc:
+    async:
+      request-timeout: 180000
+
 logging:
   level:
     org.hibernate.SQL: debug
+
+server:
+  error:
+    include-message=always:
 
 jwt:
   secret: ${JWT_SECRET}
@@ -48,8 +56,12 @@ kakao:
   redirect-uri: ${KAKAO_REDIRECT_URI}
   mobility:
     base-url: https://apis-navi.kakaomobility.com
-    rest-api-key: test-key
+    rest-api-key: ${KAKAO_REST_API_KEY}
 
 email:
   verification-expiration: 3600
   base-url: "http://localhost:8080"
+
+ai:
+  server:
+    url: http://localhost:8082
