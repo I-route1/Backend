@@ -30,6 +30,9 @@ public class Post {
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
 
+    @Column(nullable = false)
+    private boolean anonymous;
+
     @Column(nullable = false, length = 200)
     private String title;
 

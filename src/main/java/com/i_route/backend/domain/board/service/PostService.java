@@ -32,7 +32,7 @@ public class PostService {
     private final UserRepository userRepository;
     private final LikeRepository likeRepository;
     private final BookmarkRepository bookmarkRepository;
-    private final CommentRepository commentRepository;
+    private final CommentLikeRepository commentLikeRepository;
 
     // 게시글 목록 (페이지네이션)
     public Page<PostDto.ListResponse> getPostsByBoard(Long boardId, Pageable pageable) {
@@ -43,6 +43,7 @@ public class PostService {
     // 게시글 상세 + 조회수 증가
     @Transactional
     public PostDto.DetailResponse getPost(Long postId, Long userId) {
+
         Post post = getPostOrThrow(postId);
         post.setViewCount(post.getViewCount() + 1);
 
@@ -50,14 +51,21 @@ public class PostService {
         boolean bookmarked = bookmarkRepository.existsByUserIdAndPostId(userId, postId);
 
         List<CommentDto.Response> comments = post.getComments().stream()
-                .map(CommentDto.Response::from)
+                .map(comment -> CommentDto.Response.from(
+                        comment,
+                        commentLikeRepository.existsByCommentIdAndUserId(comment.getId(), userId)
+                ))
                 .collect(Collectors.toList());
+
+        String authorName = post.isAnonymous()
+                ? "익명"
+                : post.getAuthor().getNickname();
 
         return PostDto.DetailResponse.builder()
                 .id(post.getId())
                 .title(post.getTitle())
                 .content(post.getContent())
-                .author(post.getAuthor().getNickname())
+                .author(authorName) //
                 .viewCount(post.getViewCount())
                 .likeCount(post.getLikes().size())
                 .likedByMe(liked)
@@ -76,8 +84,10 @@ public class PostService {
 
     @Transactional
     public PostDto.ListResponse createPost(Long boardId, PostDto.Request request, Long userId) {
+
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new EntityNotFoundException("게시판을 찾을 수 없습니다."));
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("유저를 찾을 수 없습니다."));
 
@@ -86,6 +96,8 @@ public class PostService {
         post.setAuthor(user);
         post.setTitle(request.getTitle());
         post.setContent(request.getContent());
+
+        post.setAnonymous(request.isAnonymous());
 
         return PostDto.ListResponse.from(postRepository.save(post));
     }
@@ -99,6 +111,8 @@ public class PostService {
 
         post.setTitle(request.getTitle());
         post.setContent(request.getContent());
+
+        post.setAnonymous(request.isAnonymous());
 
         return PostDto.ListResponse.from(post);
     }
@@ -184,5 +198,6 @@ public class PostService {
             throw new AccessDeniedException("권한이 없습니다.");
         }
     }
+
 }
 

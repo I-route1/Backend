@@ -18,4 +18,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("SELECT p FROM Post p WHERE p.deletedAt IS NULL AND " +
             "(p.title LIKE %:keyword% OR p.content LIKE %:keyword%)")
     Page<Post> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
+
+
 }
