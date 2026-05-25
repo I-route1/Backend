@@ -2,7 +2,6 @@ package com.i_route.backend.domain.user.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-
 import java.util.List;
 
 @Getter
