@@ -1,7 +1,7 @@
 package com.i_route.backend.global.security;
 
 import com.i_route.backend.domain.user.entity.User;
-import lombok.Getter;
+import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;

@@ -2,7 +2,6 @@ package com.i_route.backend.domain.user.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.util.UUID;
 
 @Entity

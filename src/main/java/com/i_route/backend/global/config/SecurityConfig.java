@@ -35,6 +35,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/oauth/**",
+                                "/api/boards",
+                                "/api/boards/search",
                                 "/error",
                                 "/favicon.ico"
                         ).permitAll()
