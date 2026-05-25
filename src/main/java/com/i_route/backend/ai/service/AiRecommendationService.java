@@ -84,7 +84,16 @@ public class AiRecommendationService {
 
     public StudyRoadmapDto recommendGoalRoadmap(Long studentId) {
         TargetGoalEntity goal = targetGoalRepository.findByStudentId(studentId)
-                .orElseThrow(() -> new IllegalArgumentException("설정된 목표가 없습니다. 먼저 목표를 등록해주세요."));
+                .orElse(null);
+
+        if (goal == null) {
+            return StudyRoadmapDto.builder()
+                    .studentId(studentId)
+                    .targetKeyword("미설정")
+                    .weeklyMilestones(List.of())
+                    .overallStrategy("아직 학습 목표가 등록되지 않았습니다. 목표를 먼저 설정해주세요.")
+                    .build();
+        }
 
         long remainingDays = LocalDate.now().until(goal.getTargetDate()).getDays();
         long remainingWeeks = Math.max(remainingDays / 7, 1);

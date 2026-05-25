@@ -42,32 +42,28 @@ public class GradeAnalysisService {
 
         AiSearchRequest requestBody = new AiSearchRequest(weakConceptTag + " 관련 수학 문제 및 오답 개념 족보 추천해줘");
 
-        // 비동기/논블로킹으로 파이썬 서버 찌르기
-        webClient.post()
+        // 파이썬 서버 응답을 받은 후 DB 저장까지 완료하고 반환
+        AiSearchResponse response = webClient.post()
                 .uri("/api/ai/search")
                 .bodyValue(requestBody)
                 .retrieve()
                 .bodyToMono(AiSearchResponse.class)
-                .subscribe(response -> {
-                    List<String> recommendedContexts = response.getContexts();
-                    log.info("🎯 [AI 서버 응답 도착] 맞춤형 복습 족보 데이터 수신 완료! 건수: {}건", recommendedContexts.size());
+                .doOnError(error -> log.error("❌ AI 서버 통신 에러 발생: {}", error.getMessage()))
+                .block();
 
-                    // 🌟 TODO 해결: 수신한 족보(Contexts)를 DB 테이블에 실시간 매핑 및 저장
-                    String currentStudentId = studentId;
+        if (response != null) {
+            List<String> recommendedContexts = response.getContexts();
+            log.info("🎯 [AI 서버 응답 도착] 맞춤형 복습 족보 데이터 수신 완료! 건수: {}건", recommendedContexts.size());
 
-                    for (String context : recommendedContexts) {
-                        AiRecommendation recommendation = AiRecommendation.builder()
-                                .studentId(currentStudentId)
-                                .careerAnalysis(context)
-                                .build();
+            for (String context : recommendedContexts) {
+                AiRecommendation recommendation = AiRecommendation.builder()
+                        .studentId(studentId)
+                        .careerAnalysis(context)
+                        .build();
 
-                        // JPA를 통해 DB에 꽂아 넣기
-                        aiRecommendationRepository.save(recommendation);
-                    }
-                    log.info("💾 AI 맞춤 족보 {}건 DB 저장 완료!", recommendedContexts.size());
-
-                }, error -> {
-                    log.error("❌ AI 서버 통신 에러 발생: {}", error.getMessage());
-                });
+                aiRecommendationRepository.save(recommendation);
+            }
+            log.info("💾 AI 맞춤 족보 {}건 DB 저장 완료!", recommendedContexts.size());
+        }
     }
 }
