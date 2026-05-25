@@ -1,7 +1,7 @@
 package com.i_route.backend.global.security;
 
-import com.i_route.backend.user.entity.User;
-import com.i_route.backend.user.repository.UserRepository;
+import com.i_route.backend.domain.user.entity.User;
+import com.i_route.backend.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
