@@ -11,7 +11,6 @@ import com.i_route.backend.ai.service.ReportAnalysisService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/api/analysis")
@@ -26,12 +25,11 @@ public class AnalysisReportController {
      * (기존 String 기반 API 유지)
      */
     @GetMapping("/report")
-    public Mono<ResponseEntity<AnalysisReportDto>> getLegacyScoreReport(
+    public ResponseEntity<AnalysisReportDto> getLegacyScoreReport(
             @RequestParam String studentId,
             @RequestParam String subject) {
-        return Mono.justOrEmpty(reportAnalysisService.getAnalysisReport(studentId, subject))
-                .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.notFound().build());
+        AnalysisReportDto result = reportAnalysisService.getAnalysisReport(studentId, subject);
+        return result != null ? ResponseEntity.ok(result) : ResponseEntity.notFound().build();
     }
 
     /**
