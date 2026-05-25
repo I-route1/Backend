@@ -47,6 +47,4 @@ public class BoardDto {
         private boolean bookmarkedByMe;
         private Page<PostDto.ListResponse> posts;
     }
-
-
 }
