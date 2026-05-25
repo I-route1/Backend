@@ -1,12 +1,13 @@
-package com.i_route.backend.domain.auth.controller;
+package com.i_route.backend.auth.controller;
 
-import com.i_route.backend.domain.auth.dto.*;
-import com.i_route.backend.domain.auth.service.AuthService;
-import com.i_route.backend.domain.auth.service.KakaoOAuthService;
-import com.i_route.backend.domain.user.dto.DuplicateCheckResponse;
-import com.i_route.backend.domain.user.dto.SingleCheckRequest;
-import com.i_route.backend.domain.user.entity.User;
-import com.i_route.backend.domain.user.service.UserService;
+import com.i_route.backend.auth.dto.*;
+import com.i_route.backend.auth.dto.*;
+import com.i_route.backend.auth.service.AuthService;
+import com.i_route.backend.auth.service.KakaoOAuthService;
+import com.i_route.backend.user.dto.DuplicateCheckResponse;
+import com.i_route.backend.user.dto.SingleCheckRequest;
+import com.i_route.backend.user.entity.User;
+import com.i_route.backend.user.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;

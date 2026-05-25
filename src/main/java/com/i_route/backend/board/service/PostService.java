@@ -1,14 +1,14 @@
-package com.i_route.backend.domain.board.service;
+package com.i_route.backend.board.service;
 
-import com.i_route.backend.domain.board.dto.CommentDto;
-import com.i_route.backend.domain.board.dto.PostDto;
-import com.i_route.backend.domain.board.entity.Board;
-import com.i_route.backend.domain.board.entity.Bookmark;
-import com.i_route.backend.domain.board.entity.Like;
-import com.i_route.backend.domain.board.entity.Post;
-import com.i_route.backend.domain.board.repository.*;
-import com.i_route.backend.domain.user.entity.User;
-import com.i_route.backend.domain.user.repository.UserRepository;
+import com.i_route.backend.board.dto.CommentDto;
+import com.i_route.backend.board.dto.PostDto;
+import com.i_route.backend.board.entity.Board;
+import com.i_route.backend.board.entity.Bookmark;
+import com.i_route.backend.board.entity.Like;
+import com.i_route.backend.board.entity.Post;
+import com.i_route.backend.board.repository.*;
+import com.i_route.backend.user.entity.User;
+import com.i_route.backend.user.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;

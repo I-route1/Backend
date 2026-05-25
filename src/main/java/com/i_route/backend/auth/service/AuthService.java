@@ -1,13 +1,13 @@
-package com.i_route.backend.domain.auth.service;
+package com.i_route.backend.auth.service;
 
-import com.i_route.backend.domain.auth.dto.*;
-import com.i_route.backend.domain.auth.entity.EmailVerificationToken;
-import com.i_route.backend.domain.auth.entity.RefreshToken;
-import com.i_route.backend.domain.auth.repository.*;
-import com.i_route.backend.domain.user.entity.User;
-import com.i_route.backend.domain.user.repository.*;
+import com.i_route.backend.auth.dto.*;
+import com.i_route.backend.auth.repository.RefreshTokenRepository;
+import com.i_route.backend.auth.entity.EmailVerificationToken;
+import com.i_route.backend.auth.entity.RefreshToken;
+import com.i_route.backend.user.entity.User;
+import com.i_route.backend.user.repository.*;
 import com.i_route.backend.global.jwt.JwtUtil;
-import com.i_route.backend.domain.auth.repository.EmailVerificationTokenRepository;
+import com.i_route.backend.auth.repository.EmailVerificationTokenRepository;
 
 import lombok.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
