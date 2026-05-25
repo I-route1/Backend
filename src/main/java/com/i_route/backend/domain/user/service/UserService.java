@@ -6,7 +6,6 @@ import com.i_route.backend.domain.user.entity.User;
 import com.i_route.backend.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
