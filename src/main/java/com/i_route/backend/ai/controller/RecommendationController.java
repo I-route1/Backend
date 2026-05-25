@@ -4,13 +4,17 @@ import com.i_route.backend.ai.dto.MaterialRecommendationDto;
 import com.i_route.backend.ai.dto.PeerSuccessPathDto;
 import com.i_route.backend.ai.dto.StudyMethodDto;
 import com.i_route.backend.ai.dto.StudyRoadmapDto;
+import com.i_route.backend.ai.entity.StudentEntity;
+import com.i_route.backend.ai.entity.StudyTendency;
 import com.i_route.backend.ai.entity.WrongAnswerEntity;
+import com.i_route.backend.ai.repository.StudentEntityRepository;
 import com.i_route.backend.ai.service.AiRecommendationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/recommendations")
@@ -18,6 +22,7 @@ import java.util.List;
 public class RecommendationController {
 
     private final AiRecommendationService aiRecommendationService;
+    private final StudentEntityRepository studentEntityRepository;
 
     /**
      * GET /api/recommendations/materials?studentId={id}
@@ -79,5 +84,28 @@ public class RecommendationController {
             @RequestParam String studentId,
             @RequestParam String subject) {
         return ResponseEntity.ok(aiRecommendationService.recommendPeerSuccessPath(studentId, subject));
+    }
+
+    /**
+     * POST /api/students
+     * StudentEntity 생성 (학습자료 추천 / 공부법 추천 등 Long studentId 기반 API 사전 등록용)
+     */
+    @PostMapping("/students")
+    public ResponseEntity<Map<String, Object>> createStudent(
+            @RequestParam String name,
+            @RequestParam(required = false, defaultValue = "VISUAL") String tendency,
+            @RequestParam(required = false, defaultValue = "3") Integer level) {
+        StudentEntity student = StudentEntity.builder()
+                .name(name)
+                .learningTendency(StudyTendency.valueOf(tendency.toUpperCase()))
+                .currentLevel(level)
+                .build();
+        StudentEntity saved = studentEntityRepository.save(student);
+        return ResponseEntity.ok(Map.of(
+                "studentId", saved.getStudentId(),
+                "name", saved.getName(),
+                "tendency", saved.getLearningTendency(),
+                "level", saved.getCurrentLevel()
+        ));
     }
 }
