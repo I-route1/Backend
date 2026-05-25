@@ -1,14 +1,14 @@
-package com.i_route.backend.domain.board.service;
+package com.i_route.backend.board.service;
 
-import com.i_route.backend.domain.board.dto.BoardDto;
-import com.i_route.backend.domain.board.dto.PostDto;
-import com.i_route.backend.domain.board.entity.Board;
-import com.i_route.backend.domain.board.entity.BoardBookmark;
-import com.i_route.backend.domain.board.repository.BoardBookmarkRepository;
-import com.i_route.backend.domain.board.repository.BoardRepository;
-import com.i_route.backend.domain.board.repository.PostRepository;
-import com.i_route.backend.domain.user.entity.User;
-import com.i_route.backend.domain.user.repository.UserRepository;
+import com.i_route.backend.board.dto.BoardDto;
+import com.i_route.backend.board.dto.PostDto;
+import com.i_route.backend.board.entity.Board;
+import com.i_route.backend.board.entity.BoardBookmark;
+import com.i_route.backend.board.repository.BoardBookmarkRepository;
+import com.i_route.backend.board.repository.BoardRepository;
+import com.i_route.backend.board.repository.PostRepository;
+import com.i_route.backend.user.entity.User;
+import com.i_route.backend.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;

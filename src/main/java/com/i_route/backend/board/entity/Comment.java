@@ -1,6 +1,6 @@
-package com.i_route.backend.domain.board.entity;
+package com.i_route.backend.board.entity;
 
-import com.i_route.backend.domain.user.entity.User;
+import com.i_route.backend.user.entity.User;
 
 import jakarta.persistence.*;
 import lombok.*;

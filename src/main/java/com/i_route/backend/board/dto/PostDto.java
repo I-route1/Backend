@@ -1,6 +1,6 @@
-package com.i_route.backend.domain.board.dto;
+package com.i_route.backend.board.dto;
 
-import com.i_route.backend.domain.board.entity.Post;
+import com.i_route.backend.board.entity.Post;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 

@@ -1,9 +1,9 @@
-package com.i_route.backend.domain.user.service;
+package com.i_route.backend.user.service;
 
-import com.i_route.backend.domain.user.dto.DuplicateCheckRequest;
-import com.i_route.backend.domain.user.dto.DuplicateCheckResponse;
-import com.i_route.backend.domain.user.entity.User;
-import com.i_route.backend.domain.user.repository.UserRepository;
+import com.i_route.backend.user.dto.DuplicateCheckRequest;
+import com.i_route.backend.user.dto.DuplicateCheckResponse;
+import com.i_route.backend.user.entity.User;
+import com.i_route.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.ArrayList;

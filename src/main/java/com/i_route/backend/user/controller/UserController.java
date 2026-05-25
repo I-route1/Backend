@@ -1,4 +1,4 @@
-package com.i_route.backend.domain.user.controller;
+package com.i_route.backend.user.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;

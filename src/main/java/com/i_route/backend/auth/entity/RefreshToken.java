@@ -1,4 +1,4 @@
-package com.i_route.backend.domain.auth.entity;
+package com.i_route.backend.auth.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

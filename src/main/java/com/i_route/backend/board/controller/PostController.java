@@ -1,7 +1,7 @@
-package com.i_route.backend.domain.board.controller;
+package com.i_route.backend.board.controller;
 
-import com.i_route.backend.domain.board.dto.PostDto;
-import com.i_route.backend.domain.board.service.PostService;
+import com.i_route.backend.board.dto.PostDto;
+import com.i_route.backend.board.service.PostService;
 import com.i_route.backend.global.security.CustomUserDetails;
 import jakarta.persistence.*;
 import jakarta.validation.Valid;

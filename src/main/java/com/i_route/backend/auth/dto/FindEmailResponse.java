@@ -1,4 +1,4 @@
-package com.i_route.backend.domain.auth.dto;
+package com.i_route.backend.auth.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

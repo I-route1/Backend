@@ -1,6 +1,6 @@
-package com.i_route.backend.domain.user.repository;
+package com.i_route.backend.user.repository;
 
-import com.i_route.backend.domain.user.entity.User;
+import com.i_route.backend.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

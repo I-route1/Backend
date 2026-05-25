@@ -1,6 +1,6 @@
-package com.i_route.backend.domain.auth.repository;
+package com.i_route.backend.auth.repository;
 
-import com.i_route.backend.domain.auth.entity.EmailVerificationToken;
+import com.i_route.backend.auth.entity.EmailVerificationToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

@@ -1,4 +1,4 @@
-package com.i_route.backend.domain.user.entity;
+package com.i_route.backend.user.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
