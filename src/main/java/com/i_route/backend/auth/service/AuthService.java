@@ -152,7 +152,7 @@ public class AuthService {
                         .kakaoId(Long.parseLong(request.getProviderId()))
                         .nickname(request.getNickname())
                         .email(request.getEmail())
-                        .role(User.UserRole.PARENT)
+                        .role(User.UserRole.valueOf("USER"))
                         .loginType(User.LoginType.KAKAO)
                         .build()
         );
