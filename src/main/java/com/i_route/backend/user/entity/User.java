@@ -30,7 +30,6 @@ public class User {
     @Column(nullable = false)
     private UserRole role;
 
-    // ⭐ [중요] 필드명이 phoneNumber입니다!
     @Column(unique = true)
     private String phoneNumber;
 
