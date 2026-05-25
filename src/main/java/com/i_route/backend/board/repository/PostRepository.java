@@ -1,6 +1,6 @@
-package com.i_route.backend.domain.board.repository;
+package com.i_route.backend.board.repository;
 
-import com.i_route.backend.domain.board.entity.Post;
+import com.i_route.backend.board.entity.Post;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

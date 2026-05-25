@@ -1,4 +1,4 @@
-package com.i_route.backend.domain.auth.service;
+package com.i_route.backend.auth.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;

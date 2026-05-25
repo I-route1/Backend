@@ -1,6 +1,6 @@
-package com.i_route.backend.domain.auth.service;
+package com.i_route.backend.auth.service;
 
-import com.i_route.backend.domain.auth.dto.KakaoUserInfoResponse;
+import com.i_route.backend.auth.dto.KakaoUserInfoResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;

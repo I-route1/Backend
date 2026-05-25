@@ -1,4 +1,4 @@
-package com.i_route.backend.domain.user.dto;
+package com.i_route.backend.user.dto;
 
 import lombok.Getter;
 import lombok.Setter;

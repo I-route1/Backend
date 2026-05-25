@@ -1,14 +1,14 @@
-package com.i_route.backend.domain.board.service;
+package com.i_route.backend.board.service;
 
-import com.i_route.backend.domain.board.dto.CommentDto;
-import com.i_route.backend.domain.board.entity.Comment;
-import com.i_route.backend.domain.board.entity.CommentLike;
-import com.i_route.backend.domain.board.entity.Post;
-import com.i_route.backend.domain.board.repository.CommentLikeRepository;
-import com.i_route.backend.domain.board.repository.CommentRepository;
-import com.i_route.backend.domain.board.repository.PostRepository;
-import com.i_route.backend.domain.user.entity.User;
-import com.i_route.backend.domain.user.repository.UserRepository;
+import com.i_route.backend.board.dto.CommentDto;
+import com.i_route.backend.board.entity.Comment;
+import com.i_route.backend.board.entity.CommentLike;
+import com.i_route.backend.board.entity.Post;
+import com.i_route.backend.board.repository.CommentLikeRepository;
+import com.i_route.backend.board.repository.CommentRepository;
+import com.i_route.backend.board.repository.PostRepository;
+import com.i_route.backend.user.entity.User;
+import com.i_route.backend.user.repository.UserRepository;
 
 import org.springframework.security.access.AccessDeniedException;
 import jakarta.persistence.EntityNotFoundException;

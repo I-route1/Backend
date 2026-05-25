@@ -1,6 +1,6 @@
-package com.i_route.backend.domain.board.repository;
+package com.i_route.backend.board.repository;
 
-import com.i_route.backend.domain.board.entity.Comment;
+import com.i_route.backend.board.entity.Comment;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.domain.Page;
