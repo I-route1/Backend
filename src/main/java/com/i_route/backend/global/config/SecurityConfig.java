@@ -38,6 +38,15 @@ public class SecurityConfig {
                                 "/api/boards",
                                 "/api/boards/search",
                                 "/error",
+                                "/favicon.ico",
+
+                                // GPS
+                                "/api/gps/**",
+
+                                // WebSocket
+                                "/ws/**",
+
+                                "/error",
                                 "/favicon.ico"
                         ).permitAll()
                         .anyRequest().authenticated()
