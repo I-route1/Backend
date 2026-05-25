@@ -30,7 +30,7 @@ public class PredictionService {
             return PredictedScoreDto.builder()
                     .expectedScoreMin(Math.max(0, baseScore - 10))
                     .expectedScoreMax(Math.min(100, baseScore + 10))
-                    .achievementProbability(50.0)
+                    .achievementProbability(0.5)
                     .build();
         }
 
@@ -75,7 +75,7 @@ public class PredictionService {
         return PredictedScoreDto.builder()
                 .expectedScoreMin(scoreMin)
                 .expectedScoreMax(scoreMax)
-                .achievementProbability(Math.round(probability * 10) / 10.0)
+                .achievementProbability(Math.round(probability) / 100.0)
                 .build();
     }
 }
