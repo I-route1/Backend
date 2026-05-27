@@ -4,6 +4,7 @@ import com.i_route.backend.auth.dto.*;
 import com.i_route.backend.auth.repository.RefreshTokenRepository;
 import com.i_route.backend.auth.entity.EmailVerificationToken;
 import com.i_route.backend.auth.entity.RefreshToken;
+import com.i_route.backend.user.entity.Academy;
 import com.i_route.backend.user.entity.User;
 import com.i_route.backend.user.repository.*;
 import com.i_route.backend.global.jwt.JwtUtil;
@@ -27,6 +28,8 @@ import java.util.UUID;
 public class AuthService {
 
     private final UserRepository userRepository;
+
+    private final AcademyRepository academyRepository;
 
     private final RefreshTokenRepository refreshTokenRepository;
 
@@ -68,12 +71,11 @@ public class AuthService {
                 .build();
     }
 
-    @Transactional
-    public void signup(SignupRequest request) {
+    public void register(ParentRegisterRequestDto request) {
 
-        // 이메일 중복 체크
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+        // 아이디 중복 체크
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
         }
 
         // 닉네임 중복 체크
@@ -81,38 +83,69 @@ public class AuthService {
             throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
         }
 
-        // 전화번호 포맷 통일
-        String cleanedPhone = request.getPhoneNumber()
-                .replaceAll("[\\s-]", "");
+        // 이메일 중복 체크
+        if (request.getEmail() != null &&
+                userRepository.existsByEmail(request.getEmail())) {
 
-        // 전화번호 중복 체크
-        if (userRepository.existsByPhoneNumber(cleanedPhone)) {
-            throw new IllegalArgumentException("이미 사용 중인 휴대폰 번호입니다.");
+            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
 
-        // 역할 변환
-        User.UserRole userRole;
-        try {
-            userRole = User.UserRole.valueOf(
-                    request.getRole().toUpperCase()
-            );
-        } catch (IllegalArgumentException | NullPointerException e) {
-            throw new IllegalArgumentException(
-                    "올바른 역할을 선택해주세요. (PARENT, TEACHER, DRIVER)"
-            );
+        // 비밀번호 확인
+        if (!request.getPassword()
+                .equals(request.getPasswordConfirm())) {
+
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
 
-        // 저장
+        // 회원 생성
         User user = User.builder()
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
+                .username(request.getUsername())
                 .nickname(request.getNickname())
-                .phoneNumber(cleanedPhone)
-                .role(userRole)
+                .password(passwordEncoder.encode(request.getPassword()))
+                .name(request.getName())
+                .email(request.getEmail())
+                .phoneNumber(request.getPhone())
+                .role(User.UserRole.valueOf(request.getRole().toUpperCase()))
                 .loginType(User.LoginType.EMAIL)
                 .build();
 
         userRepository.save(user);
+    }
+
+    @Transactional
+    public void registerAcademy(AcademyRegisterRequestDto request) {
+
+        // role 안전 처리
+        User.UserRole role;
+        try {
+            role = User.UserRole.valueOf(request.getRole().toUpperCase());
+        } catch (Exception e) {
+            throw new IllegalArgumentException("잘못된 role 값입니다: " + request.getRole());
+        }
+
+        // 1. User 생성
+        User user = User.builder()
+                .username(request.getUsername())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .nickname(request.getNickname())
+                .name(request.getName())
+                .email(request.getEmail())
+                .role(role)
+                .phoneNumber(request.getPhone())
+                .loginType(User.LoginType.EMAIL) // 🔥 필수 추가
+                .build();
+
+        userRepository.save(user);
+
+        // 2. Academy 생성
+        Academy academy = Academy.builder()
+                .academyName(request.getAcademyName())
+                .academyAddress(request.getAcademyAddress())
+                .businessNumber(request.getBusinessNumber())
+                .user(user)
+                .build();
+
+        academyRepository.save(academy);
     }
 
     // return 타입을 LoginResponse로 변경
@@ -168,13 +201,17 @@ public class AuthService {
 
     // 소셜 회원 자동 가입
     public User socialRegister(SocialRegisterRequest request) {
+
         return userRepository.save(
                 User.builder()
-                        .kakaoId(Long.parseLong(request.getProviderId()))
+                        .kakaoId(request.getProviderId() != null
+                                ? Long.valueOf(request.getProviderId())
+                                : null)
                         .nickname(request.getNickname())
                         .email(request.getEmail())
-                        .role(User.UserRole.valueOf("USER"))
+                        .role(User.UserRole.PARENT) // 기본 역할
                         .loginType(User.LoginType.KAKAO)
+                        .emailVerified(true)
                         .build()
         );
     }
