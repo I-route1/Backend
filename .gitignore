@@ -38,6 +38,7 @@ replay_pid*
 .env
 .env.local
 .env.*.local
+start-server.ps1
 
 # Logs
 *.log

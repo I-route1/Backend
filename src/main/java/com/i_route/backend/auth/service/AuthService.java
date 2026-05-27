@@ -59,10 +59,13 @@ public class AuthService {
             refreshTokenRepository.delete(saved);
             throw new RuntimeException("Refresh Token이 만료되었습니다. 다시 로그인해주세요.");
         }
-        String newAccessToken = jwtUtil.generateToken(saved.getUserId());
+        User user = userRepository.findById(saved.getUserId())
+                .orElseThrow(() -> new RuntimeException("유저 없음"));
+        String newAccessToken = jwtUtil.generateToken(user.getId(), user.getRole().name());
 
         return AuthResponse.builder()
                 .accessToken(newAccessToken)
+                .role(user.getRole().name())
                 .build();
     }
 
@@ -109,15 +112,15 @@ public class AuthService {
             throw new RuntimeException("비밀번호 틀림");
         }
 
-        String accessToken = jwtUtil.generateToken(user.getId());
-        String refreshToken = jwtUtil.generateRefreshToken(user.getId());
+        String accessToken = jwtUtil.generateToken(user.getId(), user.getRole().name());
+        String refreshToken = issueRefreshToken(user.getId());
 
-        String userId;
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .userId(String.valueOf(user.getId()))
                 .nickname(user.getNickname())
+                .role(user.getRole().name())
                 .isNewUser(false)
                 .build();
     }
@@ -152,7 +155,7 @@ public class AuthService {
                         .kakaoId(Long.parseLong(request.getProviderId()))
                         .nickname(request.getNickname())
                         .email(request.getEmail())
-                        .role(User.UserRole.valueOf("USER"))
+                        .role(User.UserRole.PARENT)
                         .loginType(User.LoginType.KAKAO)
                         .build()
         );
