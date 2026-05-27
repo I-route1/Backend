@@ -28,9 +28,15 @@ public class AuthController {
     private final UserService userService;
 
     //일반
-    @PostMapping("/api/auth/signup")
-    public ResponseEntity<String> register(@RequestBody SignupRequest request) {
-        authService.signup(request);
+    @PostMapping("/api/auth/register")
+    public ResponseEntity<String> register(@RequestBody ParentRegisterRequestDto request) {
+        authService.register(request);
+        return ResponseEntity.ok("회원가입이 완료되었습니다.");
+    }
+
+    @PostMapping("/api/auth/academy/register")
+    public ResponseEntity<String> academyregister(@RequestBody AcademyRegisterRequestDto request) {
+        authService.registerAcademy(request);
         return ResponseEntity.ok("회원가입이 완료되었습니다.");
     }
 
