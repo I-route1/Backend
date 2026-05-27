@@ -1,21 +1,27 @@
 package com.i_route.backend.auth.dto;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class SignupRequest {
+@NoArgsConstructor
+public class ParentRegisterRequestDto {
 
-    private Long id;
+    private String username;
 
     private String nickname;
 
     private String password;
 
+    private String passwordConfirm;
+
+    private String name;
+
     private String email;
 
-    private String phoneNumber;
+    private String phone;
 
     private String role;
 }
