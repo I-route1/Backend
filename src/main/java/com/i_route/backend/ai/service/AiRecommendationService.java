@@ -87,12 +87,7 @@ public class AiRecommendationService {
                 .orElse(null);
 
         if (goal == null) {
-            return StudyRoadmapDto.builder()
-                    .studentId(studentId)
-                    .targetKeyword("미설정")
-                    .weeklyMilestones(List.of())
-                    .overallStrategy("아직 학습 목표가 등록되지 않았습니다. 목표를 먼저 설정해주세요.")
-                    .build();
+            throw new IllegalArgumentException("학생 " + studentId + "의 목표가 없습니다. 목표를 먼저 설정해주세요.");
         }
 
         long remainingDays = LocalDate.now().until(goal.getTargetDate()).getDays();

@@ -12,9 +12,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.net.Socket;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.*;
 
@@ -32,6 +34,13 @@ class GradeAnalysisServiceIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        // AI 서버(localhost:8082)가 실행 중이지 않으면 테스트 스킵
+        boolean aiServerRunning = false;
+        try (Socket s = new Socket("localhost", 8082)) {
+            aiServerRunning = true;
+        } catch (Exception ignored) {}
+        assumeTrue(aiServerRunning, "AI 서버(localhost:8082)가 실행 중이지 않아 통합 테스트를 건너뜁니다.");
+
         WebClient webClient = WebClient.builder()
                 .baseUrl("http://localhost:8082")
                 .build();

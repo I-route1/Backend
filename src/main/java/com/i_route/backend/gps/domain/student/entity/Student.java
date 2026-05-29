@@ -25,4 +25,6 @@ public class Student {
     private LocalTime expectedDropOffTime;
 
     private Long parentId;
+
+    private String nfcCardId;
 }

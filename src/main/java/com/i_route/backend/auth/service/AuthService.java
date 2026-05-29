@@ -100,6 +100,14 @@ public class AuthService {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
 
+        // 역할 검증
+        User.UserRole role;
+        try {
+            role = User.UserRole.valueOf(request.getRole().toUpperCase());
+        } catch (Exception e) {
+            throw new IllegalArgumentException("잘못된 role 값입니다: " + request.getRole());
+        }
+
         // 회원 생성
         User user = User.builder()
                 .username(request.getUsername())
@@ -107,8 +115,8 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .name(request.getName())
                 .email(request.getEmail())
-                .phoneNumber(request.getPhone())
-                .role(User.UserRole.valueOf(request.getRole().toUpperCase()))
+                .phoneNumber(request.getPhone() != null ? request.getPhone().replaceAll("[\\s-]", "") : null)
+                .role(role)
                 .loginType(User.LoginType.EMAIL)
                 .build();
 
