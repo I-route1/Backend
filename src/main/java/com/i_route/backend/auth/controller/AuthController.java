@@ -28,9 +28,15 @@ public class AuthController {
     private final UserService userService;
 
     //일반
-    @PostMapping("/api/auth/signup")
-    public ResponseEntity<String> register(@RequestBody SignupRequest request) {
-        authService.signup(request);
+    @PostMapping("/api/auth/register")
+    public ResponseEntity<String> register(@RequestBody ParentRegisterRequestDto request) {
+        authService.register(request);
+        return ResponseEntity.ok("회원가입이 완료되었습니다.");
+    }
+
+    @PostMapping("/api/auth/academy/register")
+    public ResponseEntity<String> academyregister(@RequestBody AcademyRegisterRequestDto request) {
+        authService.registerAcademy(request);
         return ResponseEntity.ok("회원가입이 완료되었습니다.");
     }
 
@@ -139,12 +145,15 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "이메일 인증이 완료되었습니다."));
     }
 
-    // POST /api/auth/email/welcome
     @PostMapping("/api/auth/email/welcome")
     public ResponseEntity<Map<String, String>> sendWelcomeEmail(
             @RequestBody Map<String, String> body) {
-        authService.sendWelcomeEmail(body.get("userId"), body.get("email"));
-        return ResponseEntity.ok(Map.of("message", "환영 이메일이 발송되었습니다."));
+
+        authService.sendWelcomeEmail(body.get("email"));
+
+        return ResponseEntity.ok(
+                Map.of("message", "환영 이메일이 발송되었습니다.")
+        );
     }
 
     @PostMapping("/api/auth/check") // JSON을 보낼 때는 보통 POST를 많이 씁니다.
