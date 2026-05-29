@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    active: local
   mail:
     host: smtp.gmail.com
     port: 587
