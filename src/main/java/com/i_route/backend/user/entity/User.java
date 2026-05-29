@@ -17,6 +17,11 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private String name;
+
+    @Column(unique = true, nullable = false)
+    private String username; // 로그인 ID로 사용할 수 있는 필드 (예: 이메일 또는 별도의 아이디)
+
     @Column(unique = true, nullable = false)
     private String nickname;
 
@@ -30,7 +35,6 @@ public class User {
     @Column(nullable = false)
     private UserRole role;
 
-    // ⭐ [중요] 필드명이 phoneNumber입니다!
     @Column(unique = true)
     private String phoneNumber;
 
@@ -48,6 +52,10 @@ public class User {
     @Column(nullable = false)
     private boolean emailVerified = false;
 
+    // 학원 정보
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    private Academy academy;
+
     // ==========================================
     // Inner Enums (로그인 타입 & 유저 역할)
     // ==========================================
@@ -58,7 +66,7 @@ public class User {
     // 학부모, 학원강사, 운전기사 역할 정의
     public enum UserRole {
         PARENT,    // 학부모
-        TEACHER,   // 학원강사
+        ACADEMY,   // 학원강사
         DRIVER,    // 운전기사
         ADMIN   // 운영자
     }
