@@ -4,12 +4,15 @@ import com.i_route.backend.auth.dto.*;
 import com.i_route.backend.auth.repository.RefreshTokenRepository;
 import com.i_route.backend.auth.entity.EmailVerificationToken;
 import com.i_route.backend.auth.entity.RefreshToken;
+import com.i_route.backend.user.entity.Academy;
 import com.i_route.backend.user.entity.User;
 import com.i_route.backend.user.repository.*;
 import com.i_route.backend.global.jwt.JwtUtil;
 import com.i_route.backend.auth.repository.EmailVerificationTokenRepository;
 
 import lombok.*;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,6 +29,8 @@ public class AuthService {
 
     private final UserRepository userRepository;
 
+    private final AcademyRepository academyRepository;
+
     private final RefreshTokenRepository refreshTokenRepository;
 
     private final PasswordEncoder passwordEncoder;
@@ -34,7 +39,7 @@ public class AuthService {
 
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
 
-    private final EmailService emailService;
+    private final JavaMailSender mailSender;
 
     private final JwtUtil jwtUtil;
     @Value("${jwt.refresh-expiration}")
@@ -61,7 +66,7 @@ public class AuthService {
         }
         User user = userRepository.findById(saved.getUserId())
                 .orElseThrow(() -> new RuntimeException("유저 없음"));
-        String newAccessToken = jwtUtil.generateToken(user.getId(), user.getRole().name());
+        String newAccessToken = jwtUtil.generateToken(user.getId());
 
         return AuthResponse.builder()
                 .accessToken(newAccessToken)
@@ -69,32 +74,81 @@ public class AuthService {
                 .build();
     }
 
-    @Transactional
-    public void signup(SignupRequest request) {
-        // 1. 중복 체크 등 기존 검증 로직 수행...
+    public void register(ParentRegisterRequestDto request) {
 
-        // 2. 입력받은 role 문자열을 Enum으로 안전하게 변환
-        User.UserRole userRole;
-        try {
-            userRole = User.UserRole.valueOf(request.getRole().toUpperCase());
-        } catch (IllegalArgumentException | NullPointerException e) {
-            throw new IllegalArgumentException("올바른 역할을 선택해주세요. (PARENT, TEACHER, DRIVER)");
+        // 아이디 중복 체크
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
         }
 
-        // 3. 휴대폰 번호 하이픈 제거 포맷팅
-        String cleanedPhone = request.getPhoneNumber().replaceAll("[\\s-]", "");
+        // 닉네임 중복 체크
+        if (userRepository.existsByNickname(request.getNickname())) {
+            throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
+        }
 
-        // 4. 엔티티 생성 및 저장
+        // 이메일 중복 체크
+        if (request.getEmail() != null &&
+                userRepository.existsByEmail(request.getEmail())) {
+
+            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+        }
+
+        // 비밀번호 확인
+        if (!request.getPassword()
+                .equals(request.getPasswordConfirm())) {
+
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        }
+
+        // 회원 생성
         User user = User.builder()
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword())) // 비밀번호 암호화
+                .username(request.getUsername())
                 .nickname(request.getNickname())
-                .phoneNumber(cleanedPhone)
-                .role(userRole) // 👈 변환된 Enum 역할 저장!
+                .password(passwordEncoder.encode(request.getPassword()))
+                .name(request.getName())
+                .email(request.getEmail())
+                .phoneNumber(request.getPhone())
+                .role(User.UserRole.valueOf(request.getRole().toUpperCase()))
                 .loginType(User.LoginType.EMAIL)
                 .build();
 
         userRepository.save(user);
+    }
+
+    @Transactional
+    public void registerAcademy(AcademyRegisterRequestDto request) {
+
+        // role 안전 처리
+        User.UserRole role;
+        try {
+            role = User.UserRole.valueOf(request.getRole().toUpperCase());
+        } catch (Exception e) {
+            throw new IllegalArgumentException("잘못된 role 값입니다: " + request.getRole());
+        }
+
+        // 1. User 생성
+        User user = User.builder()
+                .username(request.getUsername())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .nickname(request.getNickname())
+                .name(request.getName())
+                .email(request.getEmail())
+                .role(role)
+                .phoneNumber(request.getPhone())
+                .loginType(User.LoginType.EMAIL) // 🔥 필수 추가
+                .build();
+
+        userRepository.save(user);
+
+        // 2. Academy 생성
+        Academy academy = Academy.builder()
+                .academyName(request.getAcademyName())
+                .academyAddress(request.getAcademyAddress())
+                .businessNumber(request.getBusinessNumber())
+                .user(user)
+                .build();
+
+        academyRepository.save(academy);
     }
 
     // return 타입을 LoginResponse로 변경
@@ -112,7 +166,7 @@ public class AuthService {
             throw new RuntimeException("비밀번호 틀림");
         }
 
-        String accessToken = jwtUtil.generateToken(user.getId(), user.getRole().name());
+        String accessToken = jwtUtil.generateToken(user.getId());
         String refreshToken = issueRefreshToken(user.getId());
 
         return AuthResponse.builder()
@@ -150,13 +204,17 @@ public class AuthService {
 
     // 소셜 회원 자동 가입
     public User socialRegister(SocialRegisterRequest request) {
+
         return userRepository.save(
                 User.builder()
-                        .kakaoId(Long.parseLong(request.getProviderId()))
+                        .kakaoId(request.getProviderId() != null
+                                ? Long.valueOf(request.getProviderId())
+                                : null)
                         .nickname(request.getNickname())
                         .email(request.getEmail())
-                        .role(User.UserRole.PARENT)
+                        .role(User.UserRole.PARENT) // 기본 역할
                         .loginType(User.LoginType.KAKAO)
+                        .emailVerified(true)
                         .build()
         );
     }
@@ -172,24 +230,36 @@ public class AuthService {
     @Value("${email.verification-expiration}")
     private long verificationExpiration;
 
-    // 인증 이메일 발송
     public void sendVerificationEmail(String email) {
-        // 기존 토큰 삭제
+
+        // 토큰 생성
         emailVerificationTokenRepository.deleteByEmail(email);
-
         String token = UUID.randomUUID().toString();
+        EmailVerificationToken verification = EmailVerificationToken.builder()
+                .email(email)
+                .token(token)
+                .expiryDate(LocalDateTime.now().plusMinutes(30))
+                .verified(false)
+                .build();
+        emailVerificationTokenRepository.save(verification);
 
-        EmailVerificationToken verificationToken =
-                EmailVerificationToken.builder()
-                        .token(token)
-                        .email(email)
-                        .expiryDate(LocalDateTime.now().plusHours(1))
-                        .verified(false)
-                        .build();
+        // 인증 링크 생성
+        String verifyUrl =
+                "http://localhost:8080/api/auth/email/verify?token=" + token;
 
-        emailVerificationTokenRepository.save(verificationToken);
+        // 메일 생성
+        SimpleMailMessage message = new SimpleMailMessage();
 
-        emailService.sendVerificationEmail(email, token);
+        message.setTo(email);
+        message.setSubject("[I-ROUTE] 이메일 인증");
+
+        message.setText(
+                "아래 링크를 클릭해서 인증을 완료해주세요.\n\n"
+                        + verifyUrl
+        );
+
+        // 메일 발송
+        mailSender.send(message);
     }
 
     //  인증 토큰 검증
@@ -226,24 +296,39 @@ public class AuthService {
         sendVerificationEmail(email); // 기존 토큰 삭제 후 재발송
     }
 
-    // 환영 이메일 발송
-    public void sendWelcomeEmail(String userId, String email) {
-        User user = userRepository.findById(Long.parseLong(userId))
-                .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다."));
-        emailService.sendWelcomeEmail(email, user.getNickname());
-    }
-
     // 비밀번호 재설정 링크 발송 로직
     @Transactional
     public void sendResetLink(String email) {
+
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("가입되지 않은 이메일입니다."));
 
-        // 실무 팁: 토큰을 생성해 DB 유저 테이블(또는 Redis)에 저장하고 이메일 전송 로직을 붙입니다.
+        // 토큰 생성
         String resetToken = UUID.randomUUID().toString();
-        user.updateResetToken(resetToken); // User 엔티티에 토큰 저장 메서드가 있다고 가정
 
-        // TODO: emailService.send(email, "비밀번호 재설정 링크", "링크주소?token=" + resetToken);
+        // DB 저장
+        user.updateResetToken(resetToken);
+
+        // 재설정 링크
+        String resetUrl =
+                "http://localhost:8080/api/auth/password/reset?token="
+                        + resetToken;
+
+        // 메일 생성
+        SimpleMailMessage message = new SimpleMailMessage();
+
+        message.setTo(email);
+
+        message.setSubject("[I-ROUTE] 비밀번호 재설정");
+
+        message.setText(
+                "비밀번호 재설정 링크입니다.\n\n"
+                        + resetUrl
+        );
+
+        // 메일 발송
+        mailSender.send(message);
     }
 
     // 토큰 검증 후 새 비밀번호로 변경 로직
@@ -269,5 +354,20 @@ public class AuthService {
                 .orElseThrow(() -> new IllegalArgumentException("해당 휴대폰 번호로 가입된 유저가 없습니다."));
 
         return user.getEmail();
+    }
+
+    public void sendWelcomeEmail(String email) {
+
+        SimpleMailMessage message = new SimpleMailMessage();
+
+        message.setTo(email);
+        message.setSubject("[I-ROUTE] 회원가입을 환영합니다!");
+        message.setText(
+                "안녕하세요.\n\n" +
+                        "I-ROUTE 회원가입을 환영합니다!\n" +
+                        "앞으로 다양한 서비스를 이용해보세요 😊"
+        );
+
+        mailSender.send(message);
     }
 }
