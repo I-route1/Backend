@@ -64,10 +64,13 @@ public class AuthService {
             refreshTokenRepository.delete(saved);
             throw new RuntimeException("Refresh Token이 만료되었습니다. 다시 로그인해주세요.");
         }
-        String newAccessToken = jwtUtil.generateToken(saved.getUserId());
+        User user = userRepository.findById(saved.getUserId())
+                .orElseThrow(() -> new RuntimeException("유저 없음"));
+        String newAccessToken = jwtUtil.generateToken(user.getId());
 
         return AuthResponse.builder()
                 .accessToken(newAccessToken)
+                .role(user.getRole().name())
                 .build();
     }
 
@@ -97,6 +100,14 @@ public class AuthService {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
 
+        // 역할 검증
+        User.UserRole role;
+        try {
+            role = User.UserRole.valueOf(request.getRole().toUpperCase());
+        } catch (Exception e) {
+            throw new IllegalArgumentException("잘못된 role 값입니다: " + request.getRole());
+        }
+
         // 회원 생성
         User user = User.builder()
                 .username(request.getUsername())
@@ -104,8 +115,8 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .name(request.getName())
                 .email(request.getEmail())
-                .phoneNumber(request.getPhone())
-                .role(User.UserRole.valueOf(request.getRole().toUpperCase()))
+                .phoneNumber(request.getPhoneNumber() != null ? request.getPhoneNumber().replaceAll("[\\s-]", "") : null)
+                .role(role)
                 .loginType(User.LoginType.EMAIL)
                 .build();
 
@@ -114,6 +125,30 @@ public class AuthService {
 
     @Transactional
     public void registerAcademy(AcademyRegisterRequestDto request) {
+
+        // 아이디 중복 체크
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
+        }
+
+        // 닉네임 중복 체크
+        if (userRepository.existsByNickname(request.getNickname())) {
+            throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
+        }
+
+        // 이메일 중복 체크
+        if (request.getEmail() != null &&
+                userRepository.existsByEmail(request.getEmail())) {
+
+            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+        }
+
+        // 비밀번호 확인
+        if (!request.getPassword()
+                .equals(request.getPasswordConfirm())) {
+
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        }
 
         // role 안전 처리
         User.UserRole role;
@@ -131,8 +166,8 @@ public class AuthService {
                 .name(request.getName())
                 .email(request.getEmail())
                 .role(role)
-                .phoneNumber(request.getPhone())
-                .loginType(User.LoginType.EMAIL) // 🔥 필수 추가
+                .phoneNumber(request.getPhoneNumber())
+                .loginType(User.LoginType.EMAIL)
                 .build();
 
         userRepository.save(user);
@@ -151,8 +186,8 @@ public class AuthService {
     // return 타입을 LoginResponse로 변경
     public AuthResponse login(LoginRequest request) {
 
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("유저 없음"));
+        User user = userRepository.findByUsername(request.getUsername())
+                .orElseThrow(() -> new RuntimeException("잘못된 ID"));
 
         System.out.println("====== [로그인 디버깅 데이터] ======");
         System.out.println("1. 포스트맨이 보낸 원본 패스워드 : [" + request.getPassword() + "]");
@@ -210,7 +245,7 @@ public class AuthService {
                                 : null)
                         .nickname(request.getNickname())
                         .email(request.getEmail())
-                        .role(User.UserRole.PARENT) // 기본 역할
+                        .role(User.UserRole.PARENT)
                         .loginType(User.LoginType.KAKAO)
                         .emailVerified(true)
                         .build()
