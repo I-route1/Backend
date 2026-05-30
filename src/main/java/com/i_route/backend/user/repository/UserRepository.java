@@ -10,6 +10,8 @@ public interface UserRepository
 
     Optional<User> findByEmail(String email);
 
+    Optional<User> findByUsername(String usernmae);
+
     Optional<User> findByKakaoId(Long kakaoId);
 
     Optional<User> findByPhoneNumber(String PhoneNumber);

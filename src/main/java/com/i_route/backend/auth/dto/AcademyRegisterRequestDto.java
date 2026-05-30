@@ -22,7 +22,7 @@ public class AcademyRegisterRequestDto {
 
     private String email;
 
-    private String phone;
+    private String phoneNumber;
 
     // 사용자 역할
     private String role;
