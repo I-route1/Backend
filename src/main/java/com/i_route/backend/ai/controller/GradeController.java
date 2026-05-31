@@ -2,6 +2,7 @@ package com.i_route.backend.ai.controller;
 
 import com.i_route.backend.ai.dto.GradeRequest;
 import com.i_route.backend.ai.dto.GradeResponse;
+import com.i_route.backend.ai.dto.GradeUpdateRequest;
 import com.i_route.backend.ai.service.GradeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -30,7 +31,22 @@ public class GradeController {
         return ResponseEntity.ok(responses);
     }
 
-    // 🌟 [NEW] 3. 학생 성적 추이 및 요약 분석 리포트 API (GET)
+    // 3. 성적 수정 API (PATCH)
+    @PatchMapping("/{id}")
+    public ResponseEntity<GradeResponse> updateGrade(
+            @PathVariable Long id,
+            @RequestBody GradeUpdateRequest request) {
+        return ResponseEntity.ok(gradeService.updateGrade(id, request));
+    }
+
+    // 4. 성적 삭제 API (DELETE)
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteGrade(@PathVariable Long id) {
+        gradeService.deleteGrade(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // 🌟 [NEW] 5. 학생 성적 추이 및 요약 분석 리포트 API (GET)
     @GetMapping("/{studentId}/analysis")
     public ResponseEntity<GradeAnalysisResponse> getGradeAnalysis(@PathVariable String studentId) {
         GradeAnalysisResponse response = gradeService.analyzeStudentGrades(studentId);

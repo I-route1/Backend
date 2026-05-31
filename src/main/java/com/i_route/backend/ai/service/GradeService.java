@@ -3,6 +3,7 @@ package com.i_route.backend.ai.service;
 import com.i_route.backend.ai.dto.GradeAnalysisResponse;
 import com.i_route.backend.ai.dto.GradeRequest;
 import com.i_route.backend.ai.dto.GradeResponse;
+import com.i_route.backend.ai.dto.GradeUpdateRequest;
 import com.i_route.backend.ai.entity.Grade;
 import com.i_route.backend.ai.repository.GradeRepository;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +44,37 @@ public class GradeService {
                 .collect(Collectors.toList());
     }
 
-    // 🌟 [NEW] 3. 시계열 및 전월 대비 성적 변동폭 분석 로직
+    // 3. 성적 수정
+    @Transactional
+    public GradeResponse updateGrade(Long id, GradeUpdateRequest request) {
+        Grade grade = gradeRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("성적을 찾을 수 없습니다. id=" + id));
+
+        Grade updated = Grade.builder()
+                .id(grade.getId())
+                .studentId(grade.getStudentId())
+                .subject(request.getSubject() != null ? request.getSubject() : grade.getSubject())
+                .score(request.getScore() != null ? request.getScore() : grade.getScore())
+                .gradeLevel(request.getGradeLevel() != null ? request.getGradeLevel() : grade.getGradeLevel())
+                .examType(request.getExamType() != null ? request.getExamType() : grade.getExamType())
+                .examDate(request.getExamDate() != null ? request.getExamDate() : grade.getExamDate())
+                .percentile(grade.getPercentile())
+                .weakConceptTag(grade.getWeakConceptTag())
+                .build();
+
+        return GradeResponse.from(gradeRepository.save(updated));
+    }
+
+    // 4. 성적 삭제
+    @Transactional
+    public void deleteGrade(Long id) {
+        if (!gradeRepository.existsById(id)) {
+            throw new IllegalArgumentException("성적을 찾을 수 없습니다. id=" + id);
+        }
+        gradeRepository.deleteById(id);
+    }
+
+    // 🌟 [NEW] 5. 시계열 및 전월 대비 성적 변동폭 분석 로직
     @Transactional(readOnly = true)
     public GradeAnalysisResponse analyzeStudentGrades(String studentId) {
         // 해당 학생의 모든 성적 가져오기
