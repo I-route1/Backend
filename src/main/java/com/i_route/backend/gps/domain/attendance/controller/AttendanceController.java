@@ -2,6 +2,7 @@ package com.i_route.backend.gps.domain.attendance.controller;
 
 import com.i_route.backend.gps.domain.attendance.dto.AttendanceResponse;
 import com.i_route.backend.gps.domain.attendance.dto.AttendanceTagRequest;
+import com.i_route.backend.gps.domain.attendance.dto.ChildResponse;
 import com.i_route.backend.gps.domain.attendance.dto.NfcRegisterRequest;
 import com.i_route.backend.gps.domain.attendance.service.AttendanceService;
 import jakarta.validation.Valid;
@@ -29,6 +30,15 @@ public class AttendanceController {
     public ResponseEntity<AttendanceResponse> tagCard(
             @Valid @RequestBody AttendanceTagRequest request) {
         return ResponseEntity.ok(attendanceService.processTag(request));
+    }
+
+    /**
+     * 학부모 앱 → 내 자녀 목록 조회 (GPS studentId + 성적 studentId 포함)
+     * GET /api/gps/parents/{parentId}/children
+     */
+    @GetMapping("/parents/{parentId}/children")
+    public ResponseEntity<List<ChildResponse>> getChildren(@PathVariable Long parentId) {
+        return ResponseEntity.ok(attendanceService.getChildren(parentId));
     }
 
     /**
