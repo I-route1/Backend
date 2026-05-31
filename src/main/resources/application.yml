@@ -67,3 +67,7 @@ email:
 ai:
   server:
     url: http://localhost:8082
+
+toss:
+  secret-key: test_sk_dummy
+  client-key: test_ck_dummy

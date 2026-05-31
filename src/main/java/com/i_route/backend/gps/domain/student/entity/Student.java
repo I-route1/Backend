@@ -3,6 +3,7 @@ package com.i_route.backend.gps.domain.student.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+
 import java.time.LocalTime;
 
 @Entity
@@ -26,4 +27,6 @@ public class Student {
     private LocalTime expectedDropOffTime;
 
     private Long parentId;
+
+    private String nfcCardId;
 }

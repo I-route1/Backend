@@ -94,13 +94,13 @@ public class PaymentService {
 
             // 프리미엄 리포트 결제 시 크레딧 지급
             int credits = payment.getPlanType().getCreditsToAdd();
-            if (credits > 0) {
+            /*if (credits > 0) {
                 User user = userRepository.findById(userId)
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."));
                 user.setPremiumCredits(user.getPremiumCredits() + credits);
                 userRepository.save(user);
                 log.info("[결제] userId={} 크레딧 {}개 지급 (총 {}개)", userId, credits, user.getPremiumCredits());
-            }
+            }*/
 
             log.info("[결제 완료] orderId={} userId={} amount={}", payment.getOrderId(), userId, payment.getAmount());
             return PaymentHistoryResponse.from(payment);
