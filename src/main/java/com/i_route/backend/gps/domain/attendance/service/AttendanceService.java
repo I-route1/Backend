@@ -84,6 +84,27 @@ public class AttendanceService {
     }
 
     @Transactional(readOnly = true)
+    public List<AttendanceResponse> getAttendanceByParent(Long parentId, LocalDate date) {
+        LocalDateTime from = date.atStartOfDay();
+        LocalDateTime to = date.atTime(LocalTime.MAX);
+
+        return studentRepository.findAll().stream()
+                .filter(s -> parentId.equals(s.getParentId()))
+                .flatMap(s -> attendanceRepository
+                        .findByStudentIdAndTimestampBetweenOrderByTimestampDesc(s.getStudentId(), from, to)
+                        .stream()
+                        .map(a -> AttendanceResponse.builder()
+                                .attendanceId(a.getId())
+                                .studentId(a.getStudentId())
+                                .studentName(s.getName())
+                                .busId(a.getBusId())
+                                .eventType(a.getEventType())
+                                .timestamp(a.getTimestamp())
+                                .build()))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public List<AttendanceResponse> getStudentHistory(Long studentId, LocalDate date) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "학생을 찾을 수 없습니다."));
@@ -151,5 +172,25 @@ public class AttendanceService {
 
         studentRepository.save(updated);
         log.info("[NFC 등록] 학생={} cardId={}", student.getName(), nfcCardId);
+    }
+
+    @Transactional
+    public void registerGradeStudentId(Long studentId, String gradeStudentId) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "학생을 찾을 수 없습니다."));
+
+        Student updated = Student.builder()
+                .studentId(student.getStudentId())
+                .busId(student.getBusId())
+                .routeStopId(student.getRouteStopId())
+                .name(student.getName())
+                .expectedDropOffTime(student.getExpectedDropOffTime())
+                .parentId(student.getParentId())
+                .nfcCardId(student.getNfcCardId())
+                .gradeStudentId(gradeStudentId)
+                .build();
+
+        studentRepository.save(updated);
+        log.info("[성적 ID 등록] 학생={} gradeStudentId={}", student.getName(), gradeStudentId);
     }
 }
