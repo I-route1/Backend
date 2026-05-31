@@ -2,6 +2,7 @@ package com.i_route.backend.gps.domain.attendance.controller;
 
 import com.i_route.backend.gps.domain.attendance.dto.AttendanceResponse;
 import com.i_route.backend.gps.domain.attendance.dto.AttendanceTagRequest;
+import com.i_route.backend.gps.domain.attendance.dto.GradeStudentIdRequest;
 import com.i_route.backend.gps.domain.attendance.dto.NfcRegisterRequest;
 import com.i_route.backend.gps.domain.attendance.service.AttendanceService;
 import jakarta.validation.Valid;
@@ -70,13 +71,24 @@ public class AttendanceController {
     /**
      * 관리자 → 학생에게 NFC 카드 등록 (PN532)
      * PATCH /api/gps/students/{studentId}/nfc
-     * Body: { "nfcCardId": "A1B2C3D4" }
      */
     @PatchMapping("/students/{studentId}/nfc")
     public ResponseEntity<Void> registerNfc(
             @PathVariable Long studentId,
             @Valid @RequestBody NfcRegisterRequest request) {
         attendanceService.registerNfcCard(studentId, request.getNfcCardId());
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 관리자 → 학생에게 성적 시스템 ID 등록
+     * PATCH /api/gps/students/{studentId}/grade-id
+     */
+    @PatchMapping("/students/{studentId}/grade-id")
+    public ResponseEntity<Void> registerGradeStudentId(
+            @PathVariable Long studentId,
+            @Valid @RequestBody GradeStudentIdRequest request) {
+        attendanceService.registerGradeStudentId(studentId, request.getGradeStudentId());
         return ResponseEntity.ok().build();
     }
 }
