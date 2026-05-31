@@ -7,8 +7,8 @@ import com.i_route.backend.gps.domain.gps.repository.CurrentLocationRedisReposit
 import com.i_route.backend.gps.domain.route.entity.RouteStop;
 import com.i_route.backend.gps.domain.route.repository.RouteStopRepository;
 import com.i_route.backend.gps.domain.route.service.RouteProgressService;
-import com.i_route.backend.gps.global.exception.CustomException;
-import com.i_route.backend.gps.global.exception.ErrorCode;
+import com.i_route.backend.global.exception.CustomException;
+import com.i_route.backend.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

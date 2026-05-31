@@ -10,8 +10,8 @@ import com.i_route.backend.gps.domain.student.entity.Student;
 import com.i_route.backend.gps.domain.student.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import com.i_route.backend.gps.global.exception.CustomException;
-import com.i_route.backend.gps.global.exception.ErrorCode;
+import com.i_route.backend.global.exception.CustomException;
+import com.i_route.backend.global.exception.ErrorCode;
 
 
 import java.time.LocalTime;
