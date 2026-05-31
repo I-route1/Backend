@@ -1,8 +1,15 @@
-# i-Route AI 기능 API 명세서
+# i-Route API 명세서
 
 **Base URL**: `http://localhost:8080`  
-**인증**: 현재 전체 허용 (`anyRequest().permitAll()`)  
 **작성일**: 2026-05-25
+
+### 권한 정책
+
+| 구분 | 설명 |
+|------|------|
+| 인증 불필요 | 토큰 없이 호출 가능 |
+| 인증 필요 | JWT 토큰 필요 (`Authorization: Bearer {token}`) |
+| ACADEMY / ADMIN | 학원 강사 또는 관리자 계정만 호출 가능 |
 
 ---
 
@@ -16,6 +23,7 @@
 6. [복습 알림 `/api/review`](#6-복습-알림-apireview)
 7. [AI 추천 `/api/recommendations`](#7-ai-추천-apirecommendations)
 8. [분석 리포트 `/api/analysis`](#8-분석-리포트-apianalysis)
+9. [출결 관리 `/api/gps`](#9-출결-관리-apigps)
 
 ---
 
@@ -141,7 +149,65 @@ GET /api/grades/{studentId}/analysis
 
 ---
 
-### 1-4. AI 맞춤 족보 탐색 (비동기)
+### 1-4. 성적 수정
+
+- **권한:** 인증 필요
+
+```
+PATCH /api/grades/{id}
+```
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|----------|------|------|
+| `id` | Long | 성적 ID |
+
+**Request Body** (수정할 필드만 전송, 나머지는 기존 값 유지)
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `subject` | String | ❌ | 과목명 |
+| `score` | int | ❌ | 점수 |
+| `gradeLevel` | int | ❌ | 학년 |
+| `examType` | String | ❌ | 시험 유형 |
+| `examDate` | String | ❌ | 시험 날짜 (`yyyy-MM-dd`) |
+
+**Response** `200 OK` — 수정된 `GradeResponse`
+
+**오류**
+
+| 상태코드 | 설명 |
+|----------|------|
+| `400 Bad Request` | 존재하지 않는 성적 ID |
+
+---
+
+### 1-5. 성적 삭제
+
+- **권한:** 인증 필요
+
+```
+DELETE /api/grades/{id}
+```
+
+**Path Variable**
+
+| 파라미터 | 타입 | 설명 |
+|----------|------|------|
+| `id` | Long | 성적 ID |
+
+**Response** `204 No Content`
+
+**오류**
+
+| 상태코드 | 설명 |
+|----------|------|
+| `400 Bad Request` | 존재하지 않는 성적 ID |
+
+---
+
+### 1-6. AI 맞춤 족보 탐색 (비동기)
 
 ```
 POST /api/grades/analyze
@@ -804,11 +870,214 @@ GET /api/analysis/meta-cognition?studentId={id}&subject={subject}
 
 ---
 
+## 9. 출결 관리 (`/api/gps`)
+
+### 9-1. NFC 태그 — 승/하차 처리
+
+라즈베리파이(PN532)에서 카드 태그 시 호출. 마지막 기록 기준으로 승/하차 자동 판단.
+
+- **권한:** 인증 불필요
+
+```
+POST /api/gps/attendance
+```
+
+**Request Body**
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `busId` | Long | ✅ | 버스 ID |
+| `nfcCardId` | String | ✅ | NFC 카드 UID |
+
+**Response** `200 OK`
+
+```json
+{
+  "attendanceId": 5,
+  "studentId": 1,
+  "studentName": "김철수",
+  "busId": 1,
+  "eventType": "BOARD",
+  "timestamp": "2026-05-31T16:23:35.669"
+}
+```
+
+| eventType | 설명 |
+|-----------|------|
+| `BOARD` | 승차 |
+| `EXIT` | 하차 |
+
+**오류**
+
+| 상태코드 | 설명 |
+|----------|------|
+| `404 Not Found` | 등록되지 않은 NFC 카드 |
+
+---
+
+### 9-2. 자녀 목록 조회
+
+학부모가 자신의 userId로 자녀 정보 조회. 출결/성적 조회에 필요한 ID 포함.
+
+- **권한:** 인증 불필요
+
+```
+GET /api/gps/parents/{parentId}/children
+```
+
+**Response** `200 OK`
+
+```json
+[
+  {
+    "gpsStudentId": 1,
+    "gradeStudentId": "S-0155",
+    "name": "김철수",
+    "busId": 1
+  }
+]
+```
+
+| 필드 | 설명 |
+|------|------|
+| `gpsStudentId` | 출결 API 호출 시 사용하는 studentId |
+| `gradeStudentId` | 성적 API 호출 시 사용하는 studentId (관리자 등록 전 null) |
+
+---
+
+### 9-3. 자녀 출결 이력 조회 (parentId 기반)
+
+학부모가 자신의 userId로 자녀 출결 조회. 자녀 여러 명일 경우 전원 포함.
+
+- **권한:** 인증 불필요
+
+```
+GET /api/gps/attendance/parents/{parentId}?date=2026-05-31
+```
+
+| 파라미터 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `parentId` | Long | ✅ | 학부모 userId |
+| `date` | String (yyyy-MM-dd) | ❌ | 조회 날짜, 기본값: 오늘 |
+
+**Response** `200 OK` — 최신순 정렬
+
+```json
+[
+  {
+    "attendanceId": 6,
+    "studentId": 1,
+    "studentName": "김철수",
+    "busId": 1,
+    "eventType": "EXIT",
+    "timestamp": "2026-05-31T16:23:43.655"
+  }
+]
+```
+
+---
+
+### 9-4. 자녀 출결 이력 조회 (studentId 기반)
+
+- **권한:** 인증 불필요
+
+```
+GET /api/gps/attendance/students/{studentId}?date=2026-05-31
+```
+
+| 파라미터 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| `studentId` | Long | ✅ | 학생 ID (gpsStudentId) |
+| `date` | String (yyyy-MM-dd) | ❌ | 조회 날짜, 기본값: 오늘 |
+
+**Response:** 9-3과 동일
+
+---
+
+### 9-5. 버스 전체 출결 조회
+
+오늘 날짜 기준 해당 버스 전체 학생 출결 조회. 시간순 정렬.
+
+- **권한:** ACADEMY / ADMIN
+
+```
+GET /api/gps/attendance/buses/{busId}
+Authorization: Bearer {accessToken}
+```
+
+**Response** `200 OK` — 9-3과 동일한 배열 형태
+
+**오류**
+
+| 상태코드 | 설명 |
+|----------|------|
+| `403 Forbidden` | 권한 없음 |
+
+---
+
+### 9-6. NFC 카드 등록
+
+학생에게 NFC 카드 UID 등록. 이미 다른 학생에게 등록된 카드 거부.
+
+- **권한:** ACADEMY / ADMIN
+
+```
+PATCH /api/gps/students/{studentId}/nfc
+Authorization: Bearer {accessToken}
+```
+
+**Request Body**
+
+```json
+{ "nfcCardId": "AABBCCDD" }
+```
+
+**Response** `200 OK` (body 없음)
+
+**오류**
+
+| 상태코드 | 설명 |
+|----------|------|
+| `403 Forbidden` | 권한 없음 |
+| `404 Not Found` | 학생을 찾을 수 없음 |
+| `409 Conflict` | 이미 다른 학생에게 등록된 카드 |
+
+---
+
+### 9-7. 성적 시스템 ID 등록
+
+학생에게 성적 조회용 gradeStudentId 등록. 등록 후 자녀 목록 조회 시 gradeStudentId 반환.
+
+- **권한:** ACADEMY / ADMIN
+
+```
+PATCH /api/gps/students/{studentId}/grade-id
+Authorization: Bearer {accessToken}
+```
+
+**Request Body**
+
+```json
+{ "gradeStudentId": "S-0155" }
+```
+
+**Response** `200 OK` (body 없음)
+
+**오류**
+
+| 상태코드 | 설명 |
+|----------|------|
+| `403 Forbidden` | 권한 없음 |
+| `404 Not Found` | 학생을 찾을 수 없음 |
+
+---
+
 ## 주의 사항
 
 | 항목 | 내용 |
 |------|------|
-| `studentId` 타입 혼재 | API마다 `String` / `Long` 타입이 다릅니다. 프론트엔드 연동 시 주의 필요 |
+| `studentId` 타입 혼재 | AI/성적 API는 `String` (예: "S-0155"), 출결 API는 `Long`. 자녀 목록 조회(9-2)로 두 ID 모두 확인 가능 |
 | AI 서버 의존 | `/api/counseling/*` 3개 API는 Python AI 서버(`http://localhost:8082`) 실행 필요 |
 | 비동기 처리 | `/api/grades/analyze`는 즉시 응답 후 백그라운드에서 AI 처리 실행 |
 | 에빙하우스 복습 | `/api/review/today`, `/api/recommendations/daily-review` — 1·3·7·14·30일 주기 |
+| 출결 관리 권한 | NFC 등록, 성적 ID 등록, 버스 전체 출결 조회는 ACADEMY/ADMIN 토큰 필요 |
