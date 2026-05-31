@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -62,6 +63,7 @@ public class AttendanceController {
      * 관리자/교사 → 오늘 버스 전체 출결 조회
      * GET /api/gps/attendance/buses/{busId}
      */
+    @PreAuthorize("hasAnyRole('ACADEMY', 'ADMIN')")
     @GetMapping("/attendance/buses/{busId}")
     public ResponseEntity<List<AttendanceResponse>> getBusAttendance(
             @PathVariable Long busId) {
@@ -72,6 +74,7 @@ public class AttendanceController {
      * 관리자 → 학생에게 NFC 카드 등록 (PN532)
      * PATCH /api/gps/students/{studentId}/nfc
      */
+    @PreAuthorize("hasAnyRole('ACADEMY', 'ADMIN')")
     @PatchMapping("/students/{studentId}/nfc")
     public ResponseEntity<Void> registerNfc(
             @PathVariable Long studentId,
@@ -84,6 +87,7 @@ public class AttendanceController {
      * 관리자 → 학생에게 성적 시스템 ID 등록
      * PATCH /api/gps/students/{studentId}/grade-id
      */
+    @PreAuthorize("hasAnyRole('ACADEMY', 'ADMIN')")
     @PatchMapping("/students/{studentId}/grade-id")
     public ResponseEntity<Void> registerGradeStudentId(
             @PathVariable Long studentId,
