@@ -1,8 +1,8 @@
 package com.i_route.backend.gps.domain.gps.service;
 
 import com.i_route.backend.gps.domain.route.entity.RouteStop;
-import com.i_route.backend.gps.global.exception.CustomException;
-import com.i_route.backend.gps.global.exception.ErrorCode;
+import com.i_route.backend.global.exception.CustomException;
+import com.i_route.backend.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;

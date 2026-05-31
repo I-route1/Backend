@@ -42,6 +42,7 @@ public class SecurityConfig {
 
                                 // GPS
                                 "/api/gps/**",
+                                "/health",
 
                                 // WebSocket
                                 "/ws/**",

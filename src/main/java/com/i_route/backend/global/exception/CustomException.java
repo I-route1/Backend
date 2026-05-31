@@ -1,6 +1,6 @@
-package com.i_route.backend.gps.global.exception;
+package com.i_route.backend.global.exception;
 
-
+import com.i_route.backend.global.exception.ErrorCode;
 import lombok.Getter;
 
 @Getter

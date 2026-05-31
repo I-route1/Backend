@@ -8,9 +8,9 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import com.i_route.backend.gps.global.exception.CustomException;
-import com.i_route.backend.gps.global.exception.ErrorCode;
-import com.i_route.backend.gps.global.response.ApiResponse;
+import com.i_route.backend.global.exception.CustomException;
+import com.i_route.backend.global.exception.ErrorCode;
+import com.i_route.backend.global.response.ApiResponse;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -43,7 +43,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", e.getMessage()));
     }
 

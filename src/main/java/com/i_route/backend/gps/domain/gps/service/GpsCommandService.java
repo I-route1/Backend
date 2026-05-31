@@ -8,8 +8,8 @@ import com.i_route.backend.gps.domain.gps.dto.response.CurrentBusLocationRespons
 import com.i_route.backend.gps.domain.gps.entity.BusLocation;
 import com.i_route.backend.gps.domain.gps.repository.BusLocationRepository;
 import com.i_route.backend.gps.domain.gps.repository.CurrentLocationRedisRepository;
-import com.i_route.backend.gps.global.exception.CustomException;
-import com.i_route.backend.gps.global.exception.ErrorCode;
+import com.i_route.backend.global.exception.CustomException;
+import com.i_route.backend.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;

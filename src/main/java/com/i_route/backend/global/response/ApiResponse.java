@@ -1,4 +1,4 @@
-package com.i_route.backend.gps.global.response;
+package com.i_route.backend.global.response;
 
 import lombok.Builder;
 import lombok.Getter;
@@ -12,8 +12,8 @@ public class ApiResponse<T> {
     private String message;
     private T data;
 
-    public static <T> ApiResponse<T> success(T data) {
-        return ApiResponse.<T>builder()
+    public static <T> com.i_route.backend.global.response.ApiResponse<T> success(T data) {
+        return com.i_route.backend.global.response.ApiResponse.<T>builder()
                 .success(true)
                 .code("SUCCESS")
                 .message("요청에 성공했습니다.")
@@ -21,11 +21,11 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    public static <T> ApiResponse<T> fail(
+    public static <T> com.i_route.backend.global.response.ApiResponse<T> fail(
             String code,
             String message
     ) {
-        return ApiResponse.<T>builder()
+        return com.i_route.backend.global.response.ApiResponse.<T>builder()
                 .success(false)
                 .code(code)
                 .message(message)
@@ -33,3 +33,4 @@ public class ApiResponse<T> {
                 .build();
     }
 }
+

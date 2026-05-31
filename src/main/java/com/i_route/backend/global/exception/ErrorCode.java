@@ -1,5 +1,4 @@
-package com.i_route.backend.gps.global.exception;
-
+package com.i_route.backend.global.exception;
 
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
@@ -38,3 +37,4 @@ public enum ErrorCode {
         this.message = message;
     }
 }
+
