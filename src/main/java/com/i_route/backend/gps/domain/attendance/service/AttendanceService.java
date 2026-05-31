@@ -173,4 +173,24 @@ public class AttendanceService {
         studentRepository.save(updated);
         log.info("[NFC 등록] 학생={} cardId={}", student.getName(), nfcCardId);
     }
+
+    @Transactional
+    public void registerGradeStudentId(Long studentId, String gradeStudentId) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "학생을 찾을 수 없습니다."));
+
+        Student updated = Student.builder()
+                .studentId(student.getStudentId())
+                .busId(student.getBusId())
+                .routeStopId(student.getRouteStopId())
+                .name(student.getName())
+                .expectedDropOffTime(student.getExpectedDropOffTime())
+                .parentId(student.getParentId())
+                .nfcCardId(student.getNfcCardId())
+                .gradeStudentId(gradeStudentId)
+                .build();
+
+        studentRepository.save(updated);
+        log.info("[성적 ID 등록] 학생={} gradeStudentId={}", student.getName(), gradeStudentId);
+    }
 }
