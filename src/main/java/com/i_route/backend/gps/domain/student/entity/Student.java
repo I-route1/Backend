@@ -29,4 +29,6 @@ public class Student {
     private Long parentId;
 
     private String nfcCardId;
+
+    private String gradeStudentId; // 성적 시스템 연동용 ID (예: "S-0155")
 }
