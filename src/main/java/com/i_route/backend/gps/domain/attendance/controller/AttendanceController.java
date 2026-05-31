@@ -32,7 +32,20 @@ public class AttendanceController {
     }
 
     /**
-     * 학부모 앱 → 내 자녀 출결 이력 조회
+     * 학부모 앱 → 내 자녀 출결 이력 조회 (parentId 기반)
+     * GET /api/gps/attendance/parents/{parentId}?date=2026-05-26
+     */
+    @GetMapping("/attendance/parents/{parentId}")
+    public ResponseEntity<List<AttendanceResponse>> getAttendanceByParent(
+            @PathVariable Long parentId,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        LocalDate target = date != null ? date : LocalDate.now();
+        return ResponseEntity.ok(attendanceService.getAttendanceByParent(parentId, target));
+    }
+
+    /**
+     * 학부모 앱 → 내 자녀 출결 이력 조회 (studentId 기반)
      * GET /api/gps/attendance/students/{studentId}?date=2026-05-26
      */
     @GetMapping("/attendance/students/{studentId}")
