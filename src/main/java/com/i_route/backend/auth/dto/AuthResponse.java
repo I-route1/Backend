@@ -13,5 +13,6 @@ public class AuthResponse {
     private String refreshToken;
     private String userId;
     private String nickname;
+    private String role;
     private Boolean isNewUser; // 소셜 로그인 신규 유저 여부
 }

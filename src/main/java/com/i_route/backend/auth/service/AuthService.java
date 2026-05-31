@@ -166,12 +166,12 @@ public class AuthService {
         String accessToken = jwtUtil.generateToken(user.getId());
         String refreshToken = jwtUtil.generateRefreshToken(user.getId());
 
-        String userId;
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .userId(String.valueOf(user.getId()))
                 .nickname(user.getNickname())
+                .role(user.getRole().name())
                 .isNewUser(false)
                 .build();
     }
@@ -195,6 +195,7 @@ public class AuthService {
                 .refreshToken(refreshToken)
                 .userId(String.valueOf(user.getId()))
                 .nickname(user.getNickname())
+                .role(user.getRole().name())
                 .isNewUser(isNewUser)
                 .build();
     }
