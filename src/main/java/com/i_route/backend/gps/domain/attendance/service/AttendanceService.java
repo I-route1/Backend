@@ -2,6 +2,7 @@ package com.i_route.backend.gps.domain.attendance.service;
 
 import com.i_route.backend.gps.domain.attendance.dto.AttendanceResponse;
 import com.i_route.backend.gps.domain.attendance.dto.AttendanceTagRequest;
+import com.i_route.backend.gps.domain.attendance.dto.ChildResponse;
 import com.i_route.backend.gps.domain.attendance.entity.Attendance;
 import com.i_route.backend.gps.domain.attendance.entity.AttendanceEventType;
 import com.i_route.backend.gps.domain.attendance.repository.AttendanceRepository;
@@ -81,6 +82,14 @@ public class AttendanceService {
                         ? AttendanceEventType.EXIT
                         : AttendanceEventType.BOARD)
                 .orElse(AttendanceEventType.BOARD);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChildResponse> getChildren(Long parentId) {
+        return studentRepository.findAll().stream()
+                .filter(s -> parentId.equals(s.getParentId()))
+                .map(ChildResponse::from)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
