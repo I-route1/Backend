@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
@@ -30,16 +32,12 @@ public class AttendanceService {
     private final StudentRepository studentRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
-    /**
-     * 라즈베리파이(PN532)에서 NFC 태그 시 호출 — 승/하차 자동 판단 후 저장 + WebSocket 알림
-     */
     @Transactional
     public AttendanceResponse processTag(AttendanceTagRequest request) {
         Student student = studentRepository.findByNfcCardId(request.getNfcCardId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "등록되지 않은 NFC 카드입니다: " + request.getNfcCardId()));
 
-        // 마지막 기록 기준으로 승/하차 자동 결정
         AttendanceEventType eventType = determineEventType(student.getStudentId());
 
         Attendance attendance = Attendance.builder()
@@ -61,20 +59,21 @@ public class AttendanceService {
                 .timestamp(attendance.getTimestamp())
                 .build();
 
-        // 학부모에게 WebSocket 실시간 알림
+        // WebSocket 알림은 트랜잭션 커밋 이후에 전송
         if (student.getParentId() != null) {
-            messagingTemplate.convertAndSend(
-                    "/topic/attendance/" + student.getParentId(), response);
-            log.info("[WebSocket] 학부모 {}에게 출결 알림 전송", student.getParentId());
+            Long parentId = student.getParentId();
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    messagingTemplate.convertAndSend("/topic/attendance/" + parentId, response);
+                    log.info("[WebSocket] 학부모 {}에게 출결 알림 전송", parentId);
+                }
+            });
         }
 
         return response;
     }
 
-    /**
-     * 학생의 마지막 출결 기록을 보고 다음 이벤트 타입 결정
-     * 마지막이 BOARD 또는 오늘 기록 없음 → EXIT / BOARD 판단
-     */
     private AttendanceEventType determineEventType(Long studentId) {
         return attendanceRepository.findTopByStudentIdOrderByTimestampDesc(studentId)
                 .filter(last -> last.getTimestamp().toLocalDate().equals(LocalDate.now()))
@@ -84,9 +83,6 @@ public class AttendanceService {
                 .orElse(AttendanceEventType.BOARD);
     }
 
-    /**
-     * 학부모: 특정 학생의 출결 이력 조회 (기본 오늘)
-     */
     @Transactional(readOnly = true)
     public List<AttendanceResponse> getStudentHistory(Long studentId, LocalDate date) {
         Student student = studentRepository.findById(studentId)
@@ -109,9 +105,6 @@ public class AttendanceService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 관리자/교사: 오늘 특정 버스의 전체 출결 조회
-     */
     @Transactional(readOnly = true)
     public List<AttendanceResponse> getBusAttendanceToday(Long busId) {
         LocalDateTime from = LocalDate.now().atStartOfDay();
@@ -135,12 +128,8 @@ public class AttendanceService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 관리자: 학생에게 NFC 카드 등록 (PN532)
-     */
     @Transactional
     public void registerNfcCard(Long studentId, String nfcCardId) {
-        // 이미 다른 학생에게 등록된 카드인지 확인
         studentRepository.findByNfcCardId(nfcCardId).ifPresent(existing -> {
             if (!existing.getStudentId().equals(studentId)) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 다른 학생에게 등록된 카드입니다.");
