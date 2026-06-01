@@ -8,7 +8,7 @@ import time
 # ──────────────────────────────────────────────
 # 설정
 # ──────────────────────────────────────────────
-BACKEND_URL = "http://localhost:8080"
+BACKEND_URL = "https://demystify-handcuff-protegee.ngrok-free.dev"
 BUS_ID = 1
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "Admin1234!"
