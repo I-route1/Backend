@@ -16,8 +16,11 @@ public class BoardController {
     private final BoardService boardService;
 
     @GetMapping("/boards")
-    public List<Board> getBoards() {
-        return boardService.getBoards();
+    public List<BoardResponseDto> getBoards() {
+        return boardService.getBoards()
+                .stream()
+                .map(BoardResponseDto::from)
+                .toList();
     }
 
     @GetMapping("/boards/search")
@@ -44,8 +47,8 @@ public class BoardController {
     }
 
     @GetMapping("/boards/{boardId}")
-    public Board getBoardDetail(@PathVariable Long boardId) {
-        return boardService.getBoardDetail(boardId);
+    public BoardResponseDto getBoardDetail(@PathVariable Long boardId) {
+        return BoardResponseDto.from(boardService.getBoardDetail(boardId));
     }
 
     @GetMapping("/boards/{boardId}/posts")
