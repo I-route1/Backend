@@ -3,6 +3,8 @@ package com.i_route.backend.gps.domain.attendance.controller;
 import com.i_route.backend.gps.domain.attendance.dto.AttendanceResponse;
 import com.i_route.backend.gps.domain.attendance.dto.AttendanceTagRequest;
 import com.i_route.backend.gps.domain.attendance.dto.GradeStudentIdRequest;
+import com.i_route.backend.gps.domain.attendance.dto.NfcPendingResponse;
+import com.i_route.backend.gps.domain.attendance.dto.NfcRegisterQueueRequest;
 import com.i_route.backend.gps.domain.attendance.dto.NfcRegisterRequest;
 import com.i_route.backend.gps.domain.attendance.service.AttendanceService;
 import jakarta.validation.Valid;
@@ -68,6 +70,32 @@ public class AttendanceController {
     public ResponseEntity<List<AttendanceResponse>> getBusAttendance(
             @PathVariable Long busId) {
         return ResponseEntity.ok(attendanceService.getBusAttendanceToday(busId));
+    }
+
+    /**
+     * 프론트 → NFC 카드 등록 요청을 큐에 추가
+     * POST /api/gps/nfc/register-request
+     * Body: { "studentId": 1 }
+     */
+    @PreAuthorize("hasAnyRole('ACADEMY', 'ADMIN')")
+    @PostMapping("/nfc/register-request")
+    public ResponseEntity<Void> enqueueNfcRegister(
+            @Valid @RequestBody NfcRegisterQueueRequest request) {
+        attendanceService.enqueueNfcRegister(request.getStudentId());
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 라즈베리파이 → 등록 대기 중인 학생 ID 조회 (폴링)
+     * GET /api/gps/nfc/pending
+     * 대기 없으면 204 No Content
+     */
+    @PreAuthorize("hasAnyRole('ACADEMY', 'ADMIN')")
+    @GetMapping("/nfc/pending")
+    public ResponseEntity<NfcPendingResponse> pollNfcPending() {
+        return attendanceService.pollNfcRegisterQueue()
+                .map(studentId -> ResponseEntity.ok(new NfcPendingResponse(studentId)))
+                .orElse(ResponseEntity.noContent().build());
     }
 
     /**
