@@ -80,8 +80,7 @@ public class SecurityConfig {
 
         configuration.setAllowedOriginPatterns(List.of(
                 "https://d3kh3x870d7dr4.cloudfront.net",
-                "https://*.ngrok-free.dev",
-                "http://localhost:3000"
+                "https://*.ngrok-free.dev"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
