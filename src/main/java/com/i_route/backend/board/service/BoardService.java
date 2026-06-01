@@ -72,6 +72,7 @@ public class BoardService {
                 .board(board)
                 .title(request.getTitle())
                 .content(request.getContent())
+                .category(request.getCategory() != null ? request.getCategory() : "자유")
                 .author(request.getAuthor() == null ? "작성자" : request.getAuthor())
                 .pinned(false)
                 .build();
@@ -96,7 +97,11 @@ public class BoardService {
 
     public PostResponseDto updatePost(Long postId, PostRequestDto request, Long userId) {
         Post post = getPostOrThrow(postId);
-        post.update(request.getTitle(), request.getContent());
+        post.update(
+                request.getTitle(),
+                request.getContent(),
+                request.getCategory() != null ? request.getCategory() : post.getCategory()
+        );
         return toPostResponse(post, userId);
     }
 
@@ -200,20 +205,29 @@ public class BoardService {
     private PostResponseDto toPostResponse(Post post, Long userId) {
         Long postId = post.getId();
 
+        long likeCount = postLikeRepository.countByPostId(postId);
+        long commentCount = commentRepository.countByPostId(postId);
+
+        boolean likedByMe =
+                userId != null && postLikeRepository.existsByPostIdAndUserId(postId, userId);
+
+        boolean bookmarked =
+                userId != null && postBookmarkRepository.existsByPostIdAndUserId(postId, userId);
+
         return PostResponseDto.builder()
                 .id(post.getId())
                 .boardId(post.getBoard().getId())
-                .category(post.getBoard().getName())
+                .category(post.getCategory())
                 .title(post.getTitle())
                 .author(post.getAuthor())
                 .content(post.getContent())
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
                 .viewCount(post.getViewCount())
-                .likeCount(postLikeRepository.countByPostId(postId))
-                .commentCount(commentRepository.countByPostId(postId))
-                .likedByMe(userId != null && postLikeRepository.existsByPostIdAndUserId(postId, userId))
-                .bookmarked(userId != null && postBookmarkRepository.existsByPostIdAndUserId(postId, userId))
+                .likeCount(likeCount)
+                .commentCount(commentCount)
+                .likedByMe(likedByMe)
+                .bookmarked(bookmarked)
                 .pinned(post.isPinned())
                 .build();
     }
