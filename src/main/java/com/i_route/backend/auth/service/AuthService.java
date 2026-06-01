@@ -76,6 +76,14 @@ public class AuthService {
 
     public void register(ParentRegisterRequestDto request) {
 
+        EmailVerificationToken token =
+                emailVerificationTokenRepository
+                        .findTopByEmailOrderByIdDesc(request.getEmail())
+                        .orElse(null);
+
+        if (token == null || !Boolean.TRUE.equals(token.isVerified())) {
+            throw new IllegalArgumentException("이메일 인증이 필요합니다.");
+        }
         // 아이디 중복 체크
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
@@ -121,10 +129,20 @@ public class AuthService {
                 .build();
 
         userRepository.save(user);
+        emailVerificationTokenRepository.deleteByEmail(request.getEmail());
     }
 
     @Transactional
     public void registerAcademy(AcademyRegisterRequestDto request) {
+
+        EmailVerificationToken token =
+                emailVerificationTokenRepository
+                        .findTopByEmailOrderByIdDesc(request.getEmail())
+                        .orElse(null);
+
+        if (token == null || !Boolean.TRUE.equals(token.isVerified())) {
+            throw new IllegalArgumentException("이메일 인증이 필요합니다.");
+        }
 
         // 아이디 중복 체크
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -172,15 +190,24 @@ public class AuthService {
 
         userRepository.save(user);
 
-        // 2. Academy 생성
-        Academy academy = Academy.builder()
+        Academy.AcademyBuilder academyBuilder = Academy.builder()
                 .academyName(request.getAcademyName())
-                .academyAddress(request.getAcademyAddress())
-                .businessNumber(request.getBusinessNumber())
-                .user(user)
-                .build();
+                .user(user);
 
-        academyRepository.save(academy);
+        if (role == User.UserRole.ACADEMY) {
+            academyBuilder
+                    .academyAddress(request.getAcademyAddress())
+                    .businessNumber(request.getBusinessNumber());
+        }
+
+        if (role == User.UserRole.DRIVER) {
+            academyBuilder
+                    .vehicleNumber(request.getVehicleNumber())
+                    .inviteCode(request.getInviteCode());
+        }
+
+        academyRepository.save(academyBuilder.build());
+        emailVerificationTokenRepository.deleteByEmail(request.getEmail());
     }
 
     // return 타입을 LoginResponse로 변경
@@ -189,10 +216,6 @@ public class AuthService {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new RuntimeException("잘못된 ID"));
 
-        System.out.println("====== [로그인 디버깅 데이터] ======");
-        System.out.println("1. 포스트맨이 보낸 원본 패스워드 : [" + request.getPassword() + "]");
-        System.out.println("2. DB에서 꺼내온 암호화 패스워드 : [" + user.getPassword() + "]");
-        System.out.println("==================================");
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("비밀번호 틀림");
@@ -260,8 +283,6 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    @Value("${email.verification-expiration}")
-    private long verificationExpiration;
 
     public void sendVerificationEmail(String email) {
 
@@ -278,7 +299,7 @@ public class AuthService {
 
         // 인증 링크 생성
         String verifyUrl =
-                "http://localhost:8080/api/auth/email/verify?token=" + token;
+                "http://localhost:3000/email/verify?token=" + token;
 
         // 메일 생성
         SimpleMailMessage message = new SimpleMailMessage();
@@ -295,34 +316,6 @@ public class AuthService {
         mailSender.send(message);
     }
 
-    //  인증 토큰 검증
-    public void verifyEmail(String token) {
-
-        EmailVerificationToken verification =
-                emailVerificationTokenRepository.findByToken(token)
-                        .orElseThrow(() ->
-                                new RuntimeException("유효하지 않은 토큰입니다."));
-
-        if (verification.isVerified()) {
-            throw new RuntimeException("이미 인증된 이메일입니다.");
-        }
-
-        if (verification.getExpiryDate().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("만료된 토큰입니다.");
-        }
-
-        verification.setVerified(true);
-
-        User user = userRepository
-                .findByEmail(verification.getEmail())
-                .orElseThrow(() ->
-                        new RuntimeException("사용자를 찾을 수 없습니다."));
-
-        user.setEmailVerified(true);
-
-        emailVerificationTokenRepository.save(verification);
-        userRepository.save(user);
-    }
 
     //  인증 이메일 재발송
     public void resendVerificationEmail(String email) {

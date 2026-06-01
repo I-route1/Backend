@@ -1,92 +1,156 @@
 package com.i_route.backend.board.controller;
 
-
-import com.i_route.backend.board.dto.BoardDto;
+import com.i_route.backend.board.dto.*;
+import com.i_route.backend.board.entity.Board;
 import com.i_route.backend.board.service.BoardService;
-import com.i_route.backend.global.security.CustomUserDetails;
-import jakarta.persistence.*;
-import jakarta.validation.Valid;
-import lombok.*;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/boards")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class BoardController {
 
     private final BoardService boardService;
 
-    @GetMapping
-    public ResponseEntity<List<BoardDto.Response>> getBoards() {
-        return ResponseEntity.ok(boardService.getAllBoards());
+    @GetMapping("/boards")
+    public List<Board> getBoards() {
+        return boardService.getBoards();
     }
 
-    @GetMapping("/search")
-    public ResponseEntity<List<BoardDto.Response>> searchBoards(@RequestParam String keyword) {
-        return ResponseEntity.ok(boardService.searchBoards(keyword));
+    @GetMapping("/boards/search")
+    public List<Board> searchBoards(@RequestParam String keyword) {
+        return boardService.searchBoards(keyword);
     }
 
-    @PostMapping
-    public ResponseEntity<BoardDto.Response> createBoard(
-            @Valid @RequestBody BoardDto.Request request,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        Long userId = extractUserId(userDetails);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(boardService.createBoard(request, userId));
+    @PostMapping("/boards")
+    public Board createBoard(@RequestBody BoardRequestDto request) {
+        return boardService.createBoard(request);
     }
 
-    @PutMapping("/{boardId}")
-    public ResponseEntity<BoardDto.Response> updateBoard(
+    @PutMapping("/boards/{boardId}")
+    public Board updateBoard(
             @PathVariable Long boardId,
-            @Valid @RequestBody BoardDto.Request request,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(boardService.updateBoard(boardId, request, extractUserId(userDetails)));
+            @RequestBody BoardRequestDto request
+    ) {
+        return boardService.updateBoard(boardId, request);
     }
 
-    @DeleteMapping("/{boardId}")
-    public ResponseEntity<Void> deleteBoard(
+    @DeleteMapping("/boards/{boardId}")
+    public void deleteBoard(@PathVariable Long boardId) {
+        boardService.deleteBoard(boardId);
+    }
+
+    @GetMapping("/boards/{boardId}")
+    public Board getBoardDetail(@PathVariable Long boardId) {
+        return boardService.getBoardDetail(boardId);
+    }
+
+    @GetMapping("/boards/{boardId}/posts")
+    public List<PostResponseDto> getPostsByBoard(
             @PathVariable Long boardId,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        boardService.deleteBoard(boardId, extractUserId(userDetails));
-        return ResponseEntity.noContent().build();
+            @RequestParam(required = false) Long userId
+    ) {
+        return boardService.getPostsByBoard(boardId, userId);
     }
 
-    // 게시판 상세 조회 (게시글 목록 포함)
-    @GetMapping("/{boardId}")
-    public ResponseEntity<BoardDto.DetailResponse> getBoardDetail(
+    @PostMapping("/boards/{boardId}/posts")
+    public PostResponseDto createPost(
             @PathVariable Long boardId,
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(boardService.getBoardDetail(boardId, extractUserId(userDetails), pageable));
+            @RequestParam(required = false) Long userId,
+            @RequestBody PostRequestDto request
+    ) {
+        return boardService.createPost(boardId, request, userId);
     }
 
-    // 게시판 즐겨찾기 토글
-    @PostMapping("/{boardId}/bookmark")
-    public ResponseEntity<String> toggleBoardBookmark(
-            @PathVariable Long boardId,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(boardService.toggleBoardBookmark(boardId, extractUserId(userDetails)));
+    @GetMapping("/posts/{postId}")
+    public PostResponseDto getPostDetail(
+            @PathVariable Long postId,
+            @RequestParam(required = false) Long userId
+    ) {
+        return boardService.getPostDetail(postId, userId);
     }
 
-    // 내 게시판 즐겨찾기 목록
-    @GetMapping("/bookmarks/me")
-    public ResponseEntity<List<BoardDto.Response>> getMyBoardBookmarks(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(boardService.getMyBoardBookmarks(extractUserId(userDetails)));
+    @GetMapping("/posts/search")
+    public List<PostResponseDto> searchPosts(
+            @RequestParam String keyword,
+            @RequestParam(required = false) Long userId
+    ) {
+        return boardService.searchPosts(keyword, userId);
     }
 
-    private Long extractUserId(UserDetails userDetails) {
-        // 로그인 구현 방식에 따라 userId 추출 로직 조정
-        return ((CustomUserDetails) userDetails).getId();
+    @PutMapping("/posts/{postId}")
+    public PostResponseDto updatePost(
+            @PathVariable Long postId,
+            @RequestParam(required = false) Long userId,
+            @RequestBody PostRequestDto request
+    ) {
+        return boardService.updatePost(postId, request, userId);
+    }
+
+    @DeleteMapping("/posts/{postId}")
+    public void deletePost(@PathVariable Long postId) {
+        boardService.deletePost(postId);
+    }
+
+    @PostMapping("/posts/{postId}/like")
+    public PostResponseDto likePost(
+            @PathVariable Long postId,
+            @RequestParam Long userId
+    ) {
+        return boardService.likePost(postId, userId);
+    }
+
+    @PostMapping("/posts/{postId}/bookmark")
+    public PostResponseDto bookmarkPost(
+            @PathVariable Long postId,
+            @RequestParam Long userId
+    ) {
+        return boardService.bookmarkPost(postId, userId);
+    }
+
+    @GetMapping("/posts/{postId}/comments")
+    public List<CommentResponseDto> getComments(
+            @PathVariable Long postId,
+            @RequestParam(required = false) Long userId
+    ) {
+        return boardService.getComments(postId, userId);
+    }
+
+    @PostMapping("/posts/{postId}/comments")
+    public CommentResponseDto createComment(
+            @PathVariable Long postId,
+            @RequestParam(required = false) Long userId,
+            @RequestBody CommentRequestDto request
+    ) {
+        return boardService.createComment(postId, request, userId);
+    }
+
+    @GetMapping("/posts/{postId}/comments/{commentId}")
+    public CommentResponseDto getCommentDetail(
+            @PathVariable Long postId,
+            @PathVariable Long commentId,
+            @RequestParam(required = false) Long userId
+    ) {
+        return boardService.getCommentDetail(commentId, userId);
+    }
+
+    @DeleteMapping("/posts/{postId}/comments/{commentId}")
+    public void deleteComment(
+            @PathVariable Long postId,
+            @PathVariable Long commentId
+    ) {
+        boardService.deleteComment(postId, commentId);
+    }
+
+    @PostMapping("/posts/{postId}/comments/{commentId}/like")
+    public CommentResponseDto likeComment(
+            @PathVariable Long postId,
+            @PathVariable Long commentId,
+            @RequestParam Long userId
+    ) {
+        return boardService.likeComment(commentId, userId);
     }
 }
-

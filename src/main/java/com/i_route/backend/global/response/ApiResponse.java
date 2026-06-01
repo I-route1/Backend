@@ -12,8 +12,9 @@ public class ApiResponse<T> {
     private String message;
     private T data;
 
-    public static <T> com.i_route.backend.global.response.ApiResponse<T> success(T data) {
-        return com.i_route.backend.global.response.ApiResponse.<T>builder()
+    // 성공
+    public static <T> ApiResponse<T> success(T data) {
+        return ApiResponse.<T>builder()
                 .success(true)
                 .code("SUCCESS")
                 .message("요청에 성공했습니다.")
@@ -21,11 +22,27 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    public static <T> com.i_route.backend.global.response.ApiResponse<T> fail(
-            String code,
-            String message
-    ) {
-        return com.i_route.backend.global.response.ApiResponse.<T>builder()
+    public static <T> ApiResponse<T> success(String message, T data) {
+        return ApiResponse.<T>builder()
+                .success(true)
+                .code("SUCCESS")
+                .message(message)
+                .data(data)
+                .build();
+    }
+
+    // 실패 (핵심 개선)
+    public static <T> ApiResponse<T> fail(String message) {
+        return ApiResponse.<T>builder()
+                .success(false)
+                .code("FAIL")
+                .message(message)
+                .data(null)
+                .build();
+    }
+
+    public static <T> ApiResponse<T> fail(String code, String message) {
+        return ApiResponse.<T>builder()
                 .success(false)
                 .code(code)
                 .message(message)
@@ -33,4 +50,3 @@ public class ApiResponse<T> {
                 .build();
     }
 }
-

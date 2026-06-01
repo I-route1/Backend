@@ -6,7 +6,8 @@ import lombok.Setter;
 @Getter
 @Setter
 public class DuplicateCheckRequest {
-    private String email;
+    private String username;
     private String nickname;
     private String phoneNumber;
+    private String email;
 }

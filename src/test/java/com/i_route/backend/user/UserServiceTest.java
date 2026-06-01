@@ -98,11 +98,11 @@ class UserServiceTest {
     @Test
     @DisplayName("중복 없음")
     void checkDuplicate_noDuplicate() {
-        given(userRepository.findByEmailOrNicknameOrPhoneNumber(any(), any(), any()))
+        given(userRepository.findByEmailOrUsernameOrNicknameOrPhoneNumber(any(), any(), any(), any()))
                 .willReturn(Optional.empty());
 
         DuplicateCheckRequest req = new DuplicateCheckRequest();
-        req.setEmail("new@test.com");
+        req.setUsername("new@test.com");
         req.setNickname("새닉");
         req.setPhoneNumber("01099999999");
 
@@ -119,11 +119,11 @@ class UserServiceTest {
                 .email("dup@test.com").nickname("중복닉").phoneNumber("01011111111")
                 .role(User.UserRole.PARENT).loginType(User.LoginType.EMAIL).build();
 
-        given(userRepository.findByEmailOrNicknameOrPhoneNumber(any(), any(), any()))
+        given(userRepository.findByEmailOrUsernameOrNicknameOrPhoneNumber(any(), any(), any(), any()))
                 .willReturn(Optional.of(existing));
 
         DuplicateCheckRequest req = new DuplicateCheckRequest();
-        req.setEmail("dup@test.com");
+        req.setUsername("dup@test.com");
         req.setNickname("중복닉");
         req.setPhoneNumber("01099999999");
 
@@ -141,11 +141,11 @@ class UserServiceTest {
                 .email("other@test.com").nickname("다른닉").phoneNumber("01012345678")
                 .role(User.UserRole.PARENT).loginType(User.LoginType.EMAIL).build();
 
-        given(userRepository.findByEmailOrNicknameOrPhoneNumber(any(), any(), any()))
+        given(userRepository.findByEmailOrUsernameOrNicknameOrPhoneNumber(any(), any(), any(), any()))
                 .willReturn(Optional.of(existing));
 
         DuplicateCheckRequest req = new DuplicateCheckRequest();
-        req.setEmail("new@test.com");
+        req.setUsername("new@test.com");
         req.setNickname("새닉");
         req.setPhoneNumber("010-1234-5678");
 

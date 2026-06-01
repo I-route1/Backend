@@ -1,18 +1,24 @@
 package com.i_route.backend.board.entity;
 
 import com.i_route.backend.user.entity.User;
-
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "bookmarks",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "post_id"}))
-@Getter @Setter
+@Getter
 @NoArgsConstructor
-public class Bookmark {
+@AllArgsConstructor
+@Builder
+@Table(
+        name = "post_like",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"user_id", "post_id"})
+        }
+)
+public class PostLike {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)

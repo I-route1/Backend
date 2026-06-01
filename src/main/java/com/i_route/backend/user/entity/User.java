@@ -35,7 +35,7 @@ public class User {
     @Column(nullable = false)
     private UserRole role;
 
-    @Column(unique = true)
+    @Column(nullable = true, unique = true)
     private String phoneNumber;
 
     @Column(unique = true)
@@ -51,6 +51,9 @@ public class User {
     @Builder.Default
     @Column(nullable = false)
     private boolean emailVerified = false;
+
+    @Builder.Default
+    private int premiumCredits = 0;
 
     // 학원 정보
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
@@ -90,6 +93,8 @@ public class User {
                 .password(UUID.randomUUID().toString())
                 .role(UserRole.PARENT) // 카카오 최초 가입 시 기본 역할 지정 (예: 학부모)
                 .loginType(LoginType.KAKAO)
+                .phoneNumber("")
+                .username("kakao_" + kakaoId) // 카카오 유저는 username도 kakaoId 기반으로 생성
                 .build();
     }
 }

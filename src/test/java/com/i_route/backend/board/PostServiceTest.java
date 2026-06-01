@@ -1,12 +1,9 @@
 package com.i_route.backend.board;
 
-import com.i_route.backend.board.dto.PostDto;
+import com.i_route.backend.board.dto.PostRequestDto;
 import com.i_route.backend.board.entity.Board;
-import com.i_route.backend.board.entity.Bookmark;
-import com.i_route.backend.board.entity.Like;
 import com.i_route.backend.board.entity.Post;
 import com.i_route.backend.board.repository.*;
-import com.i_route.backend.board.service.PostService;
 import com.i_route.backend.user.entity.User;
 import com.i_route.backend.user.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -16,8 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.access.AccessDeniedException;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -32,223 +29,155 @@ class PostServiceTest {
 
     @Mock private PostRepository postRepository;
     @Mock private BoardRepository boardRepository;
-    @Mock private UserRepository userRepository;
-    @Mock private LikeRepository likeRepository;
-    @Mock private BookmarkRepository bookmarkRepository;
+    @Mock private CommentRepository commentRepository;
+    @Mock private PostBookmarkRepository postBookmarkRepository;
+    @Mock private PostLikeRepository postLikeRepository;
     @Mock private CommentLikeRepository commentLikeRepository;
+    @Mock private UserRepository userRepository;
 
-    private User user(Long id, String nickname, User.UserRole role) {
-        return User.builder()
-                .id(id).nickname(nickname)
-                .role(role).loginType(User.LoginType.EMAIL)
-                .build();
+    private Board mockBoard() {
+        Board board = new Board();
+        board.setName("테스트 게시판");
+        return board;
     }
 
-    private Board board(Long id) {
-        Board b = new Board();
-        b.setId(id);
-        b.setName("테스트게시판");
-        User creator = user(1L, "테스터", User.UserRole.PARENT);
-        b.setCreatedBy(creator);
-        return b;
-    }
-
-    private Post post(Long id, String title, User author, boolean anonymous) {
-        Post p = new Post();
-        p.setId(id);
-        p.setTitle(title);
-        p.setContent("내용");
-        p.setAuthor(author);
-        p.setAnonymous(anonymous);
-        return p;
-    }
-
-    private PostDto.Request postRequest(String title, String content, boolean anonymous) {
-        PostDto.Request req = new PostDto.Request();
-        req.setTitle(title);
-        req.setContent(content);
-        req.setAnonymous(anonymous);
-        return req;
+    private Post mockPost(Board board) {
+        Post post = new Post();
+        post.setBoard(board);
+        post.setTitle("테스트 제목");
+        post.setContent("테스트 내용");
+        post.setAuthor("작성자");
+        return post;
     }
 
     @Test
-    @DisplayName("게시글 생성 성공")
+    @DisplayName("게시글 목록 조회 - 성공")
+    void getPostsByBoard_success() {
+        Post post = mockPost(mockBoard());
+        given(postRepository.findByBoardId(1L)).willReturn(List.of(post));
+
+        List<PostRequestDto.Response> result = postService.getPostsByBoard(1L);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getTitle()).isEqualTo("테스트 제목");
+    }
+
+    @Test
+    @DisplayName("게시글 상세 조회 - 성공")
+    void getPostDetail_success() {
+        Post post = mockPost(mockBoard());
+        given(postRepository.findById(1L)).willReturn(Optional.of(post));
+
+        PostRequestDto.Response result = postService.getPostDetail(1L);
+
+        assertThat(result.getTitle()).isEqualTo("테스트 제목");
+    }
+
+    @Test
+    @DisplayName("게시글 상세 조회 - 없는 ID 예외")
+    void getPostDetail_notFound() {
+        given(postRepository.findById(999L)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> postService.getPostDetail(999L))
+                .isInstanceOf(EntityNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("게시글 작성 - 성공")
     void createPost_success() {
-        User author = user(1L, "작성자", User.UserRole.PARENT);
-        Board b = board(1L);
-        Post saved = post(10L, "새글", author, false);
-        given(boardRepository.findById(1L)).willReturn(Optional.of(b));
-        given(userRepository.findById(1L)).willReturn(Optional.of(author));
-        given(postRepository.save(any(Post.class))).willReturn(saved);
+        Board board = mockBoard();
+        Post post = mockPost(board);
 
-        PostDto.ListResponse resp = postService.createPost(1L, postRequest("새글", "내용", false), 1L);
+        PostRequestDto.Request request = new PostRequestDto.Request();
+        request.setTitle("새 제목");
+        request.setContent("새 내용");
+        request.setAuthor("작성자");
 
-        assertThat(resp.getTitle()).isEqualTo("새글");
-        assertThat(resp.getAuthor()).isEqualTo("작성자");
+        given(boardRepository.findById(1L)).willReturn(Optional.of(board));
+        given(postRepository.save(any(Post.class))).willReturn(post);
+
+        PostRequestDto.Response result = postService.createPost(1L, request);
+
+        assertThat(result.getTitle()).isEqualTo("테스트 제목");
     }
 
     @Test
-    @DisplayName("게시글 생성 실패 - 게시판 없음")
-    void createPost_boardNotFound() {
-        given(boardRepository.findById(99L)).willReturn(Optional.empty());
+    @DisplayName("게시글 수정 - 성공")
+    void updatePost_success() {
+        Post post = mockPost(mockBoard());
+        given(postRepository.findById(1L)).willReturn(Optional.of(post));
 
-        assertThatThrownBy(() -> postService.createPost(99L, postRequest("새글", "내용", false), 1L))
-                .isInstanceOf(EntityNotFoundException.class);
+        PostRequestDto.Request request = new PostRequestDto.Request();
+        request.setTitle("수정된 제목");
+        request.setContent("수정된 내용");
+
+        PostRequestDto.Response result = postService.updatePost(1L, request);
+
+        assertThat(result.getTitle()).isEqualTo("수정된 제목");
     }
 
     @Test
-    @DisplayName("게시글 생성 실패 - 유저 없음")
-    void createPost_userNotFound() {
-        given(boardRepository.findById(1L)).willReturn(Optional.of(board(1L)));
-        given(userRepository.findById(99L)).willReturn(Optional.empty());
+    @DisplayName("게시글 삭제 - 성공")
+    void deletePost_success() {
+        willDoNothing().given(postRepository).deleteById(1L);
 
-        assertThatThrownBy(() -> postService.createPost(1L, postRequest("새글", "내용", false), 99L))
-                .isInstanceOf(EntityNotFoundException.class);
+        assertThatCode(() -> postService.deletePost(1L))
+                .doesNotThrowAnyException();
     }
 
     @Test
-    @DisplayName("게시글 익명 작성 - 작성자명 '익명' 처리")
-    void createPost_anonymous_showsAnonymous() {
-        User author = user(1L, "실명작성자", User.UserRole.PARENT);
-        Board b = board(1L);
-        Post saved = post(10L, "익명글", author, true);
-        given(boardRepository.findById(1L)).willReturn(Optional.of(b));
-        given(userRepository.findById(1L)).willReturn(Optional.of(author));
-        given(postRepository.save(any(Post.class))).willReturn(saved);
+    @DisplayName("게시글 좋아요 - 새로 추가")
+    void likePost_add() {
+        Post post = mockPost(mockBoard());
+        User user = new User();
 
-        PostDto.ListResponse resp = postService.createPost(1L, postRequest("익명글", "내용", true), 1L);
+        given(postLikeRepository.findByPostIdAndUserId(1L, String.valueOf(1L))).willReturn(Optional.empty());
+        given(postRepository.findById(1L)).willReturn(Optional.of(post));
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(postLikeRepository.save(any(PostLike.class))).willReturn(new PostLike());
 
-        assertThat(resp.getAuthor()).isEqualTo("익명");
+        assertThatCode(() -> postService.likePost(1L, String.valueOf(1L)))
+                .doesNotThrowAnyException();
     }
 
     @Test
-    @DisplayName("게시글 조회 - 조회수 증가")
-    void getPost_incrementsViewCount() {
-        User author = user(1L, "작성자", User.UserRole.PARENT);
-        Post p = post(1L, "조회글", author, false);
-        p.setViewCount(5);
-        given(postRepository.findById(1L)).willReturn(Optional.of(p));
-        given(likeRepository.existsByPostIdAndUserId(1L, 1L)).willReturn(false);
-        given(bookmarkRepository.existsByUserIdAndPostId(1L, 1L)).willReturn(false);
+    @DisplayName("게시글 좋아요 - 이미 있으면 취소(토글)")
+    void likePost_toggle() {
+        PostLike existing = new PostLike();
+        given(postLikeRepository.findByPostIdAndUserId(1L, String.valueOf(1L))).willReturn(Optional.of(existing));
 
-        PostDto.DetailResponse resp = postService.getPost(1L, 1L);
+        assertThatCode(() -> postService.likePost(1L, String.valueOf(1L)))
+                .doesNotThrowAnyException();
 
-        assertThat(resp.getViewCount()).isEqualTo(6);
+        then(postLikeRepository).should().delete(existing);
     }
 
     @Test
-    @DisplayName("게시글 조회 실패 - 삭제된 게시글")
-    void getPost_deletedPost_throws() {
-        User author = user(1L, "작성자", User.UserRole.PARENT);
-        Post p = post(1L, "삭제글", author, false);
-        p.setDeletedAt(java.time.LocalDateTime.now());
-        given(postRepository.findById(1L)).willReturn(Optional.of(p));
+    @DisplayName("게시글 북마크 - 새로 추가")
+    void bookmarkPost_add() {
+        Post post = mockPost(mockBoard());
+        User user = new User();
 
-        assertThatThrownBy(() -> postService.getPost(1L, 1L))
-                .isInstanceOf(EntityNotFoundException.class);
+        given(postBookmarkRepository.findByPostIdAndUserId(1L, 1L)).willReturn(Optional.empty());
+        given(postRepository.findById(1L)).willReturn(Optional.of(post));
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(postBookmarkRepository.save(any(PostBookmarkRepository.class))).willReturn(new PostBookmarkRepository());
+
+        assertThatCode(() -> postService.bookmarkPost(1L, String.valueOf(1L)))
+                .doesNotThrowAnyException();
     }
 
     @Test
-    @DisplayName("게시글 소프트 삭제 - deletedAt 설정")
-    void deletePost_softDelete() {
-        User author = user(1L, "작성자", User.UserRole.PARENT);
-        Post p = post(1L, "삭제글", author, false);
-        given(postRepository.findById(1L)).willReturn(Optional.of(p));
-        given(userRepository.findById(1L)).willReturn(Optional.of(author));
+    @DisplayName("내 북마크 게시글 목록 조회")
+    void getMyBookmarkedPosts_success() {
+        Post post = mockPost(mockBoard());
+        PostBookmarkRepository bookmark = new PostBookmarkRepository();
+        bookmark.setPost(post);
 
-        postService.deletePost(1L, 1L);
+        given(postBookmarkRepository.findByUserId(1L)).willReturn(List.of(bookmark));
 
-        assertThat(p.getDeletedAt()).isNotNull();
-    }
+        List<PostRequestDto.Response> result = postService.getMyBookmarkedPosts(String.valueOf(1L));
 
-    @Test
-    @DisplayName("게시글 삭제 실패 - 작성자 불일치")
-    void deletePost_notAuthor_throws() {
-        User author = user(1L, "작성자", User.UserRole.PARENT);
-        User other = user(2L, "타인", User.UserRole.PARENT);
-        Post p = post(1L, "삭제글", author, false);
-        given(postRepository.findById(1L)).willReturn(Optional.of(p));
-        given(userRepository.findById(2L)).willReturn(Optional.of(other));
-
-        assertThatThrownBy(() -> postService.deletePost(1L, 2L))
-                .isInstanceOf(AccessDeniedException.class);
-    }
-
-    @Test
-    @DisplayName("게시글 삭제 성공 - ADMIN은 타인 글도 삭제 가능")
-    void deletePost_admin_bypass() {
-        User author = user(1L, "작성자", User.UserRole.PARENT);
-        User admin = user(99L, "관리자", User.UserRole.ADMIN);
-        Post p = post(1L, "삭제글", author, false);
-        given(postRepository.findById(1L)).willReturn(Optional.of(p));
-        given(userRepository.findById(99L)).willReturn(Optional.of(admin));
-
-        postService.deletePost(1L, 99L);
-
-        assertThat(p.getDeletedAt()).isNotNull();
-    }
-
-    @Test
-    @DisplayName("게시글 공감 추가")
-    void toggleLike_add() {
-        User author = user(1L, "작성자", User.UserRole.PARENT);
-        Post p = post(1L, "글", author, false);
-        given(postRepository.findById(1L)).willReturn(Optional.of(p));
-        given(userRepository.findById(1L)).willReturn(Optional.of(author));
-        given(likeRepository.findByPostIdAndUserId(1L, 1L)).willReturn(Optional.empty());
-
-        String result = postService.toggleLike(1L, 1L);
-
-        assertThat(result).contains("공감");
-        then(likeRepository).should().save(any(Like.class));
-    }
-
-    @Test
-    @DisplayName("게시글 공감 취소")
-    void toggleLike_remove() {
-        User author = user(1L, "작성자", User.UserRole.PARENT);
-        Post p = post(1L, "글", author, false);
-        Like existing = new Like();
-        given(postRepository.findById(1L)).willReturn(Optional.of(p));
-        given(userRepository.findById(1L)).willReturn(Optional.of(author));
-        given(likeRepository.findByPostIdAndUserId(1L, 1L)).willReturn(Optional.of(existing));
-        willDoNothing().given(likeRepository).delete(existing);
-
-        String result = postService.toggleLike(1L, 1L);
-
-        assertThat(result).contains("취소");
-        then(likeRepository).should().delete(existing);
-    }
-
-    @Test
-    @DisplayName("게시글 즐겨찾기 추가")
-    void toggleBookmark_add() {
-        User author = user(1L, "작성자", User.UserRole.PARENT);
-        Post p = post(1L, "글", author, false);
-        given(postRepository.findById(1L)).willReturn(Optional.of(p));
-        given(userRepository.findById(1L)).willReturn(Optional.of(author));
-        given(bookmarkRepository.findByUserIdAndPostId(1L, 1L)).willReturn(Optional.empty());
-
-        String result = postService.toggleBookmark(1L, 1L);
-
-        assertThat(result).contains("추가");
-        then(bookmarkRepository).should().save(any(Bookmark.class));
-    }
-
-    @Test
-    @DisplayName("게시글 즐겨찾기 해제")
-    void toggleBookmark_remove() {
-        User author = user(1L, "작성자", User.UserRole.PARENT);
-        Post p = post(1L, "글", author, false);
-        Bookmark existing = new Bookmark();
-        given(postRepository.findById(1L)).willReturn(Optional.of(p));
-        given(userRepository.findById(1L)).willReturn(Optional.of(author));
-        given(bookmarkRepository.findByUserIdAndPostId(1L, 1L)).willReturn(Optional.of(existing));
-        willDoNothing().given(bookmarkRepository).delete(existing);
-
-        String result = postService.toggleBookmark(1L, 1L);
-
-        assertThat(result).contains("해제");
-        then(bookmarkRepository).should().delete(existing);
+        assertThat(result).hasSize(1);
     }
 }

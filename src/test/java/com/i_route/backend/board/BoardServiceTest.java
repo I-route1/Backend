@@ -1,14 +1,9 @@
 package com.i_route.backend.board;
 
-import com.i_route.backend.board.dto.BoardDto;
+import com.i_route.backend.board.dto.BoardRequestDto;
 import com.i_route.backend.board.entity.Board;
-import com.i_route.backend.board.entity.BoardBookmark;
-import com.i_route.backend.board.repository.BoardBookmarkRepository;
 import com.i_route.backend.board.repository.BoardRepository;
-import com.i_route.backend.board.repository.PostRepository;
 import com.i_route.backend.board.service.BoardService;
-import com.i_route.backend.user.entity.User;
-import com.i_route.backend.user.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,7 +11,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.access.AccessDeniedException;
 
 import java.util.List;
 import java.util.Optional;
@@ -31,166 +25,113 @@ class BoardServiceTest {
     @InjectMocks
     private BoardService boardService;
 
-    @Mock private BoardRepository boardRepository;
-    @Mock private UserRepository userRepository;
-    @Mock private PostRepository postRepository;
-    @Mock private BoardBookmarkRepository boardBookmarkRepository;
-
-    private User user(Long id, String nickname) {
-        return User.builder()
-                .id(id).nickname(nickname)
-                .role(User.UserRole.PARENT).loginType(User.LoginType.EMAIL)
-                .build();
-    }
-
-    private Board board(Long id, String name, User createdBy) {
-        Board b = new Board();
-        b.setId(id);
-        b.setName(name);
-        b.setCreatedBy(createdBy);
-        return b;
-    }
-
-    private BoardDto.Request request(String name, String desc) {
-        BoardDto.Request req = new BoardDto.Request();
-        req.setName(name);
-        req.setDescription(desc);
-        return req;
-    }
+    @Mock
+    private BoardRepository boardRepository;
 
     @Test
-    @DisplayName("게시판 전체 목록 조회")
-    void getAllBoards_returnsList() {
-        User creator = user(1L, "테스터");
-        given(boardRepository.findAll())
-                .willReturn(List.of(board(1L, "공지사항", creator), board(2L, "자유게시판", creator)));
+    @DisplayName("게시판 전체 조회 - 성공")
+    void getBoards_success() {
+        Board board = new Board();
+        board.setName("공지사항");
+        board.setDescription("공지 게시판");
 
-        List<BoardDto.Response> result = boardService.getAllBoards();
+        given(boardRepository.findAll()).willReturn(List.of(board));
 
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).getName()).isEqualTo("공지사항");
-    }
-
-    @Test
-    @DisplayName("게시판 검색 - 키워드 일치 결과 반환")
-    void searchBoards_returnsMatching() {
-        User creator = user(1L, "테스터");
-        given(boardRepository.findByNameContainingIgnoreCase("공지"))
-                .willReturn(List.of(board(1L, "공지사항", creator)));
-
-        List<BoardDto.Response> result = boardService.searchBoards("공지");
+        List<BoardRequestDto.Response> result = boardService.getBoards();
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getName()).isEqualTo("공지사항");
     }
 
     @Test
-    @DisplayName("게시판 생성 성공")
-    void createBoard_success() {
-        User creator = user(1L, "테스터");
-        given(userRepository.findById(1L)).willReturn(Optional.of(creator));
-        given(boardRepository.save(any(Board.class))).willReturn(board(10L, "새게시판", creator));
+    @DisplayName("게시판 검색 - 키워드 포함된 결과 반환")
+    void searchBoards_success() {
+        Board board = new Board();
+        board.setName("자유게시판");
 
-        BoardDto.Response resp = boardService.createBoard(request("새게시판", "설명"), 1L);
+        given(boardRepository.findByNameContainingIgnoreCase("자유")).willReturn(List.of(board));
 
-        assertThat(resp.getName()).isEqualTo("새게시판");
+        List<BoardRequestDto.Response> result = boardService.searchBoards("자유");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getName()).isEqualTo("자유게시판");
     }
 
     @Test
-    @DisplayName("게시판 생성 실패 - 유저 없음")
-    void createBoard_userNotFound() {
-        given(userRepository.findById(99L)).willReturn(Optional.empty());
+    @DisplayName("게시판 등록 - 성공")
+    void createBoard_success() {
+        BoardRequestDto.Request request = new BoardRequestDto.Request();
+        request.setName("새 게시판");
+        request.setDescription("설명");
 
-        assertThatThrownBy(() -> boardService.createBoard(request("새게시판", "설명"), 99L))
+        Board saved = new Board();
+        saved.setName("새 게시판");
+        saved.setDescription("설명");
+
+        given(boardRepository.save(any(Board.class))).willReturn(saved);
+
+        BoardRequestDto.Response result = boardService.createBoard(request);
+
+        assertThat(result.getName()).isEqualTo("새 게시판");
+    }
+
+    @Test
+    @DisplayName("게시판 수정 - 성공")
+    void updateBoard_success() {
+        Board board = new Board();
+        board.setName("기존 이름");
+
+        BoardRequestDto.Request request = new BoardRequestDto.Request();
+        request.setName("수정된 이름");
+        request.setDescription("수정된 설명");
+
+        given(boardRepository.findById(1L)).willReturn(Optional.of(board));
+
+        BoardRequestDto.Response result = boardService.updateBoard(1L, request);
+
+        assertThat(result.getName()).isEqualTo("수정된 이름");
+    }
+
+    @Test
+    @DisplayName("게시판 수정 - 존재하지 않는 ID로 예외 발생")
+    void updateBoard_notFound() {
+        given(boardRepository.findById(999L)).willReturn(Optional.empty());
+
+        BoardRequestDto.Request request = new BoardRequestDto.Request();
+        request.setName("이름");
+
+        assertThatThrownBy(() -> boardService.updateBoard(999L, request))
                 .isInstanceOf(EntityNotFoundException.class);
     }
 
     @Test
-    @DisplayName("게시판 수정 성공 - 소유자 일치")
-    void updateBoard_success() {
-        User creator = user(1L, "테스터");
-        given(boardRepository.findById(1L)).willReturn(Optional.of(board(1L, "기존이름", creator)));
-
-        BoardDto.Response resp = boardService.updateBoard(1L, request("수정이름", "수정설명"), 1L);
-
-        assertThat(resp.getName()).isEqualTo("수정이름");
-    }
-
-    @Test
-    @DisplayName("게시판 수정 실패 - 소유자 불일치")
-    void updateBoard_notOwner_throws() {
-        User creator = user(1L, "테스터");
-        given(boardRepository.findById(1L)).willReturn(Optional.of(board(1L, "기존이름", creator)));
-
-        assertThatThrownBy(() -> boardService.updateBoard(1L, request("수정이름", "수정설명"), 999L))
-                .isInstanceOf(AccessDeniedException.class);
-    }
-
-    @Test
-    @DisplayName("게시판 삭제 성공 - 소유자 일치")
+    @DisplayName("게시판 삭제 - 성공")
     void deleteBoard_success() {
-        User creator = user(1L, "테스터");
-        Board b = board(1L, "게시판", creator);
-        given(boardRepository.findById(1L)).willReturn(Optional.of(b));
-        willDoNothing().given(boardRepository).delete(b);
+        willDoNothing().given(boardRepository).deleteById(1L);
 
-        boardService.deleteBoard(1L, 1L);
-
-        then(boardRepository).should().delete(b);
+        assertThatCode(() -> boardService.deleteBoard(1L))
+                .doesNotThrowAnyException();
     }
 
     @Test
-    @DisplayName("게시판 삭제 실패 - 소유자 불일치")
-    void deleteBoard_notOwner_throws() {
-        User creator = user(1L, "테스터");
-        given(boardRepository.findById(1L)).willReturn(Optional.of(board(1L, "게시판", creator)));
+    @DisplayName("게시판 상세 조회 - 성공")
+    void getBoardDetail_success() {
+        Board board = new Board();
+        board.setName("공지사항");
 
-        assertThatThrownBy(() -> boardService.deleteBoard(1L, 999L))
-                .isInstanceOf(AccessDeniedException.class);
+        given(boardRepository.findById(1L)).willReturn(Optional.of(board));
+
+        BoardRequestDto.Response result = boardService.getBoardDetail(1L);
+
+        assertThat(result.getName()).isEqualTo("공지사항");
     }
 
     @Test
-    @DisplayName("게시판 즐겨찾기 추가")
-    void toggleBoardBookmark_add() {
-        User creator = user(1L, "테스터");
-        given(boardRepository.findById(1L)).willReturn(Optional.of(board(1L, "게시판", creator)));
-        given(userRepository.findById(1L)).willReturn(Optional.of(creator));
-        given(boardBookmarkRepository.findByUserIdAndBoardId(1L, 1L)).willReturn(Optional.empty());
+    @DisplayName("게시판 상세 조회 - 존재하지 않는 ID로 예외 발생")
+    void getBoardDetail_notFound() {
+        given(boardRepository.findById(999L)).willReturn(Optional.empty());
 
-        String result = boardService.toggleBoardBookmark(1L, 1L);
-
-        assertThat(result).contains("추가");
-        then(boardBookmarkRepository).should().save(any(BoardBookmark.class));
-    }
-
-    @Test
-    @DisplayName("게시판 즐겨찾기 해제")
-    void toggleBoardBookmark_remove() {
-        User creator = user(1L, "테스터");
-        given(boardRepository.findById(1L)).willReturn(Optional.of(board(1L, "게시판", creator)));
-        given(userRepository.findById(1L)).willReturn(Optional.of(creator));
-        BoardBookmark existing = new BoardBookmark();
-        given(boardBookmarkRepository.findByUserIdAndBoardId(1L, 1L)).willReturn(Optional.of(existing));
-        willDoNothing().given(boardBookmarkRepository).delete(existing);
-
-        String result = boardService.toggleBoardBookmark(1L, 1L);
-
-        assertThat(result).contains("해제");
-        then(boardBookmarkRepository).should().delete(existing);
-    }
-
-    @Test
-    @DisplayName("내 게시판 즐겨찾기 목록 조회")
-    void getMyBoardBookmarks_returnsList() {
-        User creator = user(1L, "테스터");
-        Board b = board(1L, "즐겨찾기게시판", creator);
-        BoardBookmark bm = mock(BoardBookmark.class);
-        given(bm.getBoard()).willReturn(b);
-        given(boardBookmarkRepository.findByUserId(1L)).willReturn(List.of(bm));
-
-        List<BoardDto.Response> result = boardService.getMyBoardBookmarks(1L);
-
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getName()).isEqualTo("즐겨찾기게시판");
+        assertThatThrownBy(() -> boardService.getBoardDetail(999L))
+                .isInstanceOf(EntityNotFoundException.class);
     }
 }

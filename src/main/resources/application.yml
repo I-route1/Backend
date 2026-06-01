@@ -58,7 +58,7 @@ kakao:
   redirect-uri: ${KAKAO_REDIRECT_URI}
   mobility:
     base-url: https://apis-navi.kakaomobility.com
-    rest-api-key: ${KAKAO_REST_API_KEY}
+    rest-api-key: test
 
 email:
   verification-expiration: 3600
@@ -66,7 +66,7 @@ email:
 
 ai:
   server:
-    url: http://localhost:8082
+    url: http://localhost:8080
 
 toss:
   secret-key: test_sk_dummy
