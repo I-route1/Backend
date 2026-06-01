@@ -5,6 +5,7 @@ import com.i_route.backend.gps.domain.attendance.dto.AttendanceTagRequest;
 import com.i_route.backend.gps.domain.attendance.entity.Attendance;
 import com.i_route.backend.gps.domain.attendance.entity.AttendanceEventType;
 import com.i_route.backend.gps.domain.attendance.repository.AttendanceRepository;
+import com.i_route.backend.gps.domain.attendance.repository.NfcRegisterQueueRedisRepository;
 import com.i_route.backend.gps.domain.student.entity.Student;
 import com.i_route.backend.gps.domain.student.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,6 +33,7 @@ public class AttendanceService {
     private final AttendanceRepository attendanceRepository;
     private final StudentRepository studentRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final NfcRegisterQueueRedisRepository nfcRegisterQueueRedisRepository;
 
     @Transactional
     public AttendanceResponse processTag(AttendanceTagRequest request) {
@@ -172,6 +175,17 @@ public class AttendanceService {
 
         studentRepository.save(updated);
         log.info("[NFC 등록] 학생={} cardId={}", student.getName(), nfcCardId);
+    }
+
+    public void enqueueNfcRegister(Long studentId) {
+        studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "학생을 찾을 수 없습니다."));
+        nfcRegisterQueueRedisRepository.enqueue(studentId);
+        log.info("[NFC 등록 요청] 학생={}", studentId);
+    }
+
+    public Optional<Long> pollNfcRegisterQueue() {
+        return nfcRegisterQueueRedisRepository.dequeue();
     }
 
     @Transactional
