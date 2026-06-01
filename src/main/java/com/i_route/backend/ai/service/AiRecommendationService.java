@@ -36,18 +36,36 @@ public class AiRecommendationService {
     private final GradeRepository gradeRepository;
 
     public List<MaterialRecommendationDto> recommendMaterials(Long studentId) {
-        StudentEntity student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new IllegalArgumentException("학생을 찾을 수 없습니다: " + studentId));
+        StudentEntity student = studentRepository.findById(studentId).orElse(null);
+        if (student == null) {
+            log.warn("학생을 찾을 수 없어 빈 자료 목록을 반환합니다: {}", studentId);
+            return List.of();
+        }
+
+        StudyTendency tendency = student.getLearningTendency();
+        String tendencyDesc = switch (tendency != null ? tendency : StudyTendency.VISUAL) {
+            case VISUAL      -> "시각형 학습자에게 적합한";
+            case AUDITORY    -> "청각형 학습자를 위한";
+            case KINESTHETIC -> "행동형 학습자에게 효과적인";
+        };
 
         List<MaterialRecommendationDto> result = materialRepository
                 .findByLevelLessThanEqualOrderByLevelDesc(student.getCurrentLevel())
                 .stream()
-                .map(m -> MaterialRecommendationDto.builder()
-                        .materialId(m.getMaterialId())
-                        .title(m.getTitle())
-                        .materialType(m.getMaterialType())
-                        .matchReason("현재 학습 레벨 " + student.getCurrentLevel() + "에 최적화된 자료입니다.")
-                        .build())
+                .map(m -> {
+                    String typeDesc = "교재".equals(m.getMaterialType())
+                            ? "개념 정리와 문제풀이를 직접 해볼 수 있는"
+                            : "강의로 빠르게 개념을 습득할 수 있는";
+                    String levelHint = m.getLevel() == student.getCurrentLevel()
+                            ? " (현재 레벨 딱 맞춤)"
+                            : " (레벨 " + m.getLevel() + " → 현재 " + student.getCurrentLevel() + " 준비)";
+                    return MaterialRecommendationDto.builder()
+                            .materialId(m.getMaterialId())
+                            .title(m.getTitle())
+                            .materialType(m.getMaterialType())
+                            .matchReason(tendencyDesc + " " + typeDesc + " 자료" + levelHint)
+                            .build();
+                })
                 .collect(Collectors.toList());
 
         log.info("학생 {} 맞춤 자료 {}건 추천 완료", studentId, result.size());

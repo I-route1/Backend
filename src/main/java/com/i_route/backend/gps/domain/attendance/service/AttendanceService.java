@@ -6,6 +6,7 @@ import com.i_route.backend.gps.domain.attendance.entity.Attendance;
 import com.i_route.backend.gps.domain.attendance.entity.AttendanceEventType;
 import com.i_route.backend.gps.domain.attendance.repository.AttendanceRepository;
 import com.i_route.backend.gps.domain.attendance.repository.NfcRegisterQueueRedisRepository;
+import com.i_route.backend.gps.domain.attendance.repository.StudentBoardingRedisRepository;
 import com.i_route.backend.gps.domain.student.entity.Student;
 import com.i_route.backend.gps.domain.student.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ public class AttendanceService {
     private final StudentRepository studentRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final NfcRegisterQueueRedisRepository nfcRegisterQueueRedisRepository;
+    private final StudentBoardingRedisRepository studentBoardingRedisRepository;
 
     @Transactional
     public AttendanceResponse processTag(AttendanceTagRequest request) {
@@ -61,6 +63,13 @@ public class AttendanceService {
                 .eventType(eventType)
                 .timestamp(attendance.getTimestamp())
                 .build();
+
+        // 탑승 시 GPS 공유 활성화, 하차 시 비활성화
+        if (eventType == AttendanceEventType.BOARD) {
+            studentBoardingRedisRepository.markBoarded(student.getStudentId(), request.getBusId());
+        } else {
+            studentBoardingRedisRepository.markExited(student.getStudentId());
+        }
 
         // WebSocket 알림은 트랜잭션 커밋 이후에 전송
         if (student.getParentId() != null) {
