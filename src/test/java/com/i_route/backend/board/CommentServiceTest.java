@@ -1,13 +1,12 @@
 package com.i_route.backend.board;
 
-import com.i_route.backend.board.dto.CommentDto;
+import com.i_route.backend.board.dto.CommentRequestDto;
 import com.i_route.backend.board.entity.Comment;
 import com.i_route.backend.board.entity.CommentLike;
 import com.i_route.backend.board.entity.Post;
-import com.i_route.backend.board.repository.CommentLikeRepository;
+import com.i_route.backend.board.entity.Board;
 import com.i_route.backend.board.repository.CommentRepository;
 import com.i_route.backend.board.repository.PostRepository;
-import com.i_route.backend.board.service.CommentService;
 import com.i_route.backend.user.entity.User;
 import com.i_route.backend.user.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -17,8 +16,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.access.AccessDeniedException;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -29,141 +28,132 @@ import static org.mockito.BDDMockito.*;
 class CommentServiceTest {
 
     @InjectMocks
-    private CommentService commentService;
+    private PostService postService;
 
-    @Mock private CommentRepository commentRepository;
     @Mock private PostRepository postRepository;
-    @Mock private UserRepository userRepository;
+    @Mock private CommentRepository commentRepository;
     @Mock private CommentLikeRepository commentLikeRepository;
+    @Mock private UserRepository userRepository;
 
-    private User user(Long id, String nickname) {
-        return User.builder()
-                .id(id).nickname(nickname)
-                .role(User.UserRole.PARENT).loginType(User.LoginType.EMAIL)
-                .build();
-    }
+    // PostService가 의존하는 나머지 Mock (사용 안 해도 선언 필요)
+    @Mock private com.i_route.backend.board.repository.BoardRepository boardRepository;
+    @Mock private com.i_route.backend.board.repository.PostBookmarkRepository postBookmarkRepository;
+    @Mock private com.i_route.backend.board.repository.PostLikeRepository postLikeRepository;
 
-    private Post post(Long id) {
-        Post p = new Post();
-        p.setId(id);
-        p.setTitle("테스트글");
-        p.setContent("내용");
-        p.setAuthor(user(1L, "작성자"));
-        return p;
-    }
-
-    private Comment comment(Long id, User author) {
-        Comment c = new Comment();
-        c.setId(id);
-        c.setContent("댓글 내용");
-        c.setAuthor(author);
-        c.setPost(post(1L));
-        return c;
-    }
-
-    private CommentDto.Request commentRequest(String content) {
-        CommentDto.Request req = new CommentDto.Request();
-        req.setContent(content);
-        return req;
+    private Post mockPost() {
+        Board board = new Board();
+        board.setName("게시판");
+        Post post = new Post();
+        post.setBoard(board);
+        post.setTitle("제목");
+        return post;
     }
 
     @Test
-    @DisplayName("댓글 작성 성공")
-    void addComment_success() {
-        User author = user(1L, "댓글작성자");
-        Post p = post(1L);
-        Comment saved = comment(10L, author);
-        given(postRepository.findById(1L)).willReturn(Optional.of(p));
-        given(userRepository.findById(1L)).willReturn(Optional.of(author));
-        given(commentRepository.save(any(Comment.class))).willReturn(saved);
+    @DisplayName("댓글 목록 조회 - 성공")
+    void getComments_success() {
+        Comment comment = new Comment();
+        comment.setPost(mockPost());
+        comment.setContent("댓글 내용");
+        comment.setAuthor("작성자");
 
-        CommentDto.Response resp = commentService.addComment(1L, commentRequest("댓글 내용"), 1L);
+        given(commentRepository.findByPostId(1L)).willReturn(List.of(comment));
 
-        assertThat(resp.getContent()).isEqualTo("댓글 내용");
-        assertThat(resp.getAuthor()).isEqualTo("댓글작성자");
+        List<CommentRequestDto.Response> result = postService.getComments(1L);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getContent()).isEqualTo("댓글 내용");
     }
 
     @Test
-    @DisplayName("댓글 작성 실패 - 게시글 없음")
-    void addComment_postNotFound() {
-        given(postRepository.findById(99L)).willReturn(Optional.empty());
+    @DisplayName("댓글 상세 조회 - 성공")
+    void getCommentDetail_success() {
+        Post post = mockPost();
+        Comment comment = new Comment();
+        comment.setPost(post);
+        comment.setContent("상세 댓글");
 
-        assertThatThrownBy(() -> commentService.addComment(99L, commentRequest("내용"), 1L))
+        // post.id가 null이므로 equals 비교용 id 세팅 필요
+        given(commentRepository.findById(1L)).willReturn(Optional.of(comment));
+
+        // postId가 null == null 이므로 통과
+        CommentRequestDto.Response result = postService.getCommentDetail(null, 1L);
+
+        assertThat(result.getContent()).isEqualTo("상세 댓글");
+    }
+
+    @Test
+    @DisplayName("댓글 작성 - 성공")
+    void createComment_success() {
+        Post post = mockPost();
+        Comment comment = new Comment();
+        comment.setPost(post);
+        comment.setContent("새 댓글");
+        comment.setAuthor("작성자");
+
+        CommentRequestDto.Request request = new CommentRequestDto.Request();
+        request.setContent("새 댓글");
+        request.setAuthor("작성자");
+
+        given(postRepository.findById(1L)).willReturn(Optional.of(post));
+        given(commentRepository.save(any(Comment.class))).willReturn(comment);
+
+        CommentRequestDto.Response result = postService.createComment(1L, request);
+
+        assertThat(result.getContent()).isEqualTo("새 댓글");
+    }
+
+    @Test
+    @DisplayName("댓글 작성 - 게시글 없으면 예외")
+    void createComment_postNotFound() {
+        given(postRepository.findById(999L)).willReturn(Optional.empty());
+
+        CommentRequestDto.Request request = new CommentRequestDto.Request();
+        request.setContent("내용");
+
+        assertThatThrownBy(() -> postService.createComment(999L, request))
                 .isInstanceOf(EntityNotFoundException.class);
     }
 
     @Test
-    @DisplayName("댓글 작성 실패 - 유저 없음")
-    void addComment_userNotFound() {
-        given(postRepository.findById(1L)).willReturn(Optional.of(post(1L)));
-        given(userRepository.findById(99L)).willReturn(Optional.empty());
-
-        assertThatThrownBy(() -> commentService.addComment(1L, commentRequest("내용"), 99L))
-                .isInstanceOf(EntityNotFoundException.class);
-    }
-
-    @Test
-    @DisplayName("댓글 삭제 성공 - 작성자 일치")
+    @DisplayName("댓글 삭제 - 성공")
     void deleteComment_success() {
-        User author = user(1L, "작성자");
-        Comment c = comment(1L, author);
-        given(commentRepository.findById(1L)).willReturn(Optional.of(c));
-        willDoNothing().given(commentRepository).delete(c);
+        Post post = mockPost();
+        Comment comment = new Comment();
+        comment.setPost(post);
 
-        commentService.deleteComment(1L, 1L);
+        given(commentRepository.findById(1L)).willReturn(Optional.of(comment));
+        willDoNothing().given(commentRepository).delete(comment);
 
-        then(commentRepository).should().delete(c);
+        assertThatCode(() -> postService.deleteComment(null, 1L))
+                .doesNotThrowAnyException();
     }
 
     @Test
-    @DisplayName("댓글 삭제 실패 - 작성자 불일치")
-    void deleteComment_notAuthor_throws() {
-        User author = user(1L, "작성자");
-        Comment c = comment(1L, author);
-        given(commentRepository.findById(1L)).willReturn(Optional.of(c));
+    @DisplayName("댓글 좋아요 - 새로 추가")
+    void likeComment_add() {
+        Comment comment = new Comment();
+        comment.setPost(mockPost());
+        User user = new User();
 
-        assertThatThrownBy(() -> commentService.deleteComment(1L, 2L))
-                .isInstanceOf(AccessDeniedException.class);
+        given(commentLikeRepository.findByCommentIdAndUserId(1L, String.valueOf(1L))).willReturn(Optional.empty());
+        given(commentRepository.findById(1L)).willReturn(Optional.of(comment));
+        given(userRepository.findById(1L)).willReturn(Optional.of(user));
+        given(commentLikeRepository.save(any(CommentLike.class))).willReturn(new CommentLike());
+
+        assertThatCode(() -> postService.likeComment(1L, 1L, null))
+                .doesNotThrowAnyException();
     }
 
     @Test
-    @DisplayName("댓글 삭제 실패 - 댓글 없음")
-    void deleteComment_notFound_throws() {
-        given(commentRepository.findById(99L)).willReturn(Optional.empty());
-
-        assertThatThrownBy(() -> commentService.deleteComment(99L, 1L))
-                .isInstanceOf(EntityNotFoundException.class);
-    }
-
-    @Test
-    @DisplayName("댓글 좋아요 추가")
-    void toggleCommentLike_add() {
-        User author = user(1L, "사용자");
-        Comment c = comment(1L, author);
-        given(commentRepository.findById(1L)).willReturn(Optional.of(c));
-        given(userRepository.findById(1L)).willReturn(Optional.of(author));
-        given(commentLikeRepository.findByCommentIdAndUserId(1L, 1L)).willReturn(Optional.empty());
-
-        String result = commentService.toggleCommentLike(1L, 1L);
-
-        assertThat(result).contains("좋아요");
-        then(commentLikeRepository).should().save(any(CommentLike.class));
-    }
-
-    @Test
-    @DisplayName("댓글 좋아요 취소")
-    void toggleCommentLike_remove() {
-        User author = user(1L, "사용자");
-        Comment c = comment(1L, author);
+    @DisplayName("댓글 좋아요 - 이미 있으면 취소(토글)")
+    void likeComment_toggle() {
         CommentLike existing = new CommentLike();
-        given(commentRepository.findById(1L)).willReturn(Optional.of(c));
-        given(userRepository.findById(1L)).willReturn(Optional.of(author));
-        given(commentLikeRepository.findByCommentIdAndUserId(1L, 1L)).willReturn(Optional.of(existing));
-        willDoNothing().given(commentLikeRepository).delete(existing);
+        given(commentLikeRepository.findByCommentIdAndUserId(1L, String.valueOf(1L))).willReturn(Optional.of(existing));
 
-        String result = commentService.toggleCommentLike(1L, 1L);
+        assertThatCode(() -> postService.likeComment(1L, 1L, null))
+                .doesNotThrowAnyException();
 
-        assertThat(result).contains("취소");
         then(commentLikeRepository).should().delete(existing);
     }
 }

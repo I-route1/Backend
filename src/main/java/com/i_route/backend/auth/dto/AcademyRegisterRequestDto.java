@@ -1,8 +1,6 @@
 package com.i_route.backend.auth.dto;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
 @Setter
@@ -29,8 +27,10 @@ public class AcademyRegisterRequestDto {
 
     // 학원 정보
     private String academyName;
-
     private String academyAddress;
-
     private String businessNumber;
+
+    // 차량 기사
+    private String vehicleNumber;
+    private String inviteCode;
 }

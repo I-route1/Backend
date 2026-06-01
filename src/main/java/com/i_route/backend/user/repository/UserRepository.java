@@ -10,7 +10,7 @@ public interface UserRepository
 
     Optional<User> findByEmail(String email);
 
-    Optional<User> findByUsername(String usernmae);
+    Optional<User> findByUsername(String username);
 
     Optional<User> findByKakaoId(Long kakaoId);
 
@@ -18,7 +18,7 @@ public interface UserRepository
 
     Optional<User> findByNickname(String Nickname);
 
-    Optional<User> findByEmailOrNicknameOrPhoneNumber(String email, String nickname, String phoneNumber);
+    Optional<User> findByEmailOrUsernameOrNicknameOrPhoneNumber(String Email, String username, String nickname, String phoneNumber);
 
     boolean existsByEmail(String email);
 

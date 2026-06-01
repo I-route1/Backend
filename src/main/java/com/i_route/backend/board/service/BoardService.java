@@ -1,137 +1,253 @@
 package com.i_route.backend.board.service;
 
-import com.i_route.backend.board.dto.BoardDto;
-import com.i_route.backend.board.dto.PostDto;
-import com.i_route.backend.board.entity.Board;
-import com.i_route.backend.board.entity.BoardBookmark;
-import com.i_route.backend.board.repository.BoardBookmarkRepository;
-import com.i_route.backend.board.repository.BoardRepository;
-import com.i_route.backend.board.repository.PostRepository;
+import com.i_route.backend.board.dto.*;
+import com.i_route.backend.board.entity.*;
+import com.i_route.backend.board.repository.*;
 import com.i_route.backend.user.entity.User;
 import com.i_route.backend.user.repository.UserRepository;
-import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import jakarta.persistence.EntityNotFoundException;
-import org.springframework.security.access.AccessDeniedException;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Transactional
 public class BoardService {
 
     private final BoardRepository boardRepository;
-    private final UserRepository userRepository;
     private final PostRepository postRepository;
+    private final CommentRepository commentRepository;
 
-    public List<BoardDto.Response> getAllBoards() {
-        return boardRepository.findAll().stream()
-                .map(BoardDto.Response::from)
-                .collect(Collectors.toList());
+    private final UserRepository userRepository;
+    private final PostLikeRepository postLikeRepository;
+    private final PostBookmarkRepository postBookmarkRepository;
+    private final CommentLikeRepository commentLikeRepository;
+
+    public List<Board> getBoards() {
+        return boardRepository.findAll();
     }
 
-    public List<BoardDto.Response> searchBoards(String keyword) {
-        return boardRepository.findByNameContainingIgnoreCase(keyword).stream()
-                .map(BoardDto.Response::from)
-                .collect(Collectors.toList());
+    public List<Board> searchBoards(String keyword) {
+        return boardRepository.findByNameContaining(keyword);
     }
 
-    @Transactional
-    public BoardDto.Response createBoard(BoardDto.Request request, Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("유저를 찾을 수 없습니다."));
+    public Board createBoard(BoardRequestDto request) {
+        Board board = Board.builder()
+                .name(request.getName())
+                .description(request.getDescription())
+                .createdBy("관리자")
+                .build();
 
-        Board board = new Board();
+        return boardRepository.save(board);
+    }
+
+    public Board updateBoard(Long boardId, BoardRequestDto request) {
+        Board board = getBoardOrThrow(boardId);
         board.setName(request.getName());
         board.setDescription(request.getDescription());
-        board.setCreatedBy(user);
-
-        return BoardDto.Response.from(boardRepository.save(board));
+        return board;
     }
 
-    @Transactional
-    public BoardDto.Response updateBoard(Long boardId, BoardDto.Request request, Long userId) {
+    public void deleteBoard(Long boardId) {
+        boardRepository.deleteById(boardId);
+    }
+
+    public Board getBoardDetail(Long boardId) {
+        return getBoardOrThrow(boardId);
+    }
+
+    public List<PostResponseDto> getPostsByBoard(Long boardId, Long userId) {
+        return postRepository.findByBoardId(boardId)
+                .stream()
+                .map(post -> toPostResponse(post, userId))
+                .toList();
+    }
+
+    public PostResponseDto createPost(Long boardId, PostRequestDto request, Long userId) {
         Board board = getBoardOrThrow(boardId);
-        checkOwner(board.getCreatedBy().getId(), userId);
 
-        board.setName(request.getName());
-        board.setDescription(request.getDescription());
+        Post post = Post.builder()
+                .board(board)
+                .title(request.getTitle())
+                .content(request.getContent())
+                .author(request.getAuthor() == null ? "작성자" : request.getAuthor())
+                .pinned(false)
+                .build();
 
-        return BoardDto.Response.from(board);
+        Post savedPost = postRepository.save(post);
+
+        return toPostResponse(savedPost, userId);
     }
 
-    @Transactional
-    public void deleteBoard(Long boardId, Long userId) {
-        Board board = getBoardOrThrow(boardId);
-        checkOwner(board.getCreatedBy().getId(), userId);
-        boardRepository.delete(board);
+    public PostResponseDto getPostDetail(Long postId, Long userId) {
+        Post post = getPostOrThrow(postId);
+        post.increaseViewCount();
+        return toPostResponse(post, userId);
     }
 
-    private Board getBoardOrThrow(Long id) {
-        return boardRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("게시판을 찾을 수 없습니다."));
+    public List<PostResponseDto> searchPosts(String keyword, Long userId) {
+        return postRepository.findByTitleContainingOrContentContaining(keyword, keyword)
+                .stream()
+                .map(post -> toPostResponse(post, userId))
+                .toList();
     }
 
-    private void checkOwner(Long ownerId, Long requesterId) {
-        if (!ownerId.equals(requesterId)) {
-            throw new AccessDeniedException("권한이 없습니다.");
+    public PostResponseDto updatePost(Long postId, PostRequestDto request, Long userId) {
+        Post post = getPostOrThrow(postId);
+        post.update(request.getTitle(), request.getContent());
+        return toPostResponse(post, userId);
+    }
+
+    public void deletePost(Long postId) {
+        postRepository.deleteById(postId);
+    }
+
+    public PostResponseDto likePost(Long postId, Long userId) {
+        Post post = getPostOrThrow(postId);
+        User user = getUserOrThrow(userId);
+
+        boolean alreadyLiked = postLikeRepository.existsByPostIdAndUserId(postId, userId);
+
+        if (alreadyLiked) {
+            postLikeRepository.deleteByPostIdAndUserId(postId, userId);
+        } else {
+            postLikeRepository.save(
+                    PostLike.builder()
+                            .post(post)
+                            .user(user)
+                            .build()
+            );
         }
+
+        return toPostResponse(post, userId);
     }
 
-    // BoardService 필드에 추가
-    private final BoardBookmarkRepository boardBookmarkRepository;
+    public PostResponseDto bookmarkPost(Long postId, Long userId) {
+        Post post = getPostOrThrow(postId);
+        User user = getUserOrThrow(userId);
 
-    // 게시판 즐겨찾기 토글
-    @Transactional
-    public String toggleBoardBookmark(Long boardId, Long userId) {
-        Board board = getBoardOrThrow(boardId);
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("유저를 찾을 수 없습니다."));
+        boolean alreadyBookmarked =
+                postBookmarkRepository.existsByPostIdAndUserId(postId, userId);
 
-        Optional<BoardBookmark> existing = boardBookmarkRepository.findByUserIdAndBoardId(userId, boardId);
-        if (existing.isPresent()) {
-            boardBookmarkRepository.delete(existing.get());
-            return "게시판 즐겨찾기를 해제했습니다.";
+        if (alreadyBookmarked) {
+            postBookmarkRepository.deleteByPostIdAndUserId(postId, userId);
+        } else {
+            postBookmarkRepository.save(
+                    PostBookmark.builder()
+                            .post(post)
+                            .user(user)
+                            .build()
+            );
         }
 
-        BoardBookmark bookmark = new BoardBookmark();
-        bookmark.setUser(user);
-        bookmark.setBoard(board);
-        boardBookmarkRepository.save(bookmark);
-        return "게시판 즐겨찾기에 추가했습니다.";
+        return toPostResponse(post, userId);
     }
 
-    // 내 게시판 즐겨찾기 목록
-    public List<BoardDto.Response> getMyBoardBookmarks(Long userId) {
-        return boardBookmarkRepository.findByUserId(userId).stream()
-                .map(b -> BoardDto.Response.from(b.getBoard()))
-                .collect(Collectors.toList());
+    public List<CommentResponseDto> getComments(Long postId, Long userId) {
+        return commentRepository.findByPostIdOrderByCreatedAtDesc(postId)
+                .stream()
+                .map(comment -> toCommentResponse(comment, userId))
+                .toList();
     }
 
-    public BoardDto.DetailResponse getBoardDetail(Long boardId, Long userId, Pageable pageable) {
-        Board board = getBoardOrThrow(boardId);
-        boolean bookmarked = boardBookmarkRepository.existsByUserIdAndBoardId(userId, boardId);
+    public CommentResponseDto createComment(Long postId, CommentRequestDto request, Long userId) {
+        Post post = getPostOrThrow(postId);
 
-        Page<PostDto.ListResponse> posts = postRepository
-                .findByBoardIdAndDeletedAtIsNull(boardId, pageable)
-                .map(PostDto.ListResponse::from);
+        Comment comment = Comment.builder()
+                .post(post)
+                .content(request.getContent())
+                .author(request.getAuthor() == null ? "나" : request.getAuthor())
+                .build();
 
-        return BoardDto.DetailResponse.builder()
-                .id(board.getId())
-                .name(board.getName())
-                .description(board.getDescription())
-                .createdBy(board.getCreatedBy().getNickname())
-                .createdAt(board.getCreatedAt())
-                .bookmarkedByMe(bookmarked)
-                .posts(posts)
+        Comment savedComment = commentRepository.save(comment);
+
+        return toCommentResponse(savedComment, userId);
+    }
+
+    public CommentResponseDto getCommentDetail(Long commentId, Long userId) {
+        Comment comment = getCommentOrThrow(commentId);
+        return toCommentResponse(comment, userId);
+    }
+
+    public void deleteComment(Long postId, Long commentId) {
+        Comment comment = getCommentOrThrow(commentId);
+        commentRepository.delete(comment);
+    }
+
+    public CommentResponseDto likeComment(Long commentId, Long userId) {
+        Comment comment = getCommentOrThrow(commentId);
+        User user = getUserOrThrow(userId);
+
+        boolean alreadyLiked =
+                commentLikeRepository.existsByCommentIdAndUserId(commentId, userId);
+
+        if (alreadyLiked) {
+            commentLikeRepository.deleteByCommentIdAndUserId(commentId, userId);
+        } else {
+            commentLikeRepository.save(
+                    CommentLike.builder()
+                            .comment(comment)
+                            .user(user)
+                            .build()
+            );
+        }
+
+        return toCommentResponse(comment, userId);
+    }
+
+    private PostResponseDto toPostResponse(Post post, Long userId) {
+        Long postId = post.getId();
+
+        return PostResponseDto.builder()
+                .id(post.getId())
+                .boardId(post.getBoard().getId())
+                .category(post.getBoard().getName())
+                .title(post.getTitle())
+                .author(post.getAuthor())
+                .content(post.getContent())
+                .createdAt(post.getCreatedAt())
+                .updatedAt(post.getUpdatedAt())
+                .viewCount(post.getViewCount())
+                .likeCount(postLikeRepository.countByPostId(postId))
+                .commentCount(commentRepository.countByPostId(postId))
+                .likedByMe(userId != null && postLikeRepository.existsByPostIdAndUserId(postId, userId))
+                .bookmarked(userId != null && postBookmarkRepository.existsByPostIdAndUserId(postId, userId))
+                .pinned(post.isPinned())
                 .build();
     }
 
+    private CommentResponseDto toCommentResponse(Comment comment, Long userId) {
+        Long commentId = comment.getId();
+
+        return CommentResponseDto.builder()
+                .id(comment.getId())
+                .author(comment.getAuthor())
+                .content(comment.getContent())
+                .createdAt(comment.getCreatedAt())
+                .likeCount(commentLikeRepository.countByCommentId(commentId))
+                .likedByMe(userId != null && commentLikeRepository.existsByCommentIdAndUserId(commentId, userId))
+                .build();
+    }
+
+    private Board getBoardOrThrow(Long boardId) {
+        return boardRepository.findById(boardId)
+                .orElseThrow(() -> new IllegalArgumentException("게시판을 찾을 수 없습니다."));
+    }
+
+    private Post getPostOrThrow(Long postId) {
+        return postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
+    }
+
+    private Comment getCommentOrThrow(Long commentId) {
+        return commentRepository.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다."));
+    }
+
+    private User getUserOrThrow(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+    }
 }

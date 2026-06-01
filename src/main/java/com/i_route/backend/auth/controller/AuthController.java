@@ -1,12 +1,15 @@
 package com.i_route.backend.auth.controller;
 
 import com.i_route.backend.auth.dto.*;
-import com.i_route.backend.auth.dto.*;
+import com.i_route.backend.auth.entity.EmailVerificationToken;
+import com.i_route.backend.auth.repository.EmailVerificationTokenRepository;
 import com.i_route.backend.auth.service.AuthService;
-import com.i_route.backend.auth.service.KakaoOAuthService;
+import com.i_route.backend.auth.service.EmailService;
+import com.i_route.backend.global.response.ApiResponse;
 import com.i_route.backend.user.dto.DuplicateCheckResponse;
 import com.i_route.backend.user.dto.SingleCheckRequest;
 import com.i_route.backend.user.entity.User;
+import com.i_route.backend.user.repository.UserRepository;
 import com.i_route.backend.user.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -24,20 +28,26 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
-    private final KakaoOAuthService kakaoOAuthService;
     private final UserService userService;
+    private final EmailService emailService;
+    private final EmailVerificationTokenRepository emailVerificationTokenRepository;
 
     //일반
     @PostMapping("/api/auth/register")
-    public ResponseEntity<String> register(@RequestBody ParentRegisterRequestDto request) {
+    public ResponseEntity<ApiResponse<String>> register(@RequestBody ParentRegisterRequestDto request) {
         authService.register(request);
-        return ResponseEntity.ok("회원가입이 완료되었습니다.");
+        return ResponseEntity.ok(
+                ApiResponse.success("회원가입이 완료되었습니다.")
+        );
+
     }
 
     @PostMapping("/api/auth/academy/register")
-    public ResponseEntity<String> academyregister(@RequestBody AcademyRegisterRequestDto request) {
+    public ResponseEntity<ApiResponse<String>> academyregister(@RequestBody AcademyRegisterRequestDto request) {
         authService.registerAcademy(request);
-        return ResponseEntity.ok("회원가입이 완료되었습니다.");
+        return ResponseEntity.ok(
+                ApiResponse.success("회원가입이 완료되었습니다.")
+        );
     }
 
     @PostMapping("/api/auth/login")
@@ -138,12 +148,35 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "인증 메일이 재발송되었습니다."));
     }
 
-    // GET /api/auth/email/verify?token=xxx
     @GetMapping("/api/auth/email/verify")
-    public ResponseEntity<Map<String, String>> verifyEmail(@RequestParam String token) {
-        authService.verifyEmail(token);
-        return ResponseEntity.ok(Map.of("message", "이메일 인증이 완료되었습니다."));
+    public ResponseEntity<?> verifyEmail(@RequestParam String token) {
+
+        System.out.println("====== VERIFY EMAIL REQUEST ======");
+        System.out.println("TOKEN = " + token);
+
+        try {
+            ApiResponse<String> result = emailService.verifyEmail(token);
+
+            System.out.println("SERVICE RESULT = " + result);
+            System.out.println("SUCCESS = " + result.isSuccess());
+
+            if (result.isSuccess()) {
+                System.out.println("RETURN 200 OK");
+                return ResponseEntity.ok(result);
+            }
+
+            System.out.println("RETURN 400 BAD REQUEST");
+            return ResponseEntity.badRequest().body(result);
+
+        } catch (Exception e) {
+            System.out.println("====== VERIFY EMAIL ERROR ======");
+            e.printStackTrace();
+
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.fail("SERVER_ERROR", e.getMessage()));
+        }
     }
+
 
     @PostMapping("/api/auth/email/welcome")
     public ResponseEntity<Map<String, String>> sendWelcomeEmail(
@@ -156,25 +189,49 @@ public class AuthController {
         );
     }
 
-    @PostMapping("/api/auth/check") // JSON을 보낼 때는 보통 POST를 많이 씁니다.
-    public ResponseEntity<DuplicateCheckResponse> checkSingleField(@RequestBody SingleCheckRequest request) {
+    @PostMapping("/api/auth/check")
+    public ResponseEntity<DuplicateCheckResponse> checkSingleField(
+            @RequestBody SingleCheckRequest request
+    ) {
+        System.out.println("====== 중복 체크 요청 ======");
+        System.out.println("Type: " + request.getType());
+        System.out.println("Value: " + request.getValue());
 
-        if (request.getValue() == null || request.getValue().trim().isEmpty()) {
+        // ✅ null 방어 (request 자체도)
+        if (request == null || request.getValue() == null || request.getValue().trim().isEmpty()) {
             return ResponseEntity.badRequest().body(
-                    new DuplicateCheckResponse(false, null, "검증할 값을 입력해주세요.")
+                    new DuplicateCheckResponse(true, null, "검증할 값을 입력해주세요.")
             );
         }
 
-        DuplicateCheckResponse response = userService.checkSingleField(request.getType(), request.getValue().trim());
+        String type = request.getType();
+        String value = request.getValue().trim();
 
-        if (response == null) {
+        // ✅ type null 방어
+        if (type == null) {
             return ResponseEntity.badRequest().body(
-                    new DuplicateCheckResponse(false, null, "잘못된 검증 타입입니다. (email, nickname, phone 중 입력)")
+                    new DuplicateCheckResponse(true, null, "검증 타입이 없습니다.")
             );
         }
+
+        // ✅ type 검증
+        if (!List.of("username", "nickname", "email", "phoneNumber").contains(type)) {
+            return ResponseEntity.badRequest().body(
+                    new DuplicateCheckResponse(true, null, "잘못된 검증 타입입니다.")
+            );
+        }
+
+        // ✅ 전화번호 normalize (완전 정규화)
+        if ("phoneNumber".equals(type)) {
+            value = value.replaceAll("\\D", "");
+        }
+
+        DuplicateCheckResponse response = userService.checkSingleField(type, value);
 
         return ResponseEntity.ok(response);
     }
+
+
 
     // 비밀번호 재설정 링크 발송
     @PostMapping("/api/auth/password/reset/send")
@@ -195,5 +252,31 @@ public class AuthController {
     public ResponseEntity<FindEmailResponse> findEmail(@RequestBody FindEmailRequest request) {
         String email = authService.findEmailByPhoneNumber(request.getPhoneNumber());
         return ResponseEntity.ok(new FindEmailResponse(email));
+    }
+
+    @GetMapping("/api/auth/email/status")
+    public ResponseEntity<?> checkEmailStatus(@RequestParam String email) {
+
+        System.out.println("====== EMAIL STATUS CHECK ======");
+        System.out.println("input email = " + email);
+
+        EmailVerificationToken token =
+                emailVerificationTokenRepository
+                        .findTopByEmailOrderByIdDesc(email.trim().toLowerCase())
+                        .orElse(null);
+
+        System.out.println("LATEST TOKEN = " + token);
+
+        if (token != null) {
+            System.out.println("TOKEN EMAIL = " + token.getEmail());
+            System.out.println("TOKEN VERIFIED = " + token.isVerified());
+            System.out.println("TOKEN ID = " + token.getId());
+        }
+
+        boolean verified = token != null && token.isVerified();
+
+        System.out.println("FINAL RESULT = " + verified);
+
+        return ResponseEntity.ok(Map.of("verified", verified));
     }
 }

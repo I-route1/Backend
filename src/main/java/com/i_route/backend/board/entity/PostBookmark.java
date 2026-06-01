@@ -10,12 +10,12 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 @Table(
-        name = "comment_like",
+        name = "post_bookmark",
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"user_id", "comment_id"})
+                @UniqueConstraint(columnNames = {"user_id", "post_id"})
         }
 )
-public class CommentLike {
+public class PostBookmark {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,6 +26,6 @@ public class CommentLike {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "comment_id", nullable = false)
-    private Comment comment;
+    @JoinColumn(name = "post_id", nullable = false)
+    private Post post;
 }

@@ -8,6 +8,7 @@ import com.i_route.backend.auth.entity.RefreshToken;
 import com.i_route.backend.auth.repository.EmailVerificationTokenRepository;
 import com.i_route.backend.auth.repository.RefreshTokenRepository;
 import com.i_route.backend.auth.service.AuthService;
+import com.i_route.backend.auth.service.EmailService;
 import com.i_route.backend.auth.service.KakaoOAuthService;
 import com.i_route.backend.global.jwt.JwtUtil;
 import com.i_route.backend.user.entity.User;
@@ -36,6 +37,7 @@ class AuthServiceTest {
 
     @InjectMocks
     private AuthService authService;
+    private EmailService emailService;
 
     @Mock private UserRepository userRepository;
     @Mock private AcademyRepository academyRepository;
@@ -66,7 +68,7 @@ class AuthServiceTest {
         req.setPasswordConfirm("password123");
         req.setNickname("테스터");
         req.setName("홍길동");
-        req.setPhone("010-1234-5678");
+        req.setPhoneNumber("010-1234-5678");
         req.setRole("PARENT");
 
         given(userRepository.existsByUsername("testuser")).willReturn(false);
@@ -88,7 +90,7 @@ class AuthServiceTest {
         req.setPasswordConfirm("password123");
         req.setNickname("테스터");
         req.setName("홍길동");
-        req.setPhone("01012345678");
+        req.setPhoneNumber("01012345678");
         req.setRole("INVALID_ROLE");
 
         given(userRepository.existsByUsername(anyString())).willReturn(false);
@@ -109,7 +111,7 @@ class AuthServiceTest {
         req.setPasswordConfirm("password123");
         req.setNickname("테스터");
         req.setName("홍길동");
-        req.setPhone("010-1234-5678");
+        req.setPhoneNumber("010-1234-5678");
         req.setRole("PARENT");
 
         given(userRepository.existsByUsername(anyString())).willReturn(false);
@@ -139,7 +141,7 @@ class AuthServiceTest {
         given(jwtUtil.generateRefreshToken(1L)).willReturn("refresh-token");
 
         LoginRequest req = new LoginRequest();
-        req.setEmail("test@test.com");
+        req.setUsername("test@test.com");
         req.setPassword("password123");
 
         AuthResponse resp = authService.login(req);
@@ -156,7 +158,7 @@ class AuthServiceTest {
         given(userRepository.findByEmail(anyString())).willReturn(Optional.empty());
 
         LoginRequest req = new LoginRequest();
-        req.setEmail("none@test.com");
+        req.setUsername("none@test.com");
         req.setPassword("password123");
 
         assertThatThrownBy(() -> authService.login(req))
@@ -175,7 +177,7 @@ class AuthServiceTest {
         given(passwordEncoder.matches("wrong", "encoded")).willReturn(false);
 
         LoginRequest req = new LoginRequest();
-        req.setEmail("test@test.com");
+        req.setUsername("test@test.com");
         req.setPassword("wrong");
 
         assertThatThrownBy(() -> authService.login(req))
@@ -265,7 +267,7 @@ class AuthServiceTest {
         given(emailVerificationTokenRepository.findByToken("valid-token")).willReturn(Optional.of(token));
         given(userRepository.findByEmail("test@test.com")).willReturn(Optional.of(user));
 
-        assertThatNoException().isThrownBy(() -> authService.verifyEmail("valid-token"));
+        assertThatNoException().isThrownBy(() -> emailService.verifyEmail("valid-token"));
         assertThat(token.isVerified()).isTrue();
     }
 
@@ -281,7 +283,7 @@ class AuthServiceTest {
 
         given(emailVerificationTokenRepository.findByToken("used-token")).willReturn(Optional.of(token));
 
-        assertThatThrownBy(() -> authService.verifyEmail("used-token"))
+        assertThatThrownBy(() -> emailService.verifyEmail("used-token"))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("이미 인증");
     }
@@ -298,7 +300,7 @@ class AuthServiceTest {
 
         given(emailVerificationTokenRepository.findByToken("expired-token")).willReturn(Optional.of(token));
 
-        assertThatThrownBy(() -> authService.verifyEmail("expired-token"))
+        assertThatThrownBy(() -> emailService.verifyEmail("expired-token"))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("만료");
     }

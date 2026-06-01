@@ -16,19 +16,26 @@ public class Academy {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long academyId;
 
-    // 학원명
+    // 학원명 / 소속 학원명
     @Column(nullable = false)
     private String academyName;
 
-    // 학원 주소
-    @Column(nullable = false)
+    // 학원 관리자일 때만 사용
+    @Column(nullable = true)
     private String academyAddress;
 
-    // 사업자 번호
-    @Column(nullable = false, unique = true)
+    // 학원 관리자일 때만 사용
+    @Column(nullable = true, unique = true)
     private String businessNumber;
 
-    // 회원과 연결
+    // 차량 기사일 때만 사용
+    @Column(nullable = true, unique = true)
+    private String vehicleNumber;
+
+    // 차량 기사일 때만 사용
+    @Column(nullable = true, unique = true)
+    private String inviteCode;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
