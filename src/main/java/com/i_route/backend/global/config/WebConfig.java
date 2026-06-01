@@ -14,9 +14,14 @@ public class WebConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("https://d3kh3x870d7dr4.cloudfront.net")
-                        .allowedMethods("*");
-
+                        .allowedOriginPatterns(
+                                "https://d3kh3x870d7dr4.cloudfront.net",
+                                "https://*.ngrok-free.dev"
+                        )
+                        .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+                        .allowedHeaders("*")
+                        .exposedHeaders("*")
+                        .allowCredentials(false);
             }
         };
     }
