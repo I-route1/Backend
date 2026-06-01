@@ -1,5 +1,6 @@
 package com.i_route.backend.gps.domain.gps.service;
 
+import com.i_route.backend.gps.domain.attendance.repository.StudentBoardingRedisRepository;
 import com.i_route.backend.gps.domain.bus.entity.Bus;
 import com.i_route.backend.gps.domain.bus.repository.BusRepository;
 import com.i_route.backend.gps.domain.gps.dto.response.*;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +27,7 @@ public class GpsQueryService {
     private final CurrentLocationRedisRepository currentLocationRedisRepository;
     private final RouteProgressService routeProgressService;
     private final EtaService etaService;
+    private final StudentBoardingRedisRepository studentBoardingRedisRepository;
 
     public CurrentBusLocationResponse getCurrentLocation(Long busId) {
 
@@ -73,5 +76,11 @@ public class GpsQueryService {
 
     public List<EtaResponse> getStudentEtas(Long busId) {
         return etaService.calculateStudentEtas(busId);
+    }
+
+    // 학생 탑승 중일 때만 버스 GPS 반환 (하차 후에는 Optional.empty())
+    public Optional<CurrentBusLocationResponse> getStudentCurrentLocation(Long studentId) {
+        return studentBoardingRedisRepository.getBusId(studentId)
+                .flatMap(currentLocationRedisRepository::findByBusId);
     }
 }

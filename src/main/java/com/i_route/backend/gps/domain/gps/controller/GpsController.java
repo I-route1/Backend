@@ -8,6 +8,7 @@ import com.i_route.backend.gps.domain.gps.service.GpsCommandService;
 import com.i_route.backend.gps.domain.gps.service.GpsQueryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -50,5 +51,15 @@ public class GpsController {
             @PathVariable Long busId
     ) {
         return gpsQueryService.getStudentEtas(busId);
+    }
+
+    // 학부모 앱: 학생 탑승 중일 때만 버스 GPS 반환 (하차 후 204)
+    @GetMapping("/students/{studentId}/current-location")
+    public ResponseEntity<CurrentBusLocationResponse> getStudentCurrentLocation(
+            @PathVariable Long studentId
+    ) {
+        return gpsQueryService.getStudentCurrentLocation(studentId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.noContent().build());
     }
 }

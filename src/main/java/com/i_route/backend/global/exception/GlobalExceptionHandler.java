@@ -52,4 +52,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(Map.of("error", "접근 권한이 없습니다."));
     }
+
+    // 미처리 예외도 500 JSON으로 반환해 CORS 헤더가 항상 포함되도록 보장합니다.
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, String>> handleGeneric(Exception e) {
+        log.error("Unhandled exception: {}", e.getMessage(), e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage() != null ? e.getMessage() : "서버 오류가 발생했습니다."));
+    }
 }
