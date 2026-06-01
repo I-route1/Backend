@@ -27,6 +27,9 @@ public class Post {
 
     private String author;
 
+    @Column(nullable = false)
+    private String category;
+
     private int viewCount;
 
     private boolean pinned;
@@ -59,9 +62,10 @@ public class Post {
         this.pinned = false;
     }
 
-    public void update(String title, String content) {
+    public void update(String title, String content, String category) {
         this.title = title;
         this.content = content;
+        this.category = category;
         this.updatedAt = LocalDateTime.now();
     }
 
