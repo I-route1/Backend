@@ -21,6 +21,8 @@ public enum ErrorCode {
 
     REDIS_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "REDIS_001", "Redis 처리 중 오류가 발생했습니다."),
 
+    INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "AUTH_001", "아이디 또는 비밀번호가 올바르지 않습니다."),
+
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON_001", "서버 내부 오류가 발생했습니다.");
 
     private final HttpStatus status;
