@@ -45,6 +45,9 @@ public class AuthService {
     @Value("${jwt.refresh-expiration}")
     private long refreshExpiration;
 
+    @Value("${app.frontend-base-url}")
+    private String frontendBaseUrl;
+
     private String issueRefreshToken(Long userId) {
         // 기존 토큰 삭제 (중복 방지)
         refreshTokenRepository.deleteByUserId(userId);
@@ -214,11 +217,16 @@ public class AuthService {
     public AuthResponse login(LoginRequest request) {
 
         User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new RuntimeException("잘못된 ID"));
-
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "아이디 또는 비밀번호를 다시 확인해 주세요."
+                        )
+                );
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("비밀번호 틀림");
+            throw new IllegalArgumentException(
+                    "아이디 또는 비밀번호를 다시 확인해 주세요."
+            );
         }
 
         String accessToken = jwtUtil.generateToken(user.getId());
@@ -299,7 +307,7 @@ public class AuthService {
 
         // 인증 링크 생성
         String verifyUrl =
-                "http://localhost:3000/email/verify?token=" + token;
+                frontendBaseUrl + "/email/verify?token=" + token;
 
         // 메일 생성
         SimpleMailMessage message = new SimpleMailMessage();
@@ -330,30 +338,24 @@ public class AuthService {
                 .orElseThrow(() ->
                         new IllegalArgumentException("가입되지 않은 이메일입니다."));
 
-        // 토큰 생성
         String resetToken = UUID.randomUUID().toString();
 
-        // DB 저장
         user.updateResetToken(resetToken);
 
-        // 재설정 링크
-        String resetUrl =
-                "http://localhost:8080/api/auth/password/reset?token="
-                        + resetToken;
+        String resetLink = frontendBaseUrl + "/reset-password?token=" + resetToken;
 
-        // 메일 생성
+        System.out.println("emailBaseUrl = " + frontendBaseUrl);
+        System.out.println("resetLink = " + resetLink);
+
         SimpleMailMessage message = new SimpleMailMessage();
-
         message.setTo(email);
-
-        message.setSubject("[I-ROUTE] 비밀번호 재설정");
+        message.setSubject("[I-ROUTE] 비밀번호 재설정 " + LocalDateTime.now());
 
         message.setText(
-                "비밀번호 재설정 링크입니다.\n\n"
-                        + resetUrl
+                "비밀번호 재설정 링크입니다.\n\n" +
+                        resetLink
         );
 
-        // 메일 발송
         mailSender.send(message);
     }
 
@@ -370,16 +372,19 @@ public class AuthService {
         user.updateResetToken(null); // 사용한 토큰은 폐기
     }
 
-    // 휴대폰 번호로 가입된 이메일 조회 로직
     @Transactional(readOnly = true)
-    public String findEmailByPhoneNumber(String phone) {
-        // 하이픈 제거 포맷팅
+    public FindUsernameAndEmailResponse findUsernameAndEmailByPhoneNumber(String phone) {
         String cleanedPhone = phone.replaceAll("[\\s-]", "");
 
         User user = userRepository.findByPhoneNumber(cleanedPhone)
-                .orElseThrow(() -> new IllegalArgumentException("해당 휴대폰 번호로 가입된 유저가 없습니다."));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("해당 휴대폰 번호로 가입된 유저가 없습니다.")
+                );
 
-        return user.getEmail();
+        return new FindUsernameAndEmailResponse(
+                user.getUsername(),
+                user.getEmail()
+        );
     }
 
     public void sendWelcomeEmail(String email) {

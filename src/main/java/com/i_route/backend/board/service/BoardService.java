@@ -9,7 +9,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +27,8 @@ public class BoardService {
     private final PostLikeRepository postLikeRepository;
     private final PostBookmarkRepository postBookmarkRepository;
     private final CommentLikeRepository commentLikeRepository;
+
+    private final Map<String, LocalDateTime> viewHistory = new ConcurrentHashMap<>();
 
     public List<Board> getBoards() {
         return boardRepository.findAll();
@@ -58,25 +63,36 @@ public class BoardService {
         return getBoardOrThrow(boardId);
     }
 
-    public List<PostResponseDto> getPostsByBoard(Long boardId, Long userId) {
-        return postRepository.findByBoardId(boardId)
+    public List<PostResponseDto> getPosts(Long userId) {
+        return postRepository.findAll()
                 .stream()
                 .map(post -> toPostResponse(post, userId))
                 .toList();
     }
 
-    public PostResponseDto createPost(Long boardId, PostRequestDto request, Long userId) {
-        Board board = getBoardOrThrow(boardId);
+    public PostResponseDto createPost(
+            PostRequestDto request,
+            Long userId
+    ) {
+
+        Board board = boardRepository.findAll()
+                .stream()
+                .findFirst()
+                .orElseThrow(() ->
+                        new IllegalArgumentException("게시판이 존재하지 않습니다.")
+                );
+
+        User user = getUserOrThrow(userId);
 
         Post post = Post.builder()
                 .board(board)
+                .user(user)
                 .title(request.getTitle())
                 .content(request.getContent())
                 .category(request.getCategory() != null ? request.getCategory() : "자유")
-                .author(request.getAuthor() == null ? "작성자" : request.getAuthor())
+                .author(user.getNickname())
                 .pinned(false)
                 .build();
-
         Post savedPost = postRepository.save(post);
 
         return toPostResponse(savedPost, userId);
@@ -84,7 +100,19 @@ public class BoardService {
 
     public PostResponseDto getPostDetail(Long postId, Long userId) {
         Post post = getPostOrThrow(postId);
-        post.increaseViewCount();
+
+        String viewerKey = userId != null
+                ? "USER:" + userId + ":POST:" + postId
+                : "GUEST:" + postId;
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime lastViewedAt = viewHistory.get(viewerKey);
+
+        if (lastViewedAt == null || lastViewedAt.plusSeconds(3).isBefore(now)) {
+            post.increaseViewCount();
+            viewHistory.put(viewerKey, now);
+        }
+
         return toPostResponse(post, userId);
     }
 
@@ -159,11 +187,13 @@ public class BoardService {
 
     public CommentResponseDto createComment(Long postId, CommentRequestDto request, Long userId) {
         Post post = getPostOrThrow(postId);
+        User user = getUserOrThrow(userId);
 
         Comment comment = Comment.builder()
                 .post(post)
+                .user(user)
                 .content(request.getContent())
-                .author(request.getAuthor() == null ? "나" : request.getAuthor())
+                .author(user.getNickname())
                 .build();
 
         Comment savedComment = commentRepository.save(comment);
@@ -176,8 +206,13 @@ public class BoardService {
         return toCommentResponse(comment, userId);
     }
 
-    public void deleteComment(Long postId, Long commentId) {
+    public void deleteComment(Long postId, Long commentId, Long userId) {
         Comment comment = getCommentOrThrow(commentId);
+
+        if (comment.getUser() == null || !comment.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("작성자만 댓글을 삭제할 수 있습니다.");
+        }
+
         commentRepository.delete(comment);
     }
 
@@ -217,6 +252,7 @@ public class BoardService {
         return PostResponseDto.builder()
                 .id(post.getId())
                 .boardId(post.getBoard().getId())
+                .userId(post.getUser() != null ? post.getUser().getId() : null)
                 .category(post.getCategory())
                 .title(post.getTitle())
                 .author(post.getAuthor())
@@ -237,6 +273,7 @@ public class BoardService {
 
         return CommentResponseDto.builder()
                 .id(comment.getId())
+                .userId(comment.getUser() != null ? comment.getUser().getId() : null)
                 .author(comment.getAuthor())
                 .content(comment.getContent())
                 .createdAt(comment.getCreatedAt())

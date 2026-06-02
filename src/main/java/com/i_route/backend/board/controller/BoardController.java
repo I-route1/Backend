@@ -51,23 +51,20 @@ public class BoardController {
         return BoardResponseDto.from(boardService.getBoardDetail(boardId));
     }
 
-    @GetMapping("/boards/{boardId}/posts")
-    public List<PostResponseDto> getPostsByBoard(
-            @PathVariable Long boardId,
+    @GetMapping("/posts")
+    public List<PostResponseDto> getPosts(
             @RequestParam(required = false) Long userId
     ) {
-        return boardService.getPostsByBoard(boardId, userId);
+        return boardService.getPosts(userId);
     }
 
-    @PostMapping("/boards/{boardId}/posts")
+    @PostMapping("/posts")
     public PostResponseDto createPost(
-            @PathVariable Long boardId,
             @RequestParam(required = false) Long userId,
             @RequestBody PostRequestDto request
     ) {
-        return boardService.createPost(boardId, request, userId);
+        return boardService.createPost(request, userId);
     }
-
     @GetMapping("/posts/{postId}")
     public PostResponseDto getPostDetail(
             @PathVariable Long postId,
@@ -143,9 +140,10 @@ public class BoardController {
     @DeleteMapping("/posts/{postId}/comments/{commentId}")
     public void deleteComment(
             @PathVariable Long postId,
-            @PathVariable Long commentId
+            @PathVariable Long commentId,
+            @RequestParam Long userId
     ) {
-        boardService.deleteComment(postId, commentId);
+        boardService.deleteComment(postId, commentId, userId);
     }
 
     @PostMapping("/posts/{postId}/comments/{commentId}/like")

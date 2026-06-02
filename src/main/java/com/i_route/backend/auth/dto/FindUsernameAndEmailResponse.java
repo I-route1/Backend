@@ -5,6 +5,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class FindEmailResponse {
+public class FindUsernameAndEmailResponse {
+    private String username;
     private String email;
 }
