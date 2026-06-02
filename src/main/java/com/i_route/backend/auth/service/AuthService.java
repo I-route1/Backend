@@ -9,6 +9,8 @@ import com.i_route.backend.user.entity.User;
 import com.i_route.backend.user.repository.*;
 import com.i_route.backend.global.jwt.JwtUtil;
 import com.i_route.backend.auth.repository.EmailVerificationTokenRepository;
+import com.i_route.backend.global.exception.CustomException;
+import com.i_route.backend.global.exception.ErrorCode;
 
 import lombok.*;
 import org.springframework.mail.SimpleMailMessage;
@@ -217,16 +219,10 @@ public class AuthService {
     public AuthResponse login(LoginRequest request) {
 
         User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "아이디 또는 비밀번호를 다시 확인해 주세요."
-                        )
-                );
+                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_CREDENTIALS));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException(
-                    "아이디 또는 비밀번호를 다시 확인해 주세요."
-            );
+            throw new CustomException(ErrorCode.INVALID_CREDENTIALS);
         }
 
         String accessToken = jwtUtil.generateToken(user.getId());
