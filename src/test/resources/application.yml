@@ -49,7 +49,7 @@ kakao:
 
 email:
   verification-expiration: 3600
-  base-url: "http://localhost:8080"
+  base-url: "http://localhost:3000"
 
 ai:
   server:
