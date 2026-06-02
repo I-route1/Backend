@@ -33,6 +33,8 @@ public class DataInitializer implements ApplicationRunner {
     private final LearningActivityRepository learningActivityRepository;
     private final StudyLogRepository studyLogRepository;
     private final StudentInfoRepository studentInfoRepository;
+    private final WrongAnswerEntityRepository wrongAnswerEntityRepository;
+    private final WrongAnswerRepository wrongAnswerRepository;
 
     @Override
     @Transactional
@@ -41,6 +43,8 @@ public class DataInitializer implements ApplicationRunner {
         seedQuestions();
         seedStudents();
         seedStudentInfos();
+        seedWrongAnswers();
+        seedStringWrongAnswers();
         seedGrades();
         seedGradeEntities();
         seedLearningActivities();
@@ -177,6 +181,76 @@ public class DataInitializer implements ApplicationRunner {
         );
         studentInfoRepository.saveAll(infos);
         log.info("[DataInitializer] StudentInfo {}개 시드 완료", infos.size());
+    }
+
+    // ─── 신규: WrongAnswerEntity (복습 시험지 생성용) ─────────
+    private void seedWrongAnswers() {
+        if (wrongAnswerEntityRepository.count() > 0) return;
+
+        List<Question> questions = questionRepository.findAll();
+        if (questions.isEmpty()) {
+            log.warn("[DataInitializer] Question 없음 — WrongAnswer 시딩 스킵");
+            return;
+        }
+
+        // 최대 8문제 사용 (없으면 있는 만큼)
+        int limit = Math.min(8, questions.size());
+        List<WrongAnswerEntity> answers = new ArrayList<>();
+
+        for (int i = 0; i < limit; i++) {
+            Long qId = questions.get(i).getQuestionId();
+            // 학생1(홍민준): 최근에 틀린 문제 3개
+            if (i < 3) answers.add(WrongAnswerEntity.builder()
+                    .studentId(1L).questionId(qId).failCount(i + 1).build());
+            // 학생3(이준혁): 더 많이 틀린 문제 5개
+            answers.add(WrongAnswerEntity.builder()
+                    .studentId(3L).questionId(qId).failCount(i + 2).build());
+            // 학생4(박지은): 어려운 문제 1~2개
+            if (i >= limit - 2) answers.add(WrongAnswerEntity.builder()
+                    .studentId(4L).questionId(qId).failCount(1).build());
+        }
+
+        wrongAnswerEntityRepository.saveAll(answers);
+        log.info("[DataInitializer] WrongAnswerEntity {}개 시드 완료", answers.size());
+    }
+
+    // ─── 신규: WrongAnswer (String studentId — Python ai-pipeline용) ──
+    private void seedStringWrongAnswers() {
+        // S-0003 데이터가 없으면 전체 재시딩 (기존 데이터는 다른 studentId)
+        boolean s0003Exists = !wrongAnswerRepository
+                .findTopWeaknessByStudentIdAndSubject("S-0003", "수학").isEmpty();
+        if (s0003Exists) return;
+
+        // studentId(String), subject, questionId, conceptTag, errorType
+        Object[][] data = {
+            // S-0001 (홍민준): 수학 취약
+            {"S-0001","수학","Q-001","삼각함수 덧셈공식",        "CONCEPT_GAP"},
+            {"S-0001","수학","Q-002","삼각함수 응용 문제",       "CARELESS_MISTAKE"},
+            {"S-0001","영어","Q-003","가정법 과거완료 형태",      "CONCEPT_GAP"},
+            // S-0003 (이준혁): 수학·영어 취약
+            {"S-0003","수학","Q-004","수열의 합 공식",            "CONCEPT_GAP"},
+            {"S-0003","수학","Q-005","등차수열 일반항",           "MEMORIZATION_GAP"},
+            {"S-0003","수학","Q-006","이차방정식 판별식",         "CONCEPT_GAP"},
+            {"S-0003","영어","Q-007","도치구문 강조 용법",        "CONCEPT_GAP"},
+            {"S-0003","영어","Q-008","수동태 완료형",             "MEMORIZATION_GAP"},
+            // S-0004 (박지은): 심화 수학 취약
+            {"S-0004","수학","Q-009","미분 chain rule 응용",      "CARELESS_MISTAKE"},
+        };
+
+        List<WrongAnswer> answers = new ArrayList<>();
+        for (Object[] r : data) {
+            ErrorType et = null;
+            try { et = ErrorType.valueOf((String) r[4]); } catch (Exception ignored) {}
+            answers.add(WrongAnswer.builder()
+                    .studentId((String) r[0])
+                    .subject((String) r[1])
+                    .questionId((String) r[2])
+                    .conceptTag((String) r[3])
+                    .errorType(et)
+                    .build());
+        }
+        wrongAnswerRepository.saveAll(answers);
+        log.info("[DataInitializer] WrongAnswer(String) {}개 시드 완료", answers.size());
     }
 
     // ─── 신규: Grade (String studentId, weakConceptTag 포함) ─
