@@ -58,6 +58,9 @@ public class SecurityConfig {
                                 // WebSocket
                                 "/ws/**",
 
+                                // AI 서버 내부 서비스 호출 (Python → Java)
+                                "/api/wrong-answer/ai-pipeline",
+
                                 "/error",
                                 "/favicon.ico",
 
