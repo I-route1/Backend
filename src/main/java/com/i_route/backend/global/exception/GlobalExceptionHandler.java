@@ -42,9 +42,14 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException e) {
+    public ResponseEntity<Map<String, String>> handleIllegalArgument(
+            IllegalArgumentException e
+    ) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("error", e.getMessage()));
+                .body(Map.of(
+                        "message",
+                        e.getMessage()
+                ));
     }
 
     @ExceptionHandler(AccessDeniedException.class)

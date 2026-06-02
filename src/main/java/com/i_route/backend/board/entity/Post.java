@@ -1,5 +1,6 @@
 package com.i_route.backend.board.entity;
 
+import com.i_route.backend.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -72,4 +73,8 @@ public class Post {
     public void increaseViewCount() {
         this.viewCount++;
     }
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
 }

@@ -9,7 +9,6 @@ import com.i_route.backend.global.response.ApiResponse;
 import com.i_route.backend.user.dto.DuplicateCheckResponse;
 import com.i_route.backend.user.dto.SingleCheckRequest;
 import com.i_route.backend.user.entity.User;
-import com.i_route.backend.user.repository.UserRepository;
 import com.i_route.backend.user.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -247,11 +246,15 @@ public class AuthController {
         return ResponseEntity.ok(new MessageResponse("비밀번호가 변경되었습니다."));
     }
 
-    // 아이디 찾기
-    @PostMapping("/api/auth/find/email")
-    public ResponseEntity<FindEmailResponse> findEmail(@RequestBody FindEmailRequest request) {
-        String email = authService.findEmailByPhoneNumber(request.getPhoneNumber());
-        return ResponseEntity.ok(new FindEmailResponse(email));
+    // 아이디/이메일 찾기
+    @PostMapping("/api/auth/find/username-email")
+    public ResponseEntity<FindUsernameAndEmailResponse> findUsernameAndEmail(
+            @RequestBody FindUsernameAndEmailRequest request
+    ) {
+        FindUsernameAndEmailResponse response =
+                authService.findUsernameAndEmailByPhoneNumber(request.getPhoneNumber());
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/api/auth/email/status")

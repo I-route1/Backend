@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.i_route.backend.user.entity.User;
+
 @Entity
 @Getter
 @Setter
@@ -38,4 +40,8 @@ public class Comment {
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
     }
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
 }

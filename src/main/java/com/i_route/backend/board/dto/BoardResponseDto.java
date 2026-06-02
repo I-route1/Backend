@@ -17,7 +17,7 @@ public class BoardResponseDto {
                 .id(board.getId())
                 .name(board.getName())
                 .description(board.getDescription())
-                .postCount(board.getPosts() == null ? 0 : board.getPosts().size())
+                .postCount(board.getPost() == null ? 0 : board.getPost().size())
                 .build();
     }
 }

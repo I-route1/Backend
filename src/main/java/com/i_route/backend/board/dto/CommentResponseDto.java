@@ -16,4 +16,5 @@ public class CommentResponseDto {
 
     private long likeCount;
     private boolean likedByMe;
+    private Long userId;
 }

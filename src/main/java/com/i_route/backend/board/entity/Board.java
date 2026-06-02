@@ -29,7 +29,7 @@ public class Board {
     private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "board", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Post> posts = new ArrayList<>();
+    private List<Post> post = new ArrayList<>();
 
     @PrePersist
     public void prePersist() {
