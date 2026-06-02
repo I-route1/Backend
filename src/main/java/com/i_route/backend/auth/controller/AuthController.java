@@ -282,4 +282,19 @@ public class AuthController {
 
         return ResponseEntity.ok(Map.of("verified", verified));
     }
+
+    @PatchMapping("/api/auth/password/change")
+    public ResponseEntity<MessageResponse> changePassword(
+            @RequestBody ChangePasswordRequest request
+    ) {
+        authService.changePassword(
+                request.getUserId(),
+                request.getCurrentPassword(),
+                request.getNewPassword()
+        );
+
+        return ResponseEntity.ok(
+                new MessageResponse("비밀번호가 변경되었습니다.")
+        );
+    }
 }
