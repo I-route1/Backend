@@ -29,4 +29,6 @@ public class PostResponseDto {
     private boolean bookmarked;
 
     private boolean pinned;
+
+    private Long userId;
 }
