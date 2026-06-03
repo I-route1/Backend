@@ -5,6 +5,7 @@ import com.i_route.backend.auth.entity.EmailVerificationToken;
 import com.i_route.backend.auth.repository.EmailVerificationTokenRepository;
 import com.i_route.backend.auth.service.AuthService;
 import com.i_route.backend.auth.service.EmailService;
+import com.i_route.backend.auth.service.KakaoOAuthService;
 import com.i_route.backend.global.response.ApiResponse;
 import com.i_route.backend.user.dto.DuplicateCheckResponse;
 import com.i_route.backend.user.dto.SingleCheckRequest;
@@ -30,7 +31,7 @@ public class AuthController {
     private final UserService userService;
     private final EmailService emailService;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
-
+    private final KakaoOAuthService kakaoOAuthService;
     //일반
     @PostMapping("/api/auth/register")
     public ResponseEntity<ApiResponse<String>> register(@RequestBody ParentRegisterRequestDto request) {
@@ -39,6 +40,12 @@ public class AuthController {
                 ApiResponse.success("회원가입이 완료되었습니다.")
         );
 
+    }
+
+    @PostMapping("/api/oauth/kakao/login")
+    public ResponseEntity<AuthResponse> kakaoLogin(@RequestBody KakaoLoginRequest request) {
+        AuthResponse authResponse = authService.kakaoLogin(request.getCode());
+        return ResponseEntity.ok(authResponse);
     }
 
     @PostMapping("/api/auth/academy/register")
