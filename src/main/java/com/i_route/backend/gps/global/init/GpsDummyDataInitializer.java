@@ -28,9 +28,42 @@ public class GpsDummyDataInitializer implements CommandLineRunner {
     private final RouteStopRepository routeStopRepository;
     private final BusRepository busRepository;
     private final StudentRepository studentRepository;
+    //private final UserRepository userRepository;
 
     @Override
     public void run(String... args) {
+       /* if (userRepository.count() == 0) {
+
+            userRepository.save(
+                    User.builder()
+                            .id(100L)
+                            .email("parent100@test.com")
+                            .emailVerified(true)
+                            .loginType(LoginType.EMAIL)
+                            .name("홍길동 학부모")
+                            .nickname("parent100")
+                            .phoneNumber("010-0000-0100")
+                            .premiumCredits(0)
+                            .role(Role.PARENT)
+                            .username("parent100")
+                            .build()
+            );
+
+            userRepository.save(
+                    User.builder()
+                            .id(101L)
+                            .email("parent101@test.com")
+                            .emailVerified(true)
+                            .loginType(LoginType.EMAIL)
+                            .name("김철수 학부모")
+                            .nickname("parent101")
+                            .phoneNumber("010-0000-0101")
+                            .premiumCredits(0)
+                            .role(Role.PARENT)
+                            .username("parent101")
+                            .build()
+            );
+        }*/
 
         if (busRepository.count() > 0) {
             return;
@@ -108,4 +141,5 @@ public class GpsDummyDataInitializer implements CommandLineRunner {
                         .build()
         );
     }
+
 }
