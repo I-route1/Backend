@@ -19,6 +19,8 @@ public class KakaoMobilityClient {
 
     private final RestTemplate restTemplate;
 
+
+
     @Value("${kakao.mobility.base-url}")
     private String baseUrl;
 
