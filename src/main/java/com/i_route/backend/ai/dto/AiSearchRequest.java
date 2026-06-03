@@ -9,4 +9,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AiSearchRequest {
     private String question;
+    private String subject;
 }
