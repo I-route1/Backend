@@ -1,0 +1,161 @@
+[
+  { "subjectId": 2, "conceptTag": "삼각함수 덧셈공식", "content": "sin(75°)의 값을 삼각함수 덧셈공식을 이용하여 구하시오. [힌트: 75°=45°+30°, sin45°=√2/2, cos45°=√2/2, sin30°=1/2, cos30°=√3/2]", "difficulty": 4 },
+  { "subjectId": 2, "conceptTag": "삼각함수 덧셈공식", "content": "cos(105°)의 값을 삼각함수 덧셈공식을 이용하여 구하시오. [힌트: 105°=60°+45°]", "difficulty": 4 },
+  { "subjectId": 2, "conceptTag": "삼각함수 덧셈공식", "content": "sin α = 3/5, cos β = 12/13 (α, β는 예각)일 때, sin(α+β)의 값을 구하시오.", "difficulty": 5 },
+  { "subjectId": 2, "conceptTag": "삼각함수 덧셈공식", "content": "tan(A+B) = (tanA + tanB) / (1 - tanA·tanB) 공식을 이용하여 tan(75°)의 값을 구하시오. [tan45°=1, tan30°=√3/3]", "difficulty": 4 },
+
+  { "subjectId": 2, "conceptTag": "삼각함수 응용 문제", "content": "삼각형 ABC에서 a=7, b=5, C=60°일 때, 코사인 법칙 c²=a²+b²-2ab·cosC를 이용하여 c의 값을 구하시오.", "difficulty": 4 },
+  { "subjectId": 2, "conceptTag": "삼각함수 응용 문제", "content": "높이가 h인 건물을 바라볼 때, 건물 밑에서 수평으로 30m 떨어진 지점에서 꼭대기를 올려본 각도가 60°이다. h의 값을 구하시오. (tan60°=√3)", "difficulty": 3 },
+  { "subjectId": 2, "conceptTag": "삼각함수 응용 문제", "content": "함수 f(x) = 2sin(2x - π/3)의 (1) 주기, (2) 최댓값, (3) x=0에서의 함숫값을 구하시오.", "difficulty": 4 },
+
+  { "subjectId": 2, "conceptTag": "수열의 합 공식", "content": "∑(k=1~10) k² 의 값을 공식 ∑k² = n(n+1)(2n+1)/6 을 이용하여 구하시오.", "difficulty": 3 },
+  { "subjectId": 2, "conceptTag": "수열의 합 공식", "content": "첫째항 2, 공비 3인 등비수열의 첫 5항의 합을 등비수열의 합 공식 S = a(r^n - 1)/(r-1)으로 구하시오.", "difficulty": 3 },
+  { "subjectId": 2, "conceptTag": "수열의 합 공식", "content": "∑(k=1~n) (3k-1)을 n에 관한 식으로 나타내시오.", "difficulty": 3 },
+  { "subjectId": 2, "conceptTag": "수열의 합 공식", "content": "1+3+5+...+(2n-1)이 n²임을 수열의 합 공식을 이용하여 증명하시오.", "difficulty": 4 },
+
+  { "subjectId": 2, "conceptTag": "등차수열 일반항", "content": "첫째항이 5, 공차가 3인 등차수열의 제8항을 구하시오.", "difficulty": 2 },
+  { "subjectId": 2, "conceptTag": "등차수열 일반항", "content": "등차수열 {aₙ}에서 a₃=11, a₇=23일 때, 첫째항과 공차를 각각 구하시오.", "difficulty": 3 },
+  { "subjectId": 2, "conceptTag": "등차수열 일반항", "content": "등차수열 3, 7, 11, 15, ... 에서 처음으로 100을 초과하는 항은 몇 번째 항인지 구하시오.", "difficulty": 3 },
+  { "subjectId": 2, "conceptTag": "등차수열 일반항", "content": "세 수 a, 8, b가 이 순서로 등차수열을 이루고 a+b=14일 때, a와 b의 값을 구하시오.", "difficulty": 3 },
+
+  { "subjectId": 2, "conceptTag": "이차방정식 판별식", "content": "이차방정식 x²-6x+k=0이 서로 다른 두 실근을 가지기 위한 k의 범위를 판별식 D=b²-4ac를 이용하여 구하시오.", "difficulty": 3 },
+  { "subjectId": 2, "conceptTag": "이차방정식 판별식", "content": "이차방정식 3x²+6x+k=0이 중근을 가질 때 k의 값을 구하고, 그 중근도 구하시오.", "difficulty": 3 },
+  { "subjectId": 2, "conceptTag": "이차방정식 판별식", "content": "이차방정식 x²+kx+(k+8)=0이 허근을 가지기 위한 k의 범위를 구하시오.", "difficulty": 4 },
+
+  { "subjectId": 2, "conceptTag": "이차방정식의 근과 계수", "content": "이차방정식 x²-5x+3=0의 두 근을 α, β라 할 때, α²+β²의 값을 근과 계수의 관계를 이용하여 구하시오.", "difficulty": 3 },
+  { "subjectId": 2, "conceptTag": "이차방정식의 근과 계수", "content": "이차방정식 2x²-7x+3=0에서 두 근의 합과 두 근의 곱을 각각 구하시오.", "difficulty": 2 },
+  { "subjectId": 2, "conceptTag": "이차방정식의 근과 계수", "content": "두 근이 2와 -5인 이차방정식(최고차항의 계수 1)을 구하시오.", "difficulty": 2 },
+  { "subjectId": 2, "conceptTag": "이차방정식의 근과 계수", "content": "이차방정식 x²-4x+1=0의 두 근을 α, β라 할 때, 1/α + 1/β의 값을 구하시오.", "difficulty": 4 },
+
+  { "subjectId": 2, "conceptTag": "이차함수 꼭짓점", "content": "f(x) = x²-6x+11을 f(x) = (x-p)²+q 꼴로 변환하고, 꼭짓점의 좌표 (p, q)를 구하시오.", "difficulty": 2 },
+  { "subjectId": 2, "conceptTag": "이차함수 꼭짓점", "content": "f(x) = -x²+4x+1의 최댓값과 그때의 x값을 꼭짓점 공식을 이용하여 구하시오.", "difficulty": 3 },
+  { "subjectId": 2, "conceptTag": "이차함수 꼭짓점", "content": "꼭짓점이 (-1, 3)이고 점 (1, -1)을 지나는 이차함수 y=a(x-p)²+q를 구하시오.", "difficulty": 3 },
+
+  { "subjectId": 2, "conceptTag": "함수의 최댓값 최솟값", "content": "f(x) = x³-3x+2에서 -2 ≤ x ≤ 2일 때 최댓값과 최솟값을 구하시오. (도함수 f'(x)=3x²-3)", "difficulty": 4 },
+  { "subjectId": 2, "conceptTag": "함수의 최댓값 최솟값", "content": "닫힌 구간 [0, 3]에서 f(x) = -x²+2x+3의 최댓값과 최솟값을 구하시오.", "difficulty": 3 },
+
+  { "subjectId": 2, "conceptTag": "함수 합성", "content": "f(x)=3x+1, g(x)=x²-2일 때, (1) (f∘g)(2), (2) (g∘f)(1)을 각각 구하시오.", "difficulty": 3 },
+  { "subjectId": 2, "conceptTag": "함수 합성", "content": "f(x)=2x+1, g(x)=x-3일 때, (f∘g)(x)와 (g∘f)(x)를 각각 구하고, 두 식이 같은지 확인하시오.", "difficulty": 2 },
+  { "subjectId": 2, "conceptTag": "함수 합성", "content": "f(x)=x+a, g(x)=2x일 때 (f∘g)(x)=(g∘f)(x)가 성립하면 a의 값을 구하시오.", "difficulty": 4 },
+
+  { "subjectId": 2, "conceptTag": "분수 나눗셈 역수", "content": "3¼ ÷ 1⅔를 계산하시오. [분수로 바꿔 역수를 곱하는 방법 이용]", "difficulty": 2 },
+  { "subjectId": 2, "conceptTag": "분수 나눗셈 역수", "content": "5/8 ÷ 15/16을 계산하시오.", "difficulty": 1 },
+  { "subjectId": 2, "conceptTag": "분수 나눗셈 역수", "content": "어떤 수에 2/5를 곱해야 할 것을 잘못하여 나누었더니 결과가 10이 되었다. 바르게 계산한 값을 구하시오.", "difficulty": 3 },
+  { "subjectId": 2, "conceptTag": "분수 나눗셈 역수", "content": "직사각형의 넓이가 7/6 m²이고 가로가 7/4 m일 때, 세로의 길이를 구하시오.", "difficulty": 2 },
+
+  { "subjectId": 2, "conceptTag": "비와 비율 계산", "content": "어떤 반 학생 수의 40%가 24명이다. 이 반의 전체 학생 수를 구하시오.", "difficulty": 2 },
+  { "subjectId": 2, "conceptTag": "비와 비율 계산", "content": "원가 8000원인 물건을 25% 이익을 붙여 팔 때의 판매 가격을 구하시오.", "difficulty": 2 },
+  { "subjectId": 2, "conceptTag": "비와 비율 계산", "content": "300g의 소금물에 소금 45g이 녹아 있다. 이 소금물의 농도(%)를 구하시오.", "difficulty": 2 },
+
+  { "subjectId": 2, "conceptTag": "방정식의 활용", "content": "형과 동생의 나이 합이 30세이고, 형이 동생보다 6세 많다. 형과 동생의 나이를 각각 구하시오.", "difficulty": 2 },
+  { "subjectId": 2, "conceptTag": "방정식의 활용", "content": "걷는 속도는 시속 4km, 자전거 속도는 시속 12km이다. 총 거리 20km를 자전거와 걷기를 합쳐 2시간 30분에 이동했다. 각각 얼마나 이동했는지 구하시오.", "difficulty": 3 },
+  { "subjectId": 2, "conceptTag": "방정식의 활용", "content": "어른 2명과 어린이 3명의 입장료 합계가 17000원이고, 어른 요금이 어린이 요금보다 1000원 비싸다. 어른 입장료와 어린이 입장료를 각각 구하시오.", "difficulty": 3 },
+
+  { "subjectId": 2, "conceptTag": "수열의 귀납적 정의", "content": "a₁=2, a(n+1)=aₙ+3으로 정의된 수열의 제5항을 구하시오.", "difficulty": 2 },
+  { "subjectId": 2, "conceptTag": "수열의 귀납적 정의", "content": "a₁=1, a(n+1)=2aₙ+1로 정의된 수열의 제4항을 구하시오.", "difficulty": 3 },
+  { "subjectId": 2, "conceptTag": "수열의 귀납적 정의", "content": "피보나치 수열: a₁=1, a₂=1, a(n+2)=a(n+1)+aₙ으로 정의될 때 a₆의 값을 구하시오.", "difficulty": 3 },
+
+  { "subjectId": 2, "conceptTag": "지수로그 함수 미분", "content": "f(x) = e^(3x)의 도함수 f'(x)를 구하시오.", "difficulty": 3 },
+  { "subjectId": 2, "conceptTag": "지수로그 함수 미분", "content": "f(x) = ln(2x+1)의 도함수 f'(x)를 구하시오.", "difficulty": 3 },
+  { "subjectId": 2, "conceptTag": "지수로그 함수 미분", "content": "f(x) = x²·eˣ를 곱의 미분법을 이용하여 미분하시오.", "difficulty": 4 },
+  { "subjectId": 2, "conceptTag": "지수로그 함수 미분", "content": "f(x) = ln(x² + 3)의 도함수를 합성함수의 미분법을 이용하여 구하시오.", "difficulty": 4 },
+
+  { "subjectId": 2, "conceptTag": "미분 chain rule 응용", "content": "f(x) = (2x+1)⁴를 연쇄 법칙(chain rule)을 이용하여 미분하시오.", "difficulty": 3 },
+  { "subjectId": 2, "conceptTag": "미분 chain rule 응용", "content": "f(x) = sin(3x²)를 연쇄 법칙을 이용하여 미분하시오.", "difficulty": 4 },
+  { "subjectId": 2, "conceptTag": "미분 chain rule 응용", "content": "f(x) = √(x²+4)를 미분하시오. [힌트: √u = u^(1/2)로 놓고 chain rule 적용]", "difficulty": 4 },
+  { "subjectId": 2, "conceptTag": "미분 chain rule 응용", "content": "f(x) = (x³-2x)⁵를 연쇄 법칙을 이용하여 미분하시오.", "difficulty": 5 },
+
+  { "subjectId": 3, "conceptTag": "가정법 과거완료", "content": "다음을 가정법 과거완료 문장으로 바꾸시오: 'Because I didn't set my alarm, I was late for school.'", "difficulty": 4 },
+  { "subjectId": 3, "conceptTag": "가정법 과거완료", "content": "빈칸에 알맞은 형태를 쓰시오: 'If they ___(leave) earlier, they ___(catch) the train.'", "difficulty": 3 },
+  { "subjectId": 3, "conceptTag": "가정법 과거완료", "content": "다음 중 가정법 과거완료가 올바른 것을 고르시오. ① If I had known, I would tell you. ② If I had known, I would have told you. ③ If I knew, I would have told you. ④ If I have known, I would have told you.", "difficulty": 3 },
+  { "subjectId": 3, "conceptTag": "가정법 과거완료", "content": "'I wish I had studied harder when I was young.'이 나타내는 의미를 우리말로 쓰시오.", "difficulty": 3 },
+
+  { "subjectId": 3, "conceptTag": "가정법 미래", "content": "빈칸에 알맞은 말을 쓰시오: 'If it ___ rain tomorrow, the game will be cancelled.' (should / would / will 중 선택)", "difficulty": 3 },
+  { "subjectId": 3, "conceptTag": "가정법 미래", "content": "'Should you have any questions, feel free to ask.'를 일반 if 조건문으로 바꾸어 쓰시오.", "difficulty": 4 },
+
+  { "subjectId": 3, "conceptTag": "도치구문 강조 용법", "content": "부정어 도치를 이용하여 다음 문장을 강조 형태로 바꾸시오: 'I have never eaten such delicious food.'", "difficulty": 4 },
+  { "subjectId": 3, "conceptTag": "도치구문 강조 용법", "content": "빈칸에 알맞은 조동사를 쓰시오: 'Not only ___ she pass the exam, but she also got the highest score.'", "difficulty": 3 },
+  { "subjectId": 3, "conceptTag": "도치구문 강조 용법", "content": "'Hardly had I arrived home when it started to rain.'을 우리말로 해석하고, 도치 구조를 설명하시오.", "difficulty": 4 },
+
+  { "subjectId": 3, "conceptTag": "수동태 완료형", "content": "다음을 현재완료 수동태로 바꾸시오: 'Someone has stolen my wallet.'", "difficulty": 3 },
+  { "subjectId": 3, "conceptTag": "수동태 완료형", "content": "빈칸에 알맞은 형태를 쓰시오: 'The bridge ___(build) by the time the president arrived.' (had/has + 과거분사 수동)", "difficulty": 4 },
+  { "subjectId": 3, "conceptTag": "수동태 완료형", "content": "'All the tickets have been sold out.'을 능동태로 바꾸시오.", "difficulty": 3 },
+
+  { "subjectId": 3, "conceptTag": "관계대명사 that/which", "content": "두 문장을 관계대명사를 사용하여 한 문장으로 연결하시오: 'I met a girl. She speaks four languages.'", "difficulty": 3 },
+  { "subjectId": 3, "conceptTag": "관계대명사 that/which", "content": "다음 중 관계대명사 that만 쓸 수 있는 경우를 고르고 이유를 설명하시오. ① The man, ___ is my teacher, is kind. ② This is the best book ___ I have ever read. ③ I have a dog ___ has a long tail.", "difficulty": 4 },
+  { "subjectId": 3, "conceptTag": "관계대명사 that/which", "content": "밑줄 친 관계대명사의 격(주격/목적격)을 구분하시오: (a) The man who lives next door is a doctor. (b) The book that she bought is interesting.", "difficulty": 3 },
+
+  { "subjectId": 3, "conceptTag": "복합관계대명사", "content": "빈칸에 알맞은 복합관계대명사(whoever / whatever / whichever)를 쓰시오: '___ you choose, make sure it is your best work.'", "difficulty": 3 },
+  { "subjectId": 3, "conceptTag": "복합관계대명사", "content": "'Whoever wants to join the club should sign up by Friday.'에서 whoever의 역할(주어/목적어)을 밝히고 우리말로 해석하시오.", "difficulty": 4 },
+
+  { "subjectId": 3, "conceptTag": "관계부사 where/when", "content": "두 문장을 관계부사 where를 사용하여 연결하시오: 'That is the school. I studied there for six years.'", "difficulty": 3 },
+  { "subjectId": 3, "conceptTag": "관계부사 where/when", "content": "빈칸에 관계부사 where 또는 when을 쓰시오: (a) Do you remember the day ___ we first met? (b) This is the house ___ he was born.", "difficulty": 2 },
+  { "subjectId": 3, "conceptTag": "관계부사 where/when", "content": "관계부사 where와 선행사+관계대명사(which) 구문의 차이를 예를 들어 설명하시오.", "difficulty": 4 },
+
+  { "subjectId": 3, "conceptTag": "분사구문 의미상 주어", "content": "다음 분사구문을 완전한 접속사+절 형태로 바꾸시오: 'Walking along the street, I met an old friend.'", "difficulty": 3 },
+  { "subjectId": 3, "conceptTag": "분사구문 의미상 주어", "content": "의미상 주어가 다른 경우를 올바르게 고치시오: '___ (Finish) the work, the office was locked.' [주절의 주어: the boss, 분사구문의 주어: the workers]", "difficulty": 4 },
+  { "subjectId": 3, "conceptTag": "분사구문 의미상 주어", "content": "다음 문장을 분사구문으로 바꾸시오: 'Because she was tired, she went to bed early.'", "difficulty": 3 },
+
+  { "subjectId": 3, "conceptTag": "현재완료 용법", "content": "다음 현재완료 문장의 용법(완료/경험/계속/결과)을 구분하시오: (a) I have just finished my homework. (b) She has been to Paris twice. (c) He has lived here for ten years.", "difficulty": 3 },
+  { "subjectId": 3, "conceptTag": "현재완료 용법", "content": "단순과거와 현재완료 중 알맞은 것을 고르시오: (a) I (saw/have seen) that movie last week. (b) She (lost/has lost) her key and can't get in.", "difficulty": 2 },
+  { "subjectId": 3, "conceptTag": "현재완료 용법", "content": "현재완료 시제에서 쓸 수 없는 부사 표현을 고르시오: ① just ② already ③ yesterday ④ yet", "difficulty": 2 },
+
+  { "subjectId": 3, "conceptTag": "부정사 명사적 용법", "content": "다음 문장에서 to부정사의 용법(명사적/형용사적/부사적)을 각각 구분하시오: (a) To exercise every day is good for health. (b) I need something to eat. (c) She studied hard to pass the exam.", "difficulty": 3 },
+  { "subjectId": 3, "conceptTag": "부정사 명사적 용법", "content": "빈칸에 to부정사 형태를 쓰시오: 'My dream is ___(become) a doctor.' / '___(speak) in public takes courage.'", "difficulty": 2 },
+
+  { "subjectId": 1, "conceptTag": "비문학 추론적 이해", "content": "[지문] 조선 시대에는 성리학이 통치 이념으로 자리 잡으면서 사대부 계층이 정치·사회의 중심이 되었다. 이들은 향촌 사회에서 서원을 중심으로 학문을 닦고 여론을 형성하며 큰 영향력을 행사하였다.\n\n위 지문에서 직접 언급되지는 않았지만 추론할 수 있는 내용으로 가장 적절한 것을 고르시오. ① 조선 시대에는 불교가 국교였다. ② 서원은 사대부의 정치적 기반 역할도 했을 것이다. ③ 성리학은 고려 시대에 도입되었다. ④ 사대부는 주로 상업에 종사하였다.", "difficulty": 3 },
+  { "subjectId": 1, "conceptTag": "비문학 추론적 이해", "content": "[지문] 도시 열섬 현상이란 주변 농촌 지역보다 도시 지역의 기온이 높게 나타나는 현상이다. 아스팔트와 콘크리트가 낮 동안 열을 흡수했다가 밤에 방출하고, 에어컨·자동차 등에서 발생하는 인공 열이 축적되기 때문이다.\n\n이 지문을 통해 추론할 수 있는 내용으로 적절하지 않은 것은? ① 나무가 많으면 도시 열섬 현상이 완화될 수 있다. ② 도시보다 농촌의 밤 기온이 더 낮다. ③ 도시의 인구 밀도가 높을수록 열섬 현상이 강해질 것이다. ④ 도시에서는 항상 농촌보다 강수량이 적다.", "difficulty": 4 },
+
+  { "subjectId": 1, "conceptTag": "비문학 핵심어 파악", "content": "[지문] 플라스틱은 가볍고 저렴하며 가공이 쉬워 20세기 이후 산업 전반에 널리 쓰였다. 그러나 자연 분해에 수백 년이 걸리고, 미세플라스틱으로 분해되어 해양 생태계와 인체까지 침투하는 문제가 심각해지고 있다.\n\n이 문단의 핵심어 2개를 쓰고, 문단의 주제를 한 문장으로 요약하시오.", "difficulty": 3 },
+  { "subjectId": 1, "conceptTag": "비문학 핵심어 파악", "content": "[지문] 인공지능 기술의 발전은 의료 분야에서 혁신적인 변화를 이끌고 있다. AI는 방대한 의료 데이터를 분석하여 암을 조기 발견하거나 개인 맞춤형 치료를 가능하게 한다. 그러나 오진 시 책임 소재, 개인 정보 보호 등 윤리적 문제도 함께 제기된다.\n\n이 문단의 중심 문장은 몇 번째 문장인지 쓰고, 그 이유를 설명하시오.", "difficulty": 3 },
+
+  { "subjectId": 1, "conceptTag": "현대시 화자 태도", "content": "[지문] 나 보기가 역겨워 / 가실 때에는 / 말없이 고이 보내 드리오리다. / 영변에 약산 / 진달래꽃 / 아름 따다 가실 길에 뿌리오리다. - 김소월 「진달래꽃」 1·2연\n\n(1) 이 시에서 화자가 처한 상황을 쓰시오. (2) '말없이 고이 보내 드리오리다'에서 화자의 태도를 한 단어로 표현하시오.", "difficulty": 3 },
+  { "subjectId": 1, "conceptTag": "현대시 화자 태도", "content": "[지문] 청포도가 익어 가는 시절 / 이 마을 전설이 주저리주저리 열리고 / 먼 데 하늘이 꿈꾸며 알알이 들어와 박혀 - 이육사 「청포도」 1연\n\n이 시에서 화자의 정서와 미래에 대한 태도를 서술하시오.", "difficulty": 4 },
+
+  { "subjectId": 1, "conceptTag": "고전소설 인물 심리", "content": "춘향전에서 암행어사로 변장한 이몽룡이 초라한 행색으로 옥에 갇힌 춘향을 찾아왔다. 이 장면에서 (1) 춘향의 첫 반응, (2) 몽룡의 신분이 밝혀진 후 춘향의 심리 변화를 각각 쓰시오.", "difficulty": 3 },
+  { "subjectId": 1, "conceptTag": "고전소설 인물 심리", "content": "홍길동전에서 홍길동이 서자(庶子)로 태어나 '아버지를 아버지라 부르지 못하는' 상황에 놓여 있다. 이 상황이 홍길동의 심리와 이후 행동에 어떤 영향을 미쳤는지 서술하시오.", "difficulty": 4 },
+
+  { "subjectId": 1, "conceptTag": "문학 표현기법 반어", "content": "다음 중 반어법이 쓰인 문장을 고르고, 그 표현의 실제 의미를 쓰시오. ① '봄이 왔다, 꽃이 피었다.' ② '잘한다, 정말 잘해!' (실망스러운 상황에서) ③ '하늘이 높고 말이 살찐다.' ④ '눈이 소복소복 쌓인다.'", "difficulty": 3 },
+  { "subjectId": 1, "conceptTag": "문학 표현기법 반어", "content": "반어(irony)와 역설(paradox)의 차이를 아래 예시를 들어 설명하시오. 반어의 예: '발없는 말이 천 리 간다.' / 역설의 예: '이것은 소리 없는 아우성'", "difficulty": 4 },
+
+  { "subjectId": 1, "conceptTag": "문학 갈등 구조", "content": "소설의 갈등 유형인 (1) 인물 대 인물, (2) 인물 대 사회, (3) 인물 내면의 갈등을 각각 예시 작품이나 상황을 들어 설명하시오.", "difficulty": 3 },
+  { "subjectId": 1, "conceptTag": "문학 갈등 구조", "content": "김유정의 「봄봄」에서 '나'와 장인 사이의 갈등의 원인과 성격을 설명하시오.", "difficulty": 4 },
+
+  { "subjectId": 1, "conceptTag": "고전시가 어휘", "content": "다음 시조의 밑줄 친 고어의 현대어 풀이를 쓰시오: '청산리 벽계수야 수이 감을 자랑 마라 / 일도 창해하면 다시 오기 어려워라' - 황진이\n(1) 수이: (2) 일도: (3) 창해:", "difficulty": 3 },
+  { "subjectId": 1, "conceptTag": "고전시가 어휘", "content": "다음 고어의 현대어 의미를 쓰시오: (1) 하마 → (2) 어엿비 → (3) 녀름 → (4) 즈믄 → (5) 뫼 →", "difficulty": 3 },
+
+  { "subjectId": 1, "conceptTag": "현대소설 서술시점", "content": "다음 각 서술 시점의 특징을 설명하시오: (1) 1인칭 주인공 시점 (2) 1인칭 관찰자 시점 (3) 전지적 작가 시점 (4) 3인칭 관찰자 시점", "difficulty": 3 },
+  { "subjectId": 1, "conceptTag": "현대소설 서술시점", "content": "[지문] '나는 그날 창가에 서 있었다. 유리창 너머로 그가 떠나는 것을 보았지만, 입이 떨어지지 않았다. 왜 그랬는지 지금도 모르겠다.'\n\n이 서술 시점의 종류를 쓰고, 이 시점의 효과를 서술하시오.", "difficulty": 4 },
+
+  { "subjectId": 1, "conceptTag": "시조 형식 평시조", "content": "다음 평시조를 3장으로 나누고, 각 장의 첫 음절 수(초장·중장·종장)를 쓰시오: '동창이 밝았느냐 노고지리 우지진다 / 소치는 아해들은 상기 아니 일었느냐 / 재 너머 사래 긴 밭을 언제 갈려 하나니'", "difficulty": 3 },
+  { "subjectId": 1, "conceptTag": "시조 형식 평시조", "content": "평시조와 사설시조의 차이를 형식(글자 수, 장 구성)과 내용(주제, 작자층) 두 가지 측면에서 각각 비교하시오.", "difficulty": 4 },
+
+  { "subjectId": 4, "conceptTag": "물질 변화", "content": "다음 현상을 물리 변화와 화학 변화로 분류하고 그 이유를 쓰시오: (1) 양초가 타는 현상 (2) 물이 얼음이 되는 현상 (3) 철이 녹스는 현상 (4) 설탕이 물에 녹는 현상", "difficulty": 2 },
+  { "subjectId": 4, "conceptTag": "물질 변화", "content": "화학 반응이 일어났음을 알 수 있는 증거(징표) 4가지를 쓰고, 각각 예시를 드시오.", "difficulty": 3 },
+  { "subjectId": 4, "conceptTag": "물질 변화", "content": "탄산칼슘(CaCO₃)에 묽은 염산(HCl)을 넣으면 거품이 발생한다. 이 반응의 화학 반응식을 완성하시오: CaCO₃ + 2HCl → CaCl₂ + ___ + ___", "difficulty": 4 },
+
+  { "subjectId": 4, "conceptTag": "뉴턴 운동 법칙", "content": "질량 4kg인 물체에 12N의 합력이 작용할 때, 이 물체의 가속도(m/s²)를 뉴턴 제2법칙 F=ma로 구하시오.", "difficulty": 2 },
+  { "subjectId": 4, "conceptTag": "뉴턴 운동 법칙", "content": "뉴턴 제3법칙(작용·반작용)의 내용을 설명하고, 수영 선수가 벽을 발로 차서 앞으로 나아가는 현상을 이 법칙으로 설명하시오.", "difficulty": 3 },
+  { "subjectId": 4, "conceptTag": "뉴턴 운동 법칙", "content": "정지해 있던 4kg 물체가 5초 동안 일정한 힘을 받아 속도가 20m/s가 되었다. 이때 작용한 힘의 크기를 구하시오.", "difficulty": 3 },
+
+  { "subjectId": 4, "conceptTag": "세포 구조", "content": "동물세포에는 있지만 식물세포에는 없는 구조물, 식물세포에는 있지만 동물세포에는 없는 구조물을 각각 2가지 이상 쓰시오.", "difficulty": 2 },
+  { "subjectId": 4, "conceptTag": "세포 구조", "content": "미토콘드리아의 구조(내막, 외막, 크리스타)와 기능(ATP 생산)을 설명하시오.", "difficulty": 3 },
+
+  { "subjectId": 4, "conceptTag": "유전과 진화", "content": "완두콩에서 둥근 모양(R)이 주름진 모양(r)에 대해 우성이다. Rr × Rr 교배 시 자손의 유전자형 비율(RR:Rr:rr)과 표현형 비율을 구하시오.", "difficulty": 3 },
+  { "subjectId": 4, "conceptTag": "유전과 진화", "content": "ABO식 혈액형에서 유전자형이 I^A i인 부모와 I^B i인 부모 사이에서 태어날 수 있는 혈액형의 종류와 각각의 확률을 구하시오.", "difficulty": 4 },
+
+  { "subjectId": 5, "conceptTag": "민주주의 원리", "content": "민주주의의 기본 원리인 (1) 국민주권, (2) 권력분립, (3) 법치주의를 각각 한 문장으로 설명하시오.", "difficulty": 2 },
+  { "subjectId": 5, "conceptTag": "민주주의 원리", "content": "다수결 원리와 소수 의견 존중이 민주주의에서 함께 필요한 이유를 구체적인 예를 들어 설명하시오.", "difficulty": 3 },
+  { "subjectId": 5, "conceptTag": "민주주의 원리", "content": "삼권분립(입법·행정·사법)에서 각 권력이 서로를 견제하는 방식을 한 가지씩 예를 들어 설명하시오.", "difficulty": 3 },
+
+  { "subjectId": 5, "conceptTag": "시장 경제", "content": "수요 법칙과 공급 법칙을 각각 설명하고, 가격이 균형 가격보다 높을 때 시장에서 어떤 일이 일어나는지 서술하시오.", "difficulty": 3 },
+  { "subjectId": 5, "conceptTag": "시장 경제", "content": "다음 중 수요 곡선을 오른쪽으로 이동시키는 요인을 모두 고르시오: ① 소득 증가 ② 대체재 가격 하락 ③ 소비자 수 증가 ④ 해당 상품 가격 하락 ⑤ 선호도 증가", "difficulty": 3 },
+  { "subjectId": 5, "conceptTag": "시장 경제", "content": "외부 효과(externality)의 개념을 설명하고, (1) 긍정적 외부 효과의 예 1가지, (2) 부정적 외부 효과의 예 1가지를 들어 각각 정부의 개입 방식을 쓰시오.", "difficulty": 4 },
+
+  { "subjectId": 5, "conceptTag": "한국 현대사", "content": "6·25 전쟁(1950~1953)에 대해 (1) 발발 원인, (2) 주요 전개 과정(인천상륙작전 포함), (3) 휴전 협정의 결과를 서술하시오.", "difficulty": 3 },
+  { "subjectId": 5, "conceptTag": "한국 현대사", "content": "4·19 혁명(1960)의 배경이 된 이승만 정권의 문제점과 혁명의 의의를 쓰시오.", "difficulty": 3 },
+  { "subjectId": 5, "conceptTag": "한국 현대사", "content": "1970~80년대 한국의 경제 성장('한강의 기적')을 이끈 요인 3가지와 그 과정에서 나타난 사회적 문제점 2가지를 쓰시오.", "difficulty": 4 },
+
+  { "subjectId": 5, "conceptTag": "세계 지리", "content": "열대우림 기후(Af)와 사막 기후(BW)의 (1) 연평균 기온, (2) 강수량 특징, (3) 대표 식생을 각각 비교하시오.", "difficulty": 3 },
+  { "subjectId": 5, "conceptTag": "세계 지리", "content": "몬순(계절풍) 기후가 나타나는 지역을 2개 이상 쓰고, 여름 몬순과 겨울 몬순이 발생하는 원리를 설명하시오.", "difficulty": 3 }
+]
