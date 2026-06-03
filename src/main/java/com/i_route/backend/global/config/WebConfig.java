@@ -16,7 +16,8 @@ public class WebConfig {
                 registry.addMapping("/**")
                         .allowedOriginPatterns(
                                 "https://d3kh3x870d7dr4.cloudfront.net",
-                                "https://*.ngrok-free.dev"
+                                "https://*.ngrok-free.dev",
+                                "http://localhost:3000"
                         )
                         .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
