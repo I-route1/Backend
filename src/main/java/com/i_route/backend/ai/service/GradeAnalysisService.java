@@ -50,12 +50,16 @@ public class GradeAnalysisService {
         // 2. 실시간 AI RAG 엔진 전송 파트
         log.info("🚀 취약 개념 TAG [{}] 기반 AI 지식창고 검색 요청 중...", weakConceptTag);
 
-        // weakConceptTag가 "수학", "영어" 같은 과목명 단독이면 기본 개념으로 보강
-        boolean isSubjectOnly = weakConceptTag != null && weakConceptTag.matches("수학|영어|국어|과학|사회|한국사");
+        // weakConceptTag가 과목명 단독이면 기본 개념으로 보강 (사회탐구/과학탐구 포함)
+        boolean isSubjectOnly = weakConceptTag != null &&
+                weakConceptTag.matches("수학|영어|국어|과학|과학탐구|사회|사회탐구|한국사");
+        // 사회탐구 → 사회, 과학탐구 → 과학으로 AI 서버 인식 가능한 과목명으로 정규화
+        String subject = isSubjectOnly
+                ? weakConceptTag.replace("사회탐구", "사회").replace("과학탐구", "과학")
+                : detectSubject(weakConceptTag);
         String conceptQuery = isSubjectOnly
-                ? weakConceptTag + " 핵심 개념 및 자주 출제되는 단원"
+                ? subject + " 핵심 개념 및 자주 출제되는 단원"
                 : weakConceptTag;
-        String subject = isSubjectOnly ? weakConceptTag : detectSubject(weakConceptTag);
         AiSearchRequest requestBody = new AiSearchRequest(conceptQuery, subject);
 
         // 파이썬 서버 응답을 받은 후 DB 저장까지 완료하고 반환
