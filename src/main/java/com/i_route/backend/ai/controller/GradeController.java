@@ -4,6 +4,8 @@ import com.i_route.backend.ai.dto.GradeRequest;
 import com.i_route.backend.ai.dto.GradeResponse;
 import com.i_route.backend.ai.dto.GradeUpdateRequest;
 import com.i_route.backend.ai.service.GradeService;
+import com.i_route.backend.gps.domain.attendance.dto.GradeStudentIdRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -51,5 +53,14 @@ public class GradeController {
     public ResponseEntity<GradeAnalysisResponse> getGradeAnalysis(@PathVariable String studentId) {
         GradeAnalysisResponse response = gradeService.analyzeStudentGrades(studentId);
         return ResponseEntity.ok(response);
+    }
+
+    // 6. 학생 성적 시스템 ID 등록 (PATCH)
+    @PatchMapping("/students/{studentId}/grade-id")
+    public ResponseEntity<Void> registerGradeStudentId(
+            @PathVariable Long studentId,
+            @Valid @RequestBody GradeStudentIdRequest request) {
+        gradeService.registerGradeStudentId(studentId, request.getGradeStudentId());
+        return ResponseEntity.ok().build();
     }
 }

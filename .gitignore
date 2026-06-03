@@ -66,4 +66,4 @@ docker-compose.override.yml
 /uploads/
 /temp/
 *.tar
-*.img
+*.imgstart-server.ps1
