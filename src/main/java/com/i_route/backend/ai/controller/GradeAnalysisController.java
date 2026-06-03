@@ -2,6 +2,7 @@ package com.i_route.backend.ai.controller;
 
 import com.i_route.backend.ai.service.GradeAnalysisService;
 import lombok.Data;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,18 +20,24 @@ public class GradeAnalysisController {
      * POST /api/grades/analyze
      */
     @PostMapping("/analyze")
-    public ResponseEntity<String> analyzeGrade(@RequestBody GradeInputRequest request) {
-
-        // 1. 프론트엔드에서 넘어온 데이터를 방금 만든 Service로 넘겨서 분석 및 AI 호출 실행
-        gradeAnalysisService.processStudentGrade(
+    public ResponseEntity<AncestorSearchResponse> analyzeGrade(@RequestBody GradeInputRequest request) {
+        List<String> results = gradeAnalysisService.processStudentGrade(
                 request.getStudentId(),
                 request.getScore(),
                 request.getAllScores(),
                 request.getWeakConceptTag()
         );
+        return ResponseEntity.ok(new AncestorSearchResponse(results));
+    }
 
-        // 2. 비동기로 AI가 족보를 찾는 동안, 프론트엔드에게는 "접수 완료" 응답을 먼저 빠르게 줍니다.
-        return ResponseEntity.ok("성적 분석 및 AI 맞춤 족보 탐색이 성공적으로 시작되었습니다.");
+    @Getter
+    public static class AncestorSearchResponse {
+        private final List<String> results;
+        private final int count;
+        public AncestorSearchResponse(List<String> results) {
+            this.results = results;
+            this.count = results.size();
+        }
     }
 
     /**
