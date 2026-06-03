@@ -31,7 +31,7 @@ public class AuthController {
     private final UserService userService;
     private final EmailService emailService;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
-    private final KakaoOAuthService kakaoOAuthService;
+
     //일반
     @PostMapping("/api/auth/register")
     public ResponseEntity<ApiResponse<String>> register(@RequestBody ParentRegisterRequestDto request) {
@@ -42,11 +42,6 @@ public class AuthController {
 
     }
 
-    @PostMapping("/api/oauth/kakao/login")
-    public ResponseEntity<AuthResponse> kakaoLogin(@RequestBody KakaoLoginRequest request) {
-        AuthResponse authResponse = authService.kakaoLogin(request.getCode());
-        return ResponseEntity.ok(authResponse);
-    }
 
     @PostMapping("/api/auth/academy/register")
     public ResponseEntity<ApiResponse<String>> academyregister(@RequestBody AcademyRegisterRequestDto request) {
