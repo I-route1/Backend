@@ -6,9 +6,13 @@ import com.i_route.backend.ai.dto.GradeResponse;
 import com.i_route.backend.ai.dto.GradeUpdateRequest;
 import com.i_route.backend.ai.entity.Grade;
 import com.i_route.backend.ai.repository.GradeRepository;
+import com.i_route.backend.gps.domain.student.entity.Student;
+import com.i_route.backend.gps.domain.student.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -18,6 +22,7 @@ import java.util.stream.Collectors;
 public class GradeService {
 
     private final GradeRepository gradeRepository;
+    private final StudentRepository studentRepository;
 
     // 1. 성적 저장 기능
     @Transactional
@@ -65,7 +70,27 @@ public class GradeService {
         return GradeResponse.from(gradeRepository.save(updated));
     }
 
-    // 4. 성적 삭제
+    // 4. 학생 성적 시스템 ID 등록
+    @Transactional
+    public void registerGradeStudentId(Long studentId, String gradeStudentId) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "학생을 찾을 수 없습니다."));
+
+        Student updated = Student.builder()
+                .studentId(student.getStudentId())
+                .busId(student.getBusId())
+                .routeStopId(student.getRouteStopId())
+                .name(student.getName())
+                .expectedDropOffTime(student.getExpectedDropOffTime())
+                .parentId(student.getParentId())
+                .nfcCardId(student.getNfcCardId())
+                .gradeStudentId(gradeStudentId)
+                .build();
+
+        studentRepository.save(updated);
+    }
+
+    // 5. 성적 삭제
     @Transactional
     public void deleteGrade(Long id) {
         if (!gradeRepository.existsById(id)) {
