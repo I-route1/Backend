@@ -67,8 +67,11 @@ public class GpsDummyDataInitializer implements CommandLineRunner {
         academyRepository.save(firstAcademy);
 
         // 5개 학원, 학원당 50명씩 250명 생성
+        // 테스트 학부모(userId 14)에 첫 번째 학원의 처음 5명을 자녀로 할당
         Random random = new Random(42);
         int studentId = 1;
+        int parentUserIdForTest = 14; // 테스트 학부모 계정
+        int childrenAssigned = 0;
 
         for (Academy academy : academies) {
             List<Student> studentsForAcademy = new ArrayList<>();
@@ -83,10 +86,18 @@ public class GpsDummyDataInitializer implements CommandLineRunner {
                                  FIRST_NAMES[random.nextInt(FIRST_NAMES.length)];
 
                     double koreanGrade = getGradeRange(gradeLevel, random);
+
+                    // 첫 번째 학원의 처음 5명만 테스트 학부모에 할당, 나머지는 parentId = null
+                    Long parentId = null;
+                    if (academies.indexOf(academy) == 0 && childrenAssigned < 5) {
+                        parentId = (long) parentUserIdForTest;
+                        childrenAssigned++;
+                    }
+
                     Student student = Student.builder()
                             .name(name)
                             .academyId(academy.getAcademyId())
-                            .parentId(200L + studentId)
+                            .parentId(parentId)
                             .expectedDropOffTime(LocalTime.of(22 + (studentId % 2), studentId % 60))
                             .currentLevel(gradeLevel)
                             .learningTendency(TENDENCIES[random.nextInt(TENDENCIES.length)])
