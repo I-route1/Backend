@@ -34,6 +34,8 @@ public class Student {
 
     private String gradeStudentId;
 
+    private String grade;
+
     private String profileImage;
 
     // 학습/AI 관련 필드

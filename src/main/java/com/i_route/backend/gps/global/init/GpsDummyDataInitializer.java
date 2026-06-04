@@ -38,6 +38,7 @@ public class GpsDummyDataInitializer implements CommandLineRunner {
     private static final String[] LAST_NAMES = {"김", "이", "박", "최", "정", "조", "윤", "장", "임", "전", "한", "홍", "신", "곽", "성", "원", "문", "구", "노", "도"};
     private static final Student.LearningTendency[] TENDENCIES = {Student.LearningTendency.VISUAL, Student.LearningTendency.AUDITORY, Student.LearningTendency.KINESTHETIC};
     private static final String[] NOTES = {"집중력 향상 필요", "참여도 높음", "개념 이해 부족", "꾸준한 노력형", "창의적 사고력 우수", "적극적 학습태도", "복습 강화 필요", "팀 활동 적극적"};
+    private static final String[] GRADES = {"초1", "초2", "초3", "초4", "초5", "초6", "중1", "중2", "중3", "고1", "고2", "고3"};
 
     @Override
     public void run(String... args) {
@@ -92,6 +93,7 @@ public class GpsDummyDataInitializer implements CommandLineRunner {
                             .name(name)
                             .academyId(academy.getAcademyId())
                             .parentId(parentId)
+                            .grade(GRADES[random.nextInt(GRADES.length)])
                             .expectedDropOffTime(LocalTime.of(22 + (studentId % 2), studentId % 60))
                             .currentLevel(gradeLevel)
                             .learningTendency(TENDENCIES[random.nextInt(TENDENCIES.length)])
