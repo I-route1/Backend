@@ -28,6 +28,8 @@ public class Student {
 
     private Long parentId;
 
+    private Long academyId;
+
     private String nfcCardId;
 
     private String gradeStudentId;
