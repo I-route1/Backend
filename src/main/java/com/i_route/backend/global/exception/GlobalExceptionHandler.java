@@ -8,6 +8,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 import com.i_route.backend.global.exception.CustomException;
 import com.i_route.backend.global.exception.ErrorCode;
 import com.i_route.backend.global.response.ApiResponse;
@@ -50,6 +51,12 @@ public class GlobalExceptionHandler {
                         "message",
                         e.getMessage()
                 ));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, String>> handleResponseStatus(ResponseStatusException e) {
+        return ResponseEntity.status(e.getStatusCode())
+                .body(Map.of("error", e.getReason() != null ? e.getReason() : e.getMessage()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
