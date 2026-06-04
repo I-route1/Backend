@@ -42,7 +42,7 @@ public class ReviewSchedulerService {
     /**
      * 앱 실행 시 프론트엔드가 호출 — 오늘 복습해야 할 항목 반환
      */
-    public ReviewTodayDto getTodayReviews(String studentId) {
+    public ReviewTodayDto getTodayReviews(Long studentId) {
         LocalDate today = LocalDate.now();
         List<ReviewTodayDto.ReviewItem> items = new ArrayList<>();
 
@@ -57,7 +57,7 @@ public class ReviewSchedulerService {
                 .build();
     }
 
-    private void collectReviewItems(String studentId, LocalDate targetDate, String dayLabel,
+    private void collectReviewItems(Long studentId, LocalDate targetDate, String dayLabel,
                                     List<ReviewTodayDto.ReviewItem> items) {
         LocalDateTime start = targetDate.atStartOfDay();
         LocalDateTime end = targetDate.atTime(LocalTime.MAX);
@@ -79,7 +79,7 @@ public class ReviewSchedulerService {
     /**
      * 프론트엔드 요청 — 특정 학생의 에빙하우스 복습 알림을 즉시 생성
      */
-    public int triggerReviewNotificationsForStudent(String studentId) {
+    public int triggerReviewNotificationsForStudent(Long studentId) {
         LocalDate today = LocalDate.now();
         int count = 0;
         count += createNotificationsForStudent(studentId, today.minusDays(1), "1일 차");
@@ -89,7 +89,7 @@ public class ReviewSchedulerService {
         return count;
     }
 
-    private int createNotificationsForStudent(String studentId, LocalDate targetDate, String dayLabel) {
+    private int createNotificationsForStudent(Long studentId, LocalDate targetDate, String dayLabel) {
         LocalDateTime start = targetDate.atStartOfDay();
         LocalDateTime end = targetDate.atTime(LocalTime.MAX);
 

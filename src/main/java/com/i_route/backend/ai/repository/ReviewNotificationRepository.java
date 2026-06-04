@@ -9,7 +9,7 @@ import java.util.List;
 @Repository
 public interface ReviewNotificationRepository extends JpaRepository<ReviewNotification, Long> {
 
-    List<ReviewNotification> findByStudentIdOrderByCreatedAtDesc(String studentId);
+    List<ReviewNotification> findByStudentIdOrderByCreatedAtDesc(Long studentId);
 
-    List<ReviewNotification> findByStudentIdAndIsReadFalseOrderByCreatedAtDesc(String studentId);
+    List<ReviewNotification> findByStudentIdAndIsReadFalseOrderByCreatedAtDesc(Long studentId);
 }

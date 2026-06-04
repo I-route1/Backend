@@ -20,7 +20,7 @@ public class WrongAnswerService {
      * ✍️ 1. 학생의 오답 이력을 실시간으로 기록 및 누적하는 로직
      */
     @Transactional
-    public WrongAnswer recordWrongAnswer(String studentId, String subject, String questionId,
+    public WrongAnswer recordWrongAnswer(Long studentId, String subject, String questionId,
                                         String conceptTag, ErrorType errorType) {
         Optional<WrongAnswer> existingWrong = wrongAnswerRepository.findByStudentIdAndQuestionId(studentId, questionId);
 
@@ -47,7 +47,7 @@ public class WrongAnswerService {
      * 📊 2. 특정 학생의 특정 과목 내 취약 개념 리스트를 조회 (AI RAG 연동용 기초 자원)
      */
     @Transactional(readOnly = true)
-    public List<WrongAnswer> getAiTargetWeakness(String studentId, String subject) {
+    public List<WrongAnswer> getAiTargetWeakness(Long studentId, String subject) {
         return wrongAnswerRepository.findTopWeaknessByStudentIdAndSubject(studentId, subject);
     }
 }

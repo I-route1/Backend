@@ -6,7 +6,7 @@ import lombok.Getter;
 @Getter
 @Builder
 public class MetaCognitionGapDto {
-    private String studentId;
+    private Long studentId;
     private String subject;
     private double avgUnderstandingScore;   // 학생 자기평가 평균 (1~5)
     private double avgActualScore;          // 실제 시험 점수 평균

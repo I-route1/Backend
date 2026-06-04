@@ -10,7 +10,7 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor
 public class StudyChecklistRequest {
-    private String studentId;
+    private Long studentId;
     private String subject;
     private String task;
     private int estimatedMinutes;

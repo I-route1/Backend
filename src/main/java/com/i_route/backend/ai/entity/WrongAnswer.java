@@ -18,7 +18,7 @@ public class WrongAnswer {
     private Long id;
 
     @Column(name = "student_id", nullable = false)
-    private String studentId;
+    private Long studentId;
 
     @Column(nullable = false)
     private String subject;

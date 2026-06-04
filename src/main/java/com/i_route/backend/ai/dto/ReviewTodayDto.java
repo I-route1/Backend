@@ -9,7 +9,7 @@ import java.util.List;
 @Builder
 public class ReviewTodayDto {
 
-    private String studentId;
+    private Long studentId;
     private boolean hasReview;
     private List<ReviewItem> reviews;
 

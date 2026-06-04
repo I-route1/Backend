@@ -7,6 +7,6 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface StudyChecklistRepository extends JpaRepository<StudyChecklistItem, Long> {
-    List<StudyChecklistItem> findByStudentIdAndPlanDateOrderByIdAsc(String studentId, LocalDate planDate);
-    List<StudyChecklistItem> findByStudentIdOrderByPlanDateDescIdAsc(String studentId);
+    List<StudyChecklistItem> findByStudentIdAndPlanDateOrderByIdAsc(Long studentId, LocalDate planDate);
+    List<StudyChecklistItem> findByStudentIdOrderByPlanDateDescIdAsc(Long studentId);
 }

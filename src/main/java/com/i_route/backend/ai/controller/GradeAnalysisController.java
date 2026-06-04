@@ -46,7 +46,7 @@ public class GradeAnalysisController {
      */
     @Data
     public static class GradeInputRequest {
-        private String studentId;         // 학생 ID
+        private Long studentId;         // 학생 ID
         private int score;                // 이번 시험 내 점수
         private List<Integer> allScores;  // 전체 학생 점수 리스트 (평균/표준편차 계산용)
         private String weakConceptTag;    // 학생이 틀린 주요 개념 태그 (예: "이차방정식의 근과 계수")

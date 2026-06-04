@@ -40,7 +40,7 @@ public class LearningActivityService {
 
     // 🌟 특정 학생의 전체 학습 기록 조회 (최신순)
     @Transactional(readOnly = true)
-    public List<LearningActivityResponse> getActivitiesByStudent(String studentId) {
+    public List<LearningActivityResponse> getActivitiesByStudent(Long studentId) {
         return learningActivityRepository.findByStudentIdOrderByStudyDateDesc(studentId)
                 .stream()
                 .map(LearningActivityResponse::from)

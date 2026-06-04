@@ -52,7 +52,7 @@ public class AiReportController {
      */
     @PostMapping("/report/subject-recommend")
     public ResponseEntity<Map<String, Object>> subjectRecommend(
-            @RequestParam String studentId,
+            @RequestParam Long studentId,
             @RequestParam String subject) {
 
         List<Grade> grades = gradeRepository

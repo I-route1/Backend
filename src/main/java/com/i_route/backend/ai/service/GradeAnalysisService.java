@@ -37,7 +37,7 @@ public class GradeAnalysisService {
         return "수학";
     }
 
-    public List<String> processStudentGrade(String studentId, int studentScore, List<Integer> allScores, String weakConceptTag) {
+    public List<String> processStudentGrade(Long studentId, int studentScore, List<Integer> allScores, String weakConceptTag) {
         log.info("📊 [규칙 기반 엔지니어링] 성적 분석 시작...");
 
         // 1. 순수 자바(규칙 기반)로 평균 및 표준편차 초고속 계산

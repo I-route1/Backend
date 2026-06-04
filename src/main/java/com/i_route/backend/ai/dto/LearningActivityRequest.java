@@ -11,7 +11,7 @@ import java.time.LocalTime;
 @Setter
 @NoArgsConstructor
 public class LearningActivityRequest {
-    private String studentId;
+    private Long studentId;
     private String subject;
     private LocalDate studyDate;
     @JsonFormat(pattern = "HH:mm:ss")

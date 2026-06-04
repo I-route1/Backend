@@ -16,7 +16,7 @@ public class LearningActivity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String studentId;           // 학생 ID
+    private Long studentId;           // 학생 ID
 
     private String subject;             // 학습 과목 (예: 국어, 수학, 영어)
 

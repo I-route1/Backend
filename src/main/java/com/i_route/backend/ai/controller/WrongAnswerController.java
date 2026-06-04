@@ -21,7 +21,7 @@ public class WrongAnswerController {
      */
     @PostMapping("/record")
     public ResponseEntity<WrongAnswer> recordWrong(
-            @RequestParam String studentId,
+            @RequestParam Long studentId,
             @RequestParam String subject,
             @RequestParam String questionId,
             @RequestParam String conceptTag,
@@ -36,7 +36,7 @@ public class WrongAnswerController {
      */
     @GetMapping("/ai-pipeline")
     public ResponseEntity<List<WrongAnswer>> getAiPipelineData(
-            @RequestParam String studentId,
+            @RequestParam Long studentId,
             @RequestParam String subject) {
 
         List<WrongAnswer> weaknessList = wrongAnswerService.getAiTargetWeakness(studentId, subject);

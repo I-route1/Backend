@@ -139,7 +139,7 @@ public class AiRecommendationService {
     }
 
     // 유사 성적대 사용자들이 선호하는 콘텐츠 매칭
-    public List<MaterialRecommendationDto> recommendByPeerContent(String studentId) {
+    public List<MaterialRecommendationDto> recommendByPeerContent(Long studentId) {
         Double myAvg = gradeRepository.getAverageScoreByStudent(studentId);
         if (myAvg == null) {
             return List.of();
@@ -174,7 +174,7 @@ public class AiRecommendationService {
     }
 
     // 동일 목표를 달성한 선배 사용자들의 성공 경로 추천
-    public PeerSuccessPathDto recommendPeerSuccessPath(String studentId, String subject) {
+    public PeerSuccessPathDto recommendPeerSuccessPath(Long studentId, String subject) {
         List<Grade> myGrades = gradeRepository.findByStudentIdAndSubjectOrderByExamDateDesc(studentId, subject);
         if (myGrades.isEmpty()) {
             return PeerSuccessPathDto.builder()

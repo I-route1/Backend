@@ -15,7 +15,7 @@ public class Grade {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String studentId; // 학생 ID (예: S-0155)
+    private Long studentId; // 학생 ID
 
     private String subject;   // 과목명 (예: 국어, 수학, 영어)
 

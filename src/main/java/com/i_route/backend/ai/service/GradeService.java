@@ -42,7 +42,7 @@ public class GradeService {
 
     // 2. 성적 기본 조회 기능 (최신순)
     @Transactional(readOnly = true)
-    public List<GradeResponse> getGradesByStudent(String studentId) {
+    public List<GradeResponse> getGradesByStudent(Long studentId) {
         return gradeRepository.findByStudentIdOrderByExamDateDesc(studentId)
                 .stream()
                 .map(GradeResponse::from)
@@ -101,7 +101,7 @@ public class GradeService {
 
     // 🌟 [NEW] 5. 시계열 및 전월 대비 성적 변동폭 분석 로직
     @Transactional(readOnly = true)
-    public GradeAnalysisResponse analyzeStudentGrades(String studentId) {
+    public GradeAnalysisResponse analyzeStudentGrades(Long studentId) {
         // 해당 학생의 모든 성적 가져오기
         List<Grade> allGrades = gradeRepository.findByStudentIdOrderByExamDateDesc(studentId);
 
