@@ -12,6 +12,7 @@ public class StudentResponse {
 
     private Long studentId;
     private String name;
+    private String grade;
     private String gradeStudentId;
     private Long parentId;
     private Long busId;
@@ -32,11 +33,13 @@ public class StudentResponse {
         return StudentResponse.builder()
                 .studentId(student.getStudentId())
                 .name(student.getName())
+                .grade(student.getGrade())
                 .gradeStudentId(student.getGradeStudentId())
                 .parentId(student.getParentId())
                 .busId(student.getBusId())
                 .routeStopId(student.getRouteStopId())
                 .academyId(student.getAcademyId())
+                .academies(List.of())
                 .build();
     }
 
@@ -44,6 +47,7 @@ public class StudentResponse {
         return StudentResponse.builder()
                 .studentId(student.getStudentId())
                 .name(student.getName())
+                .grade(student.getGrade())
                 .gradeStudentId(student.getGradeStudentId())
                 .parentId(student.getParentId())
                 .busId(student.getBusId())
