@@ -3,10 +3,10 @@ package com.i_route.backend.ai.service;
 import com.i_route.backend.ai.dto.AiReportRequest;
 import com.i_route.backend.ai.dto.AiReportResponse;
 import com.i_route.backend.ai.entity.AiRecommendation;
-import com.i_route.backend.ai.entity.StudentInfo;
 import com.i_route.backend.ai.repository.AiRecommendationRepository;
 import com.i_route.backend.ai.repository.LearningActivityRepository;
-import com.i_route.backend.ai.repository.StudentInfoRepository;
+import com.i_route.backend.gps.domain.student.entity.Student;
+import com.i_route.backend.gps.domain.student.repository.StudentRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
@@ -26,16 +26,16 @@ public class AiCounselingService {
 
     private final WebClient fastApiWebClient;
     private final AiRecommendationRepository aiRecommendationRepository;
-    private final StudentInfoRepository studentInfoRepository;
+    private final StudentRepository studentRepository;
     private final LearningActivityRepository learningActivityRepository;
 
     public AiCounselingService(@Qualifier("fastApiWebClient") WebClient webClient,
                                AiRecommendationRepository aiRecommendationRepository,
-                               StudentInfoRepository studentInfoRepository,
+                               StudentRepository studentRepository,
                                LearningActivityRepository learningActivityRepository) {
         this.fastApiWebClient = webClient;
         this.aiRecommendationRepository = aiRecommendationRepository;
-        this.studentInfoRepository = studentInfoRepository;
+        this.studentRepository = studentRepository;
         this.learningActivityRepository = learningActivityRepository;
     }
 
@@ -63,7 +63,7 @@ public class AiCounselingService {
     // 🔍 [리액티브 특화 방어막] DB 블로킹 조회 격리
     private Mono<AiReportRequest> fetchRealStudentData(Long studentId) {
         return Mono.fromCallable(() -> {
-                    StudentInfo studentInfo = studentInfoRepository.findById(studentId.toString())
+                    Student student = studentRepository.findById(studentId)
                             .orElseThrow(() -> new ResponseStatusException(
                                     HttpStatus.NOT_FOUND, "DB에 존재하지 않는 학생 ID입니다: " + studentId
                             ));
@@ -75,10 +75,10 @@ public class AiCounselingService {
 
                     return AiReportRequest.builder()
                             .studentId(studentId)
-                            .currentKoreanGrade(studentInfo.getCurrentKoreanGrade())
-                            .studyTime(studentInfo.getStudyTime())
-                            .studentNote(studentInfo.getStudentNote())
-                            .recommendContext(studentInfo.getRecommendContext())
+                            .currentKoreanGrade(student.getCurrentKoreanGrade())
+                            .studyTime(student.getStudyTime())
+                            .studentNote(student.getStudentNote())
+                            .recommendContext(student.getRecommendContext())
                             .instructorFeedback(latestFeedback)
                             .build();
                 })
