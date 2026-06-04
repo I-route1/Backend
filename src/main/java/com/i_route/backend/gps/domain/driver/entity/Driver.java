@@ -5,6 +5,7 @@ import lombok.*;
 
 @Entity
 @Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -17,4 +18,6 @@ public class Driver {
     private String name;
 
     private String phoneNumber;
+
+    private Long userId;
 }
