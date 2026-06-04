@@ -1,5 +1,6 @@
 package com.i_route.backend.user.entity;
 
+import com.i_route.backend.gps.domain.driver.entity.Driver;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -39,4 +40,9 @@ public class Academy {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
+
+    // 학원의 기사 (1:1 관계)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "driver_id")
+    private Driver driver;
 }

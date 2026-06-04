@@ -21,5 +21,8 @@ public interface AcademyRepository extends JpaRepository<Academy, Long> {
     // 초대 코드로 조회
     Optional<Academy> findByInviteCode(String inviteCode);
 
+    // 기사로 학원 조회
+    Optional<Academy> findByDriver_Id(Long driverId);
+
     void deleteByUser_Id(Long userId);
 }
