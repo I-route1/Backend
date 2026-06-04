@@ -19,6 +19,7 @@ public class WebConfig {
                 registry.addMapping("/**")
                         .allowedOriginPatterns(
                                 "https://d3kh3x870d7dr4.cloudfront.net",
+                                "https://d22mlgf6je9oud.cloudfront.net",
                                 "https://*.ngrok-free.dev",
                                 "http://localhost:3000"
                         )
