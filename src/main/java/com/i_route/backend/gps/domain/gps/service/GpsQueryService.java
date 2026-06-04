@@ -16,6 +16,10 @@ import com.i_route.backend.gps.domain.student.entity.Student;
 import com.i_route.backend.gps.domain.student.repository.StudentRepository;
 import com.i_route.backend.global.exception.CustomException;
 import com.i_route.backend.global.exception.ErrorCode;
+import com.i_route.backend.user.entity.Academy;
+import com.i_route.backend.user.entity.User;
+import com.i_route.backend.user.repository.AcademyRepository;
+import com.i_route.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +44,8 @@ public class GpsQueryService {
     private final StudentBoardingRedisRepository studentBoardingRedisRepository;
     private final StudentRepository studentRepository;
     private final AttendanceRepository attendanceRepository;
+    private final AcademyRepository academyRepository;
+    private final UserRepository userRepository;
 
     public CurrentBusLocationResponse getCurrentLocation(Long busId) {
 
@@ -133,14 +139,39 @@ public class GpsQueryService {
                         status = PassengerStatus.EXITED;
                     }
 
+                    String academyName = null;
+                    if (student.getAcademyId() != null) {
+                        Academy academy = academyRepository.findById(student.getAcademyId()).orElse(null);
+                        if (academy != null) {
+                            academyName = academy.getAcademyName();
+                        }
+                    }
+
                     return PassengerResponse.builder()
                             .studentId(student.getStudentId())
                             .name(student.getName())
                             .profileImage(student.getProfileImage())
                             .stopName(stop != null ? stop.getStopName() : null)
                             .status(status)
+                            .academyId(student.getAcademyId())
+                            .academyName(academyName)
                             .build();
                 })
                 .collect(Collectors.toList());
+    }
+
+    // 기사의 버스 탑승 현황 조회 (학원 정보 포함)
+    public List<PassengerResponse> getDriverBusAttendance(Long userId) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            return List.of();
+        }
+
+        Bus bus = busRepository.findByDriver_Id(userId).orElse(null);
+        if (bus == null) {
+            return List.of();
+        }
+
+        return getTodayPassengers(bus.getId());
     }
 }

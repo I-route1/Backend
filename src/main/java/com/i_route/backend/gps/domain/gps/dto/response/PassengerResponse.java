@@ -17,4 +17,8 @@ public class PassengerResponse {
     private String stopName;
 
     private PassengerStatus status;
+
+    private Long academyId;
+
+    private String academyName;
 }
