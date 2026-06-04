@@ -18,5 +18,8 @@ public interface AcademyRepository extends JpaRepository<Academy, Long> {
     // 사업자 번호 중복 확인
     boolean existsByBusinessNumber(String businessNumber);
 
+    // 초대 코드로 조회
+    Optional<Academy> findByInviteCode(String inviteCode);
+
     void deleteByUser_Id(Long userId);
 }
