@@ -50,6 +50,17 @@ public class GpsDummyDataInitializer implements CommandLineRunner {
             return;
         }
 
+        // 첫 번째 학원과 기사 연결
+        Academy firstAcademy = academies.get(0);
+        Driver driver = driverRepository.save(
+                Driver.builder()
+                        .name("이기사")
+                        .phoneNumber("010-2222-3333")
+                        .build()
+        );
+        firstAcademy.setDriver(driver);
+        academyRepository.save(firstAcademy);
+
         // 5개 학원, 학원당 50명씩 250명 생성
         Random random = new Random(42);
         int studentId = 1;
