@@ -27,6 +27,11 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
+      jdbc:
+        batch_size: 10
+        fetch_size: 50
+        batch_versioned_data: true
 
   data:
     redis:
@@ -51,6 +56,11 @@ logging:
 server:
   error:
     include-message: always
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
 
 jwt:
   secret: ${JWT_SECRET}
