@@ -75,11 +75,11 @@ public class AiCounselingService {
 
                     return AiReportRequest.builder()
                             .studentId(studentId)
-                            .currentKoreanGrade(student.getCurrentKoreanGrade())
-                            .studyTime(student.getStudyTime())
-                            .studentNote(student.getStudentNote())
-                            .recommendContext(student.getRecommendContext())
-                            .instructorFeedback(latestFeedback)
+                            .currentKoreanGrade(student.getCurrentKoreanGrade() != null ? student.getCurrentKoreanGrade() : 0.0)
+                            .studyTime(student.getStudyTime() != null ? student.getStudyTime() : 0.0)
+                            .studentNote(student.getStudentNote() != null ? student.getStudentNote() : "")
+                            .recommendContext(student.getRecommendContext() != null ? student.getRecommendContext() : "")
+                            .instructorFeedback(latestFeedback != null ? latestFeedback : "")
                             .build();
                 })
                 .subscribeOn(Schedulers.boundedElastic());
