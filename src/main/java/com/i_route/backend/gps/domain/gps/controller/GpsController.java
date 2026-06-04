@@ -4,6 +4,7 @@ import com.i_route.backend.gps.domain.gps.dto.request.GpsLocationRequest;
 import com.i_route.backend.gps.domain.gps.dto.response.BusRouteResponse;
 import com.i_route.backend.gps.domain.gps.dto.response.CurrentBusLocationResponse;
 import com.i_route.backend.gps.domain.gps.dto.response.EtaResponse;
+import com.i_route.backend.gps.domain.gps.dto.response.PassengerResponse;
 import com.i_route.backend.gps.domain.gps.service.GpsCommandService;
 import com.i_route.backend.gps.domain.gps.service.GpsQueryService;
 import jakarta.validation.Valid;
@@ -61,5 +62,13 @@ public class GpsController {
         return gpsQueryService.getStudentCurrentLocation(studentId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.noContent().build());
+    }
+
+    // 기사 앱: 오늘 배정 탑승 명단 조회
+    @GetMapping("/buses/{busId}/passengers/today")
+    public List<PassengerResponse> getTodayPassengers(
+            @PathVariable Long busId
+    ) {
+        return gpsQueryService.getTodayPassengers(busId);
     }
 }
