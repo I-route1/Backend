@@ -65,7 +65,7 @@ public class AttendanceController {
      * 관리자/교사 → 오늘 버스 전체 출결 조회
      * GET /api/gps/attendance/buses/{busId}
      */
-    @PreAuthorize("hasAnyRole('ACADEMY', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ACADEMY', 'ADMIN', 'DRIVER')")
     @GetMapping("/attendance/buses/{busId}")
     public ResponseEntity<List<AttendanceResponse>> getBusAttendance(
             @PathVariable Long busId) {
@@ -77,7 +77,7 @@ public class AttendanceController {
      * POST /api/gps/nfc/register-request
      * Body: { "studentId": 1 }
      */
-    @PreAuthorize("hasAnyRole('ACADEMY', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ACADEMY', 'ADMIN', 'DRIVER')")
     @PostMapping("/nfc/register-request")
     public ResponseEntity<Void> enqueueNfcRegister(
             @Valid @RequestBody NfcRegisterQueueRequest request) {
@@ -90,7 +90,7 @@ public class AttendanceController {
      * GET /api/gps/nfc/pending
      * 대기 없으면 204 No Content
      */
-    @PreAuthorize("hasAnyRole('ACADEMY', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ACADEMY', 'ADMIN', 'DRIVER')")
     @GetMapping("/nfc/pending")
     public ResponseEntity<NfcPendingResponse> pollNfcPending() {
         return attendanceService.pollNfcRegisterQueue()
@@ -102,7 +102,7 @@ public class AttendanceController {
      * 관리자 → 학생에게 NFC 카드 등록 (PN532)
      * PATCH /api/gps/students/{studentId}/nfc
      */
-    @PreAuthorize("hasAnyRole('ACADEMY', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ACADEMY', 'ADMIN', 'DRIVER')")
     @PatchMapping("/students/{studentId}/nfc")
     public ResponseEntity<Void> registerNfc(
             @PathVariable Long studentId,
@@ -115,7 +115,7 @@ public class AttendanceController {
      * 관리자 → 학생에게 성적 시스템 ID 등록
      * PATCH /api/gps/students/{studentId}/grade-id
      */
-    @PreAuthorize("hasAnyRole('ACADEMY', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ACADEMY', 'ADMIN', 'DRIVER')")
     @PatchMapping("/students/{studentId}/grade-id")
     public ResponseEntity<Void> registerGradeStudentId(
             @PathVariable Long studentId,
