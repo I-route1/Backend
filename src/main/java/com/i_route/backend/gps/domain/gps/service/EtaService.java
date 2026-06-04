@@ -38,6 +38,7 @@ public class EtaService {
         List<Student> students = studentRepository.findByBusId(busId);
 
         return students.stream()
+                .filter(student -> student.getRouteStopId() != null)
                 .map(student -> calculateStudentEta(currentLocation, student))
                 .toList();
     }
