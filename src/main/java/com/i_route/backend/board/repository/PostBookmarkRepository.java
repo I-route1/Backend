@@ -7,7 +7,9 @@ public interface PostBookmarkRepository extends JpaRepository<PostBookmark, Long
 
     boolean existsByPostIdAndUserId(Long postId, Long userId);
 
-    long countByPostId(Long postId);
-
     void deleteByPostIdAndUserId(Long postId, Long userId);
+
+    void deleteByPost_User_Id(Long userId);
+
+    void deleteByUser_Id(Long userId);
 }
