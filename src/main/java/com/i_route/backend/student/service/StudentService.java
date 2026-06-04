@@ -38,7 +38,15 @@ public class StudentService {
     @Transactional(readOnly = true)
     public List<StudentResponse> getMyChildren(Long parentId) {
         return studentRepository.findByParentId(parentId).stream()
-                .map(StudentResponse::from)
+                .map(student -> {
+                    if (student.getAcademyId() != null) {
+                        Academy academy = academyRepository.findById(student.getAcademyId()).orElse(null);
+                        String academyName = academy != null ? academy.getAcademyName() : null;
+                        String academyCode = academy != null ? academy.getInviteCode() : null;
+                        return StudentResponse.from(student, academyName, academyCode);
+                    }
+                    return StudentResponse.from(student);
+                })
                 .collect(Collectors.toList());
     }
 
