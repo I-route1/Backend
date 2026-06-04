@@ -50,14 +50,19 @@ public class GpsDummyDataInitializer implements CommandLineRunner {
             return;
         }
 
-        // 첫 번째 학원과 기사 연결
+        // 첫 번째 학원과 기사(userId 19) 연결
         Academy firstAcademy = academies.get(0);
-        Driver driver = driverRepository.save(
-                Driver.builder()
-                        .name("이기사")
-                        .phoneNumber("010-2222-3333")
-                        .build()
-        );
+        Driver driver = driverRepository.findById(19L).orElse(null);
+        if (driver == null) {
+            driver = driverRepository.save(
+                    Driver.builder()
+                            .id(19L)
+                            .userId(19L)
+                            .name("이기사")
+                            .phoneNumber("010-2222-3333")
+                            .build()
+            );
+        }
         firstAcademy.setDriver(driver);
         academyRepository.save(firstAcademy);
 
