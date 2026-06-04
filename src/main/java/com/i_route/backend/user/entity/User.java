@@ -88,13 +88,27 @@ public class User {
     public static User ofKakao(Long kakaoId, String nickname, String email) {
         return User.builder()
                 .kakaoId(kakaoId)
-                .nickname(nickname)
-                .email(email != null ? email : "kakao_" + kakaoId + "@kakao.com")
+                .name(
+                        nickname != null && !nickname.isBlank()
+                                ? nickname
+                                : "카카오사용자"
+                )
+                .nickname(
+                        nickname != null && !nickname.isBlank()
+                                ? nickname
+                                : "kakao_" + kakaoId
+                )
+                .email(
+                        email != null && !email.isBlank()
+                                ? email
+                                : "kakao_" + kakaoId + "@kakao.com"
+                )
                 .password(UUID.randomUUID().toString())
-                .role(UserRole.PARENT) // 카카오 최초 가입 시 기본 역할 지정 (예: 학부모)
+                .role(UserRole.PARENT)
                 .loginType(LoginType.KAKAO)
-                .phoneNumber("")
-                .username("kakao_" + kakaoId) // 카카오 유저는 username도 kakaoId 기반으로 생성
+                .phoneNumber("KAKAO_" + kakaoId)
+                .username("kakao_" + kakaoId)
+                .emailVerified(true)
                 .build();
     }
 }

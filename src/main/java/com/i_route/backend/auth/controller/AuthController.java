@@ -7,6 +7,7 @@ import com.i_route.backend.auth.service.AuthService;
 import com.i_route.backend.auth.service.EmailService;
 import com.i_route.backend.auth.service.KakaoOAuthService;
 import com.i_route.backend.global.response.ApiResponse;
+import com.i_route.backend.global.security.CustomUserDetails;
 import com.i_route.backend.user.dto.DuplicateCheckResponse;
 import com.i_route.backend.user.dto.SingleCheckRequest;
 import com.i_route.backend.user.entity.User;
@@ -15,6 +16,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -297,6 +299,19 @@ public class AuthController {
 
         return ResponseEntity.ok(
                 new MessageResponse("비밀번호가 변경되었습니다.")
+        );
+    }
+
+    @DeleteMapping("/api/auth/me/delete")
+    public ResponseEntity<ApiResponse<String>> deleteMyAccount(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long userId = userDetails.getId();
+
+        authService.deleteMyAccount(userId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("회원 탈퇴가 완료되었습니다.")
         );
     }
 }
