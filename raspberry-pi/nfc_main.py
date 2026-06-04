@@ -10,8 +10,12 @@ import time
 # ──────────────────────────────────────────────
 BACKEND_URL = "https://demystify-handcuff-protegee.ngrok-free.dev"
 BUS_ID = 1
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "Admin1234!"
+
+# admin 또는 teacher 계정 사용 가능 (둘 다 NFC 등록 권한 있음)
+LOGIN_USERNAME = "admin"
+LOGIN_PASSWORD = "Admin1234!"
+# LOGIN_USERNAME = "teacher"
+# LOGIN_PASSWORD = "Teacher1234!"
 # ──────────────────────────────────────────────
 
 
@@ -56,7 +60,7 @@ pn532.SAM_configuration()
 
 print("백엔드 로그인 중...")
 try:
-    token = login(ADMIN_USERNAME, ADMIN_PASSWORD)
+    token = login(LOGIN_USERNAME, LOGIN_PASSWORD)
 except Exception as e:
     print(f"로그인 실패: {e}")
     exit(1)

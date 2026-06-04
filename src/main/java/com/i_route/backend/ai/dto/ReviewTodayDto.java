@@ -16,6 +16,7 @@ public class ReviewTodayDto {
     @Getter
     @Builder
     public static class ReviewItem {
+        private Long id;
         private String title;
         private String dayLabel;
         private String originalDate;

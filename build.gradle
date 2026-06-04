@@ -42,6 +42,10 @@ dependencies {
 	testRuntimeOnly 'com.h2database:h2'
 }
 
+springBoot {
+	mainClass = 'com.i_route.backend.BackendApplication'
+}
+
 tasks.named('test') {
 	useJUnitPlatform()
 }
