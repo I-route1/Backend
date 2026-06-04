@@ -167,7 +167,7 @@ public class GpsQueryService {
             return List.of();
         }
 
-        Academy academy = academyRepository.findByDriver_Id(userId).orElse(null);
+        Academy academy = academyRepository.findByDriver_UserId(userId).orElse(null);
         if (academy == null) {
             return List.of();
         }
