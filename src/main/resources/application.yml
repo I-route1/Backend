@@ -74,5 +74,5 @@ ai:
     url: http://14.56.197.183:8082
 
 toss:
-  secret-key: test_sk_dummy
-  client-key: test_ck_dummy
+  secret-key: ${TOSS_SECRET_KEY:test_sk_dummy}
+  client-key: ${TOSS_CLIENT_KEY:test_ck_dummy}
