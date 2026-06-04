@@ -1,5 +1,6 @@
 package com.i_route.backend.gps.domain.gps.controller;
 
+import com.i_route.backend.global.security.CustomUserDetails;
 import com.i_route.backend.gps.domain.gps.dto.request.GpsLocationRequest;
 import com.i_route.backend.gps.domain.gps.dto.response.BusRouteResponse;
 import com.i_route.backend.gps.domain.gps.dto.response.CurrentBusLocationResponse;
@@ -10,6 +11,8 @@ import com.i_route.backend.gps.domain.gps.service.GpsQueryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -70,5 +73,15 @@ public class GpsController {
             @PathVariable Long busId
     ) {
         return gpsQueryService.getTodayPassengers(busId);
+    }
+
+    // 기사 앱: 자신의 버스 탑승 명단 조회 (학원 정보 포함)
+    @GetMapping("/drivers/my-bus/attendance")
+    @PreAuthorize("hasRole('DRIVER')")
+    public ResponseEntity<List<PassengerResponse>> getMyBusAttendance(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        List<PassengerResponse> passengers = gpsQueryService.getDriverBusAttendance(userDetails.getId());
+        return ResponseEntity.ok(passengers);
     }
 }
