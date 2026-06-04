@@ -190,7 +190,7 @@ public class AiRecommendationService {
 
         // 해당 과목 전체 학생 성적 (날짜 오름차순)
         List<Grade> allSubjectGrades = gradeRepository.findBySubjectOrderByExamDateAsc(subject);
-        Map<String, List<Grade>> byStudent = allSubjectGrades.stream()
+        Map<Long, List<Grade>> byStudent = allSubjectGrades.stream()
                 .collect(Collectors.groupingBy(Grade::getStudentId));
 
         // 시작 점수가 비슷하고(±15점) 10점 이상 향상된 "성공한 선배" 추출
