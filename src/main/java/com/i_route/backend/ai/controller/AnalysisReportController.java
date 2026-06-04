@@ -26,7 +26,7 @@ public class AnalysisReportController {
      */
     @GetMapping("/report")
     public ResponseEntity<AnalysisReportDto> getLegacyScoreReport(
-            @RequestParam String studentId,
+            @RequestParam Long studentId,
             @RequestParam String subject) {
         AnalysisReportDto result = reportAnalysisService.getAnalysisReport(studentId, subject);
         return result != null ? ResponseEntity.ok(result) : ResponseEntity.notFound().build();
@@ -59,7 +59,7 @@ public class AnalysisReportController {
      */
     @GetMapping("/study-pattern-v2")
     public ResponseEntity<StudyPatternDto> getStudyPatternV2(
-            @RequestParam String studentId) {
+            @RequestParam Long studentId) {
         return ResponseEntity.ok(reportAnalysisService.analyzeStudyPatternByStudentId(studentId));
     }
 
@@ -90,7 +90,7 @@ public class AnalysisReportController {
      */
     @GetMapping("/meta-cognition")
     public ResponseEntity<MetaCognitionGapDto> getMetaCognitionGap(
-            @RequestParam String studentId,
+            @RequestParam Long studentId,
             @RequestParam String subject) {
         return ResponseEntity.ok(reportAnalysisService.analyzeMetaCognitionGap(studentId, subject));
     }
@@ -101,7 +101,7 @@ public class AnalysisReportController {
      */
     @GetMapping("/risk")
     public ResponseEntity<RiskDetectionDto> getRiskDetection(
-            @RequestParam String studentId) {
+            @RequestParam Long studentId) {
         return ResponseEntity.ok(reportAnalysisService.analyzeRisk(studentId));
     }
 }

@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AiReportRequest {
-    private String studentId;
+    private Long studentId;
     private Double currentKoreanGrade;
     private Double studyTime;
     private String studentNote;

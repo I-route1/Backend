@@ -13,17 +13,17 @@ public class MathAiController {
     private final AiCounselingService aiCounselingService;
 
     @PostMapping("/math")
-    public AiReportResponse generateMathReport(@RequestParam("studentId") String studentId) {
+    public AiReportResponse generateMathReport(@RequestParam("studentId") Long studentId) {
         return aiCounselingService.generateMathReport(studentId).block();
     }
 
     @PostMapping("/writing")
-    public AiReportResponse generateWritingReport(@RequestParam("studentId") String studentId) {
+    public AiReportResponse generateWritingReport(@RequestParam("studentId") Long studentId) {
         return aiCounselingService.generateWritingReport(studentId).block();
     }
 
     @PostMapping("/premium")
-    public AiReportResponse generatePremiumReport(@RequestParam("studentId") String studentId) {
+    public AiReportResponse generatePremiumReport(@RequestParam("studentId") Long studentId) {
         return aiCounselingService.generatePremiumReport(studentId).block();
     }
 }

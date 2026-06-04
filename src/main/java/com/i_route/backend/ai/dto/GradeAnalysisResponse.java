@@ -8,7 +8,7 @@ import java.util.Map;
 @Getter
 @Builder
 public class GradeAnalysisResponse {
-    private String studentId;
+    private Long studentId;
 
     // 📈 시계열 그래프용 전체 성적 이력 (날짜 오름차순 정렬)
     private List<GradeResponse> gradeHistory;

@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AiPromptRequest {
 
-    private String studentId;
+    private Long studentId;
 
     // 🎯 1. 어떤 허깅페이스 모델을 사용할지 지정 (예: "MATH_LLM", "WRITING_AI")
     private String targetModel;

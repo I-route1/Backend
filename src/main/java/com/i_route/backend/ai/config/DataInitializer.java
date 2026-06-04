@@ -32,7 +32,6 @@ public class DataInitializer implements ApplicationRunner {
     private final GradeEntityRepository gradeEntityRepository;
     private final LearningActivityRepository learningActivityRepository;
     private final StudyLogRepository studyLogRepository;
-    private final StudentInfoRepository studentInfoRepository;
     private final WrongAnswerEntityRepository wrongAnswerEntityRepository;
     private final WrongAnswerRepository wrongAnswerRepository;
 
@@ -42,7 +41,6 @@ public class DataInitializer implements ApplicationRunner {
         seedStudyMaterials();
         seedQuestions();
         seedStudents();
-        seedStudentInfos();
         seedWrongAnswers();
         seedStringWrongAnswers();
         seedGrades();
@@ -139,50 +137,6 @@ public class DataInitializer implements ApplicationRunner {
         log.info("[DataInitializer] StudentEntity {}개 시드 완료", students.size());
     }
 
-    // ─── 신규: StudentInfo (Python AI 리포트 입력 데이터) ────────
-    private void seedStudentInfos() {
-        // 더미 데이터("Test")가 남아있으면 전체 업데이트
-        StudentInfo s0001 = studentInfoRepository.findById("S-0001").orElse(null);
-        boolean hasRealData = s0001 != null
-                && s0001.getStudentNote() != null
-                && !s0001.getStudentNote().startsWith("Test")
-                && s0001.getStudentNote().length() > 20;
-        if (hasRealData) return;
-
-        List<StudentInfo> infos = List.of(
-            StudentInfo.builder()
-                .studentId("S-0001")
-                .currentKoreanGrade(78.0)   // 국어 백분위 78%
-                .studyTime(2.5)              // 일 2.5시간
-                .studentNote("수학을 좋아하며 집중력이 높음. 영어 문법은 꼼꼼하나 독해 속도가 느린 편. 시각 자료와 도표 활용 시 이해도 높아짐.")
-                .recommendContext("삼각함수 응용 문제와 가정법 영작문 취약. 수학은 심화 문제 도전 가능 수준이나 실수가 잦음.")
-                .build(),
-            StudentInfo.builder()
-                .studentId("S-0002")
-                .currentKoreanGrade(52.0)
-                .studyTime(1.5)
-                .studentNote("꼼꼼한 성격으로 암기는 강하나 응용·추론에 약함. 청각 자료(강의 듣기)로 학습할 때 집중도 높음.")
-                .recommendContext("분수 나눗셈 역수 개념 혼동, 영어 현재완료 용법 반복 오답. 기초 개념 반복 학습 및 예문 암기 필요.")
-                .build(),
-            StudentInfo.builder()
-                .studentId("S-0003")
-                .currentKoreanGrade(38.0)
-                .studyTime(0.8)
-                .studentNote("학습 동기 저하 상태. 야간 집중 패턴(21시 이후)으로 수면 부족 의심. 수학·영어 연속 성적 하락 중.")
-                .recommendContext("수학 수열 합 공식 완전 미숙, 영어 도치구문 이해 부족. 즉각적인 기초 복습과 학습 동기 회복 상담 필요.")
-                .build(),
-            StudentInfo.builder()
-                .studentId("S-0004")
-                .currentKoreanGrade(93.0)
-                .studyTime(3.2)
-                .studentNote("자기주도 학습 능력 매우 우수. 수학·영어 모두 상위 1% 수준. 심화·경시 문제에도 도전 의지가 강함.")
-                .recommendContext("수능 고난도 유형(킬러문항) 및 수학 미분 심화 학습 추천. 영어는 고급 어휘와 논리적 글쓰기 강화 목표.")
-                .build()
-        );
-        studentInfoRepository.saveAll(infos);
-        log.info("[DataInitializer] StudentInfo {}개 시드 완료", infos.size());
-    }
-
     // ─── 신규: WrongAnswerEntity (복습 시험지 생성용) ─────────
     private void seedWrongAnswers() {
         if (wrongAnswerEntityRepository.count() > 0) return;
@@ -214,27 +168,27 @@ public class DataInitializer implements ApplicationRunner {
         log.info("[DataInitializer] WrongAnswerEntity {}개 시드 완료", answers.size());
     }
 
-    // ─── 신규: WrongAnswer (String studentId — Python ai-pipeline용) ──
+    // ─── 신규: WrongAnswer (Long studentId) ──
     private void seedStringWrongAnswers() {
-        // S-0003 데이터가 없으면 전체 재시딩 (기존 데이터는 다른 studentId)
-        boolean s0003Exists = !wrongAnswerRepository
-                .findTopWeaknessByStudentIdAndSubject("S-0003", "수학").isEmpty();
-        if (s0003Exists) return;
+        // 학생 1 데이터가 없으면 전체 재시딩
+        boolean s1Exists = !wrongAnswerRepository
+                .findTopWeaknessByStudentIdAndSubject(1L, "수학").isEmpty();
+        if (s1Exists) return;
 
-        // studentId(String), subject, questionId, conceptTag, errorType
+        // studentId(Long), subject, questionId, conceptTag, errorType
         Object[][] data = {
-            // S-0001 (홍민준): 수학 취약
-            {"S-0001","수학","Q-001","삼각함수 덧셈공식",        "CONCEPT_GAP"},
-            {"S-0001","수학","Q-002","삼각함수 응용 문제",       "CARELESS_MISTAKE"},
-            {"S-0001","영어","Q-003","가정법 과거완료 형태",      "CONCEPT_GAP"},
-            // S-0003 (이준혁): 수학·영어 취약
-            {"S-0003","수학","Q-004","수열의 합 공식",            "CONCEPT_GAP"},
-            {"S-0003","수학","Q-005","등차수열 일반항",           "MEMORIZATION_GAP"},
-            {"S-0003","수학","Q-006","이차방정식 판별식",         "CONCEPT_GAP"},
-            {"S-0003","영어","Q-007","도치구문 강조 용법",        "CONCEPT_GAP"},
-            {"S-0003","영어","Q-008","수동태 완료형",             "MEMORIZATION_GAP"},
-            // S-0004 (박지은): 심화 수학 취약
-            {"S-0004","수학","Q-009","미분 chain rule 응용",      "CARELESS_MISTAKE"},
+            // 학생 1 (홍민준): 수학 취약
+            {1L,"수학","Q-001","삼각함수 덧셈공식",        "CONCEPT_GAP"},
+            {1L,"수학","Q-002","삼각함수 응용 문제",       "CARELESS_MISTAKE"},
+            {1L,"영어","Q-003","가정법 과거완료 형태",      "CONCEPT_GAP"},
+            // 학생 3 (이준혁): 수학·영어 취약
+            {3L,"수학","Q-004","수열의 합 공식",            "CONCEPT_GAP"},
+            {3L,"수학","Q-005","등차수열 일반항",           "MEMORIZATION_GAP"},
+            {3L,"수학","Q-006","이차방정식 판별식",         "CONCEPT_GAP"},
+            {3L,"영어","Q-007","도치구문 강조 용법",        "CONCEPT_GAP"},
+            {3L,"영어","Q-008","수동태 완료형",             "MEMORIZATION_GAP"},
+            // 학생 4 (박지은): 심화 수학 취약
+            {4L,"수학","Q-009","미분 chain rule 응용",      "CARELESS_MISTAKE"},
         };
 
         List<WrongAnswer> answers = new ArrayList<>();
@@ -242,7 +196,7 @@ public class DataInitializer implements ApplicationRunner {
             ErrorType et = null;
             try { et = ErrorType.valueOf((String) r[4]); } catch (Exception ignored) {}
             answers.add(WrongAnswer.builder()
-                    .studentId((String) r[0])
+                    .studentId((Long) r[0])
                     .subject((String) r[1])
                     .questionId((String) r[2])
                     .conceptTag((String) r[3])
@@ -250,71 +204,71 @@ public class DataInitializer implements ApplicationRunner {
                     .build());
         }
         wrongAnswerRepository.saveAll(answers);
-        log.info("[DataInitializer] WrongAnswer(String) {}개 시드 완료", answers.size());
+        log.info("[DataInitializer] WrongAnswer(Long) {}개 시드 완료", answers.size());
     }
 
-    // ─── 신규: Grade (String studentId, weakConceptTag 포함) ─
+    // ─── 신규: Grade (Long studentId, weakConceptTag 포함) ─
     private void seedGrades() {
-        // weakConceptTag가 포함된 S-0001 데이터가 있으면 이미 시딩됐으므로 스킵
-        boolean alreadySeeded = gradeRepository.findByStudentIdOrderByExamDateAsc("S-0001")
+        // weakConceptTag가 포함된 학생 1 데이터가 있으면 이미 시딩됐으므로 스킵
+        boolean alreadySeeded = gradeRepository.findByStudentIdOrderByExamDateAsc(1L)
                 .stream().anyMatch(g -> g.getWeakConceptTag() != null && !g.getWeakConceptTag().isEmpty());
         if (alreadySeeded) return;
 
-        // 기존 S-000x 데이터 클리어 후 재시딩
-        for (String sid : List.of("S-0001","S-0002","S-0003","S-0004")) {
+        // 기존 학생 1~4 데이터 클리어 후 재시딩
+        for (Long sid : List.of(1L, 2L, 3L, 4L)) {
             gradeRepository.deleteAll(gradeRepository.findByStudentIdOrderByExamDateAsc(sid));
         }
 
-        // studentId, subject, score, gradeLevel, percentile, examType, examDate, weakConceptTag
-        // S-0001=홍민준(상승), S-0002=김서연(안정), S-0003=이준혁(연속하락→위험), S-0004=박지은(최상위)
+        // studentId(Long), subject, score, gradeLevel, percentile, examType, examDate, weakConceptTag
+        // 1=홍민준(상승), 2=김서연(안정), 3=이준혁(연속하락→위험), 4=박지은(최상위)
         Object[][] data = {
-            // ── 홍민준 (S-0001): 수학 상승 추세 ──
-            {"S-0001","수학", 72, 4, 58.0, "3월모의고사",  LocalDate.of(2025,3,15),  "이차방정식의 근과 계수"},
-            {"S-0001","수학", 78, 3, 65.0, "중간고사",    LocalDate.of(2025,5,10),  "함수의 최댓값 최솟값"},
-            {"S-0001","수학", 84, 2, 74.0, "6월모의고사",  LocalDate.of(2025,6,12),  "등차수열 일반항"},
-            {"S-0001","수학", 88, 2, 80.0, "기말고사",    LocalDate.of(2025,7,8),   "이차함수 꼭짓점"},
-            {"S-0001","수학", 92, 1, 88.0, "9월모의고사",  LocalDate.of(2025,9,11),  "삼각함수 기본공식"},
-            {"S-0001","영어", 85, 2, 76.0, "중간고사",    LocalDate.of(2025,5,10),  "관계대명사 that/which"},
-            {"S-0001","영어", 88, 2, 80.0, "기말고사",    LocalDate.of(2025,7,8),   "분사구문 의미상 주어"},
-            {"S-0001","영어", 90, 1, 85.0, "9월모의고사",  LocalDate.of(2025,9,11),  "가정법 과거완료"},
-            {"S-0001","국어", 80, 3, 70.0, "중간고사",    LocalDate.of(2025,5,10),  "비문학 추론적 이해"},
-            {"S-0001","국어", 83, 2, 74.0, "기말고사",    LocalDate.of(2025,7,8),   "고전소설 인물 심리"},
-            {"S-0001","국어", 86, 2, 78.0, "9월모의고사",  LocalDate.of(2025,9,11),  "현대시 화자 태도"},
+            // ── 홍민준 (1): 수학 상승 추세 ──
+            {1L,"수학", 72, 4, 58.0, "3월모의고사",  LocalDate.of(2025,3,15),  "이차방정식의 근과 계수"},
+            {1L,"수학", 78, 3, 65.0, "중간고사",    LocalDate.of(2025,5,10),  "함수의 최댓값 최솟값"},
+            {1L,"수학", 84, 2, 74.0, "6월모의고사",  LocalDate.of(2025,6,12),  "등차수열 일반항"},
+            {1L,"수학", 88, 2, 80.0, "기말고사",    LocalDate.of(2025,7,8),   "이차함수 꼭짓점"},
+            {1L,"수학", 92, 1, 88.0, "9월모의고사",  LocalDate.of(2025,9,11),  "삼각함수 기본공식"},
+            {1L,"영어", 85, 2, 76.0, "중간고사",    LocalDate.of(2025,5,10),  "관계대명사 that/which"},
+            {1L,"영어", 88, 2, 80.0, "기말고사",    LocalDate.of(2025,7,8),   "분사구문 의미상 주어"},
+            {1L,"영어", 90, 1, 85.0, "9월모의고사",  LocalDate.of(2025,9,11),  "가정법 과거완료"},
+            {1L,"국어", 80, 3, 70.0, "중간고사",    LocalDate.of(2025,5,10),  "비문학 추론적 이해"},
+            {1L,"국어", 83, 2, 74.0, "기말고사",    LocalDate.of(2025,7,8),   "고전소설 인물 심리"},
+            {1L,"국어", 86, 2, 78.0, "9월모의고사",  LocalDate.of(2025,9,11),  "현대시 화자 태도"},
 
-            // ── 김서연 (S-0002): 성적 안정 유지 ──
-            {"S-0002","수학", 65, 4, 50.0, "중간고사",    LocalDate.of(2025,5,10),  "분수 나눗셈 역수"},
-            {"S-0002","수학", 67, 4, 52.0, "기말고사",    LocalDate.of(2025,7,8),   "비와 비율 계산"},
-            {"S-0002","수학", 66, 4, 51.0, "9월모의고사",  LocalDate.of(2025,9,11),  "방정식의 활용"},
-            {"S-0002","영어", 70, 3, 55.0, "중간고사",    LocalDate.of(2025,5,10),  "현재완료 용법"},
-            {"S-0002","영어", 72, 3, 58.0, "기말고사",    LocalDate.of(2025,7,8),   "부정사 명사적 용법"},
-            {"S-0002","국어", 68, 4, 53.0, "중간고사",    LocalDate.of(2025,5,10),  "문학 표현기법 반어"},
-            {"S-0002","국어", 70, 3, 55.0, "기말고사",    LocalDate.of(2025,7,8),   "비문학 핵심어 파악"},
+            // ── 김서연 (2): 성적 안정 유지 ──
+            {2L,"수학", 65, 4, 50.0, "중간고사",    LocalDate.of(2025,5,10),  "분수 나눗셈 역수"},
+            {2L,"수학", 67, 4, 52.0, "기말고사",    LocalDate.of(2025,7,8),   "비와 비율 계산"},
+            {2L,"수학", 66, 4, 51.0, "9월모의고사",  LocalDate.of(2025,9,11),  "방정식의 활용"},
+            {2L,"영어", 70, 3, 55.0, "중간고사",    LocalDate.of(2025,5,10),  "현재완료 용법"},
+            {2L,"영어", 72, 3, 58.0, "기말고사",    LocalDate.of(2025,7,8),   "부정사 명사적 용법"},
+            {2L,"국어", 68, 4, 53.0, "중간고사",    LocalDate.of(2025,5,10),  "문학 표현기법 반어"},
+            {2L,"국어", 70, 3, 55.0, "기말고사",    LocalDate.of(2025,7,8),   "비문학 핵심어 파악"},
 
-            // ── 이준혁 (S-0003): 수학·영어 연속 하락 → 위험 ──
-            {"S-0003","수학", 80, 3, 68.0, "3월모의고사",  LocalDate.of(2025,3,15),  "일차방정식 풀이"},
-            {"S-0003","수학", 72, 3, 58.0, "중간고사",    LocalDate.of(2025,5,10),  "이차방정식 판별식"},
-            {"S-0003","수학", 63, 4, 48.0, "6월모의고사",  LocalDate.of(2025,6,12),  "함수 합성"},
-            {"S-0003","수학", 55, 5, 38.0, "기말고사",    LocalDate.of(2025,7,8),   "수열의 합 공식"},
-            {"S-0003","영어", 75, 3, 60.0, "3월모의고사",  LocalDate.of(2025,3,15),  "관계부사 where/when"},
-            {"S-0003","영어", 68, 4, 52.0, "중간고사",    LocalDate.of(2025,5,10),  "수동태 완료형"},
-            {"S-0003","영어", 60, 4, 44.0, "기말고사",    LocalDate.of(2025,7,8),   "도치구문 강조"},
-            {"S-0003","국어", 72, 3, 57.0, "중간고사",    LocalDate.of(2025,5,10),  "문학 갈등 구조"},
-            {"S-0003","국어", 70, 3, 55.0, "기말고사",    LocalDate.of(2025,7,8),   "고전시가 어휘"},
+            // ── 이준혁 (3): 수학·영어 연속 하락 → 위험 ──
+            {3L,"수학", 80, 3, 68.0, "3월모의고사",  LocalDate.of(2025,3,15),  "일차방정식 풀이"},
+            {3L,"수학", 72, 3, 58.0, "중간고사",    LocalDate.of(2025,5,10),  "이차방정식 판별식"},
+            {3L,"수학", 63, 4, 48.0, "6월모의고사",  LocalDate.of(2025,6,12),  "함수 합성"},
+            {3L,"수학", 55, 5, 38.0, "기말고사",    LocalDate.of(2025,7,8),   "수열의 합 공식"},
+            {3L,"영어", 75, 3, 60.0, "3월모의고사",  LocalDate.of(2025,3,15),  "관계부사 where/when"},
+            {3L,"영어", 68, 4, 52.0, "중간고사",    LocalDate.of(2025,5,10),  "수동태 완료형"},
+            {3L,"영어", 60, 4, 44.0, "기말고사",    LocalDate.of(2025,7,8),   "도치구문 강조"},
+            {3L,"국어", 72, 3, 57.0, "중간고사",    LocalDate.of(2025,5,10),  "문학 갈등 구조"},
+            {3L,"국어", 70, 3, 55.0, "기말고사",    LocalDate.of(2025,7,8),   "고전시가 어휘"},
 
-            // ── 박지은 (S-0004): 최상위권 꾸준 성장 ──
-            {"S-0004","수학", 92, 1, 90.0, "중간고사",    LocalDate.of(2025,5,10),  "수열의 귀납적 정의"},
-            {"S-0004","수학", 95, 1, 93.0, "기말고사",    LocalDate.of(2025,7,8),   "삼각함수 덧셈공식"},
-            {"S-0004","수학", 98, 1, 97.0, "9월모의고사",  LocalDate.of(2025,9,11),  "지수로그 함수 미분"},
-            {"S-0004","영어", 94, 1, 91.0, "중간고사",    LocalDate.of(2025,5,10),  "가정법 미래"},
-            {"S-0004","영어", 96, 1, 95.0, "기말고사",    LocalDate.of(2025,7,8),   "복합관계대명사"},
-            {"S-0004","국어", 90, 1, 87.0, "중간고사",    LocalDate.of(2025,5,10),  "현대소설 서술시점"},
-            {"S-0004","국어", 93, 1, 91.0, "기말고사",    LocalDate.of(2025,7,8),   "시조 형식 평시조"},
+            // ── 박지은 (4): 최상위권 꾸준 성장 ──
+            {4L,"수학", 92, 1, 90.0, "중간고사",    LocalDate.of(2025,5,10),  "수열의 귀납적 정의"},
+            {4L,"수학", 95, 1, 93.0, "기말고사",    LocalDate.of(2025,7,8),   "삼각함수 덧셈공식"},
+            {4L,"수학", 98, 1, 97.0, "9월모의고사",  LocalDate.of(2025,9,11),  "지수로그 함수 미분"},
+            {4L,"영어", 94, 1, 91.0, "중간고사",    LocalDate.of(2025,5,10),  "가정법 미래"},
+            {4L,"영어", 96, 1, 95.0, "기말고사",    LocalDate.of(2025,7,8),   "복합관계대명사"},
+            {4L,"국어", 90, 1, 87.0, "중간고사",    LocalDate.of(2025,5,10),  "현대소설 서술시점"},
+            {4L,"국어", 93, 1, 91.0, "기말고사",    LocalDate.of(2025,7,8),   "시조 형식 평시조"},
         };
 
         List<Grade> grades = new ArrayList<>();
         for (Object[] r : data) {
             grades.add(Grade.builder()
-                    .studentId((String) r[0])
+                    .studentId((Long) r[0])
                     .subject((String) r[1])
                     .score((Integer) r[2])
                     .gradeLevel((Integer) r[3])
@@ -411,59 +365,59 @@ public class DataInitializer implements ApplicationRunner {
 
     // ─── 신규: LearningActivity (골든타임 분석용) ─────────────
     private void seedLearningActivities() {
-        // S-0001/수학에 understandingScore >= 4 데이터가 있으면 이미 시딩됨
-        boolean alreadySeeded = learningActivityRepository.findByStudentIdAndSubject("S-0001", "수학")
+        // 학생 1/수학에 understandingScore >= 4 데이터가 있으면 이미 시딩됨
+        boolean alreadySeeded = learningActivityRepository.findByStudentIdAndSubject(1L, "수학")
                 .stream().anyMatch(a -> a.getUnderstandingScore() >= 4);
         if (alreadySeeded) return;
 
-        // 기존 S-000x 데이터 클리어 후 재시딩
-        for (String sid : List.of("S-0001","S-0002","S-0003","S-0004","S-0005")) {
+        // 기존 학생 1~5 데이터 클리어 후 재시딩
+        for (Long sid : List.of(1L, 2L, 3L, 4L, 5L)) {
             learningActivityRepository.deleteAll(learningActivityRepository.findByStudentId(sid));
         }
 
-        // studentId, subject, studyDate, startHour, durationMin, understanding, concentration, feedback
+        // studentId(Long), subject, studyDate, startHour, durationMin, understanding, concentration, feedback
         Object[][] data = {
-            // 홍민준(S-0001): 18시 전후 집중, 수학 주력
-            {"S-0001","수학", LocalDate.of(2025,9,15), 18, 90, 4, 5, "분수 단원 집중도 매우 좋았음. 계산 실수가 줄어드는 추세."},
-            {"S-0001","수학", LocalDate.of(2025,9,16), 18, 80, 4, 4, null},
-            {"S-0001","수학", LocalDate.of(2025,9,17), 17, 70, 3, 4, null},
-            {"S-0001","영어", LocalDate.of(2025,9,15), 20, 60, 3, 3, "발표력이 향상됨. 독해 속도는 아직 개선 필요."},
-            {"S-0001","영어", LocalDate.of(2025,9,16), 19, 50, 3, 4, null},
-            {"S-0001","국어", LocalDate.of(2025,9,18), 18, 45, 4, 3, null},
-            {"S-0001","수학", LocalDate.of(2025,9,19), 18, 100, 5, 5, "삼각함수 개념 완벽 이해. 응용 문제도 혼자 풀어냄."},
-            {"S-0001","수학", LocalDate.of(2025,9,20), 17, 90, 4, 5, null},
+            // 홍민준(1): 18시 전후 집중, 수학 주력
+            {1L,"수학", LocalDate.of(2025,9,15), 18, 90, 4, 5, "분수 단원 집중도 매우 좋았음. 계산 실수가 줄어드는 추세."},
+            {1L,"수학", LocalDate.of(2025,9,16), 18, 80, 4, 4, null},
+            {1L,"수학", LocalDate.of(2025,9,17), 17, 70, 3, 4, null},
+            {1L,"영어", LocalDate.of(2025,9,15), 20, 60, 3, 3, "발표력이 향상됨. 독해 속도는 아직 개선 필요."},
+            {1L,"영어", LocalDate.of(2025,9,16), 19, 50, 3, 4, null},
+            {1L,"국어", LocalDate.of(2025,9,18), 18, 45, 4, 3, null},
+            {1L,"수학", LocalDate.of(2025,9,19), 18, 100, 5, 5, "삼각함수 개념 완벽 이해. 응용 문제도 혼자 풀어냄."},
+            {1L,"수학", LocalDate.of(2025,9,20), 17, 90, 4, 5, null},
 
-            // 김서연(S-0002): 14시 전후 집중, 영어 주력
-            {"S-0002","영어", LocalDate.of(2025,9,15), 14, 60, 3, 3, "현재완료 용법 반복 연습 필요."},
-            {"S-0002","영어", LocalDate.of(2025,9,16), 15, 50, 3, 3, null},
-            {"S-0002","수학", LocalDate.of(2025,9,17), 14, 40, 2, 3, "분수 계산 아직 불안정. 기초 개념 재확인 권장."},
-            {"S-0002","수학", LocalDate.of(2025,9,18), 14, 45, 2, 2, null},
-            {"S-0002","국어", LocalDate.of(2025,9,19), 16, 30, 3, 3, null},
+            // 김서연(2): 14시 전후 집중, 영어 주력
+            {2L,"영어", LocalDate.of(2025,9,15), 14, 60, 3, 3, "현재완료 용법 반복 연습 필요."},
+            {2L,"영어", LocalDate.of(2025,9,16), 15, 50, 3, 3, null},
+            {2L,"수학", LocalDate.of(2025,9,17), 14, 40, 2, 3, "분수 계산 아직 불안정. 기초 개념 재확인 권장."},
+            {2L,"수학", LocalDate.of(2025,9,18), 14, 45, 2, 2, null},
+            {2L,"국어", LocalDate.of(2025,9,19), 16, 30, 3, 3, null},
 
-            // 이준혁(S-0003): 21시 야간, 짧은 집중 분산
-            {"S-0003","수학", LocalDate.of(2025,9,15), 21, 30, 2, 2, "수열 공식 암기 부족. 기초부터 다시 잡을 필요 있음."},
-            {"S-0003","수학", LocalDate.of(2025,9,16), 21, 25, 1, 2, null},
-            {"S-0003","영어", LocalDate.of(2025,9,17), 22, 20, 2, 1, "도치구문 이해 저조. 예문 반복 학습 필요."},
-            {"S-0003","국어", LocalDate.of(2025,9,18), 21, 20, 2, 2, null},
+            // 이준혁(3): 21시 야간, 짧은 집중 분산
+            {3L,"수학", LocalDate.of(2025,9,15), 21, 30, 2, 2, "수열 공식 암기 부족. 기초부터 다시 잡을 필요 있음."},
+            {3L,"수학", LocalDate.of(2025,9,16), 21, 25, 1, 2, null},
+            {3L,"영어", LocalDate.of(2025,9,17), 22, 20, 2, 1, "도치구문 이해 저조. 예문 반복 학습 필요."},
+            {3L,"국어", LocalDate.of(2025,9,18), 21, 20, 2, 2, null},
 
-            // 박지은(S-0004): 17시 집중, 전 과목 고른 학습
-            {"S-0004","수학", LocalDate.of(2025,9,15), 17, 120, 5, 5, "미분 심화 완벽 소화. 다음 단계 진도 가능."},
-            {"S-0004","수학", LocalDate.of(2025,9,16), 17, 110, 5, 5, null},
-            {"S-0004","영어", LocalDate.of(2025,9,15), 19, 90, 5, 4, "복합관계대명사 완벽 이해."},
-            {"S-0004","국어", LocalDate.of(2025,9,17), 17, 80, 4, 5, null},
-            {"S-0004","수학", LocalDate.of(2025,9,18), 17, 120, 5, 5, null},
+            // 박지은(4): 17시 집중, 전 과목 고른 학습
+            {4L,"수학", LocalDate.of(2025,9,15), 17, 120, 5, 5, "미분 심화 완벽 소화. 다음 단계 진도 가능."},
+            {4L,"수학", LocalDate.of(2025,9,16), 17, 110, 5, 5, null},
+            {4L,"영어", LocalDate.of(2025,9,15), 19, 90, 5, 4, "복합관계대명사 완벽 이해."},
+            {4L,"국어", LocalDate.of(2025,9,17), 17, 80, 4, 5, null},
+            {4L,"수학", LocalDate.of(2025,9,18), 17, 120, 5, 5, null},
 
-            // 최현우(S-0005): 18시 주력, 수학·사회
-            {"S-0005","수학", LocalDate.of(2025,9,15), 18, 60, 3, 4, null},
-            {"S-0005","수학", LocalDate.of(2025,9,16), 18, 55, 3, 3, "방정식 활용 문제 반복 풀이 필요."},
-            {"S-0005","사회", LocalDate.of(2025,9,17), 19, 40, 3, 3, null},
-            {"S-0005","국어", LocalDate.of(2025,9,18), 17, 35, 3, 3, null},
+            // 최현우(5): 18시 주력, 수학·사회
+            {5L,"수학", LocalDate.of(2025,9,15), 18, 60, 3, 4, null},
+            {5L,"수학", LocalDate.of(2025,9,16), 18, 55, 3, 3, "방정식 활용 문제 반복 풀이 필요."},
+            {5L,"사회", LocalDate.of(2025,9,17), 19, 40, 3, 3, null},
+            {5L,"국어", LocalDate.of(2025,9,18), 17, 35, 3, 3, null},
         };
 
         List<LearningActivity> activities = new ArrayList<>();
         for (Object[] r : data) {
             activities.add(LearningActivity.builder()
-                    .studentId((String) r[0])
+                    .studentId((Long) r[0])
                     .subject((String) r[1])
                     .studyDate((LocalDate) r[2])
                     .studyStartTime(LocalTime.of((Integer) r[3], 0))

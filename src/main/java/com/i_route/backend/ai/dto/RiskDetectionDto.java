@@ -7,7 +7,7 @@ import java.util.List;
 @Getter
 @Builder
 public class RiskDetectionDto {
-    private String studentId;
+    private Long studentId;
     private boolean atRisk;
     private String riskLevel;       // NONE / LOW / HIGH
     private String riskSummary;

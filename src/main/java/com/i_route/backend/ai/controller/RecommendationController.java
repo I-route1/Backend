@@ -66,7 +66,7 @@ public class RecommendationController {
      */
     @GetMapping("/peer-content")
     public ResponseEntity<List<MaterialRecommendationDto>> getPeerContent(
-            @RequestParam String studentId) {
+            @RequestParam Long studentId) {
         return ResponseEntity.ok(aiRecommendationService.recommendByPeerContent(studentId));
     }
 
@@ -76,7 +76,7 @@ public class RecommendationController {
      */
     @GetMapping("/peer-path")
     public ResponseEntity<PeerSuccessPathDto> getPeerSuccessPath(
-            @RequestParam String studentId,
+            @RequestParam Long studentId,
             @RequestParam String subject) {
         return ResponseEntity.ok(aiRecommendationService.recommendPeerSuccessPath(studentId, subject));
     }

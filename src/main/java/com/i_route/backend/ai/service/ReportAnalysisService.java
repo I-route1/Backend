@@ -37,7 +37,7 @@ public class ReportAnalysisService {
     private final WrongAnswerRepository wrongAnswerRepository;
 
     // 기존 String 기반 API — 표준편차·전회 대비 변동 추가
-    public AnalysisReportDto getAnalysisReport(String studentId, String subject) {
+    public AnalysisReportDto getAnalysisReport(Long studentId, String subject) {
         List<Grade> grades = gradeRepository.findByStudentIdAndSubjectOrderByExamDateDesc(studentId, subject);
 
         if (grades.isEmpty()) {
@@ -105,11 +105,11 @@ public class ReportAnalysisService {
     // 신규: Long 기반 특정 시험 종합 리포트
     public AnalysisReportDto generateScoreReport(Long studentId, Long testId) {
         Grade grade = gradeRepository.findById(testId)
-                .filter(g -> g.getStudentId().equals(String.valueOf(studentId)))
+                .filter(g -> g.getStudentId().equals(studentId))
                 .orElseThrow(() -> new IllegalArgumentException("해당 시험 데이터를 찾을 수 없습니다."));
 
         List<Grade> allGrades = gradeRepository.findByStudentIdAndSubjectOrderByExamDateDesc(
-                String.valueOf(studentId), grade.getSubject());
+                studentId, grade.getSubject());
 
         double avg = allGrades.stream()
                 .mapToInt(Grade::getScore)
@@ -179,7 +179,7 @@ public class ReportAnalysisService {
     }
 
     // 신규: 학습 패턴 분석 (String studentId 기반 — LearningActivity.studyStartTime 사용)
-    public StudyPatternDto analyzeStudyPatternByStudentId(String studentId) {
+    public StudyPatternDto analyzeStudyPatternByStudentId(Long studentId) {
         List<LearningActivity> activities = learningActivityRepository.findByStudentId(studentId);
 
         if (activities.isEmpty()) {
@@ -223,7 +223,7 @@ public class ReportAnalysisService {
     }
 
     // 신규: 메타인지 괴리 분석 — 자기평가 vs 실제 성적 비교
-    public MetaCognitionGapDto analyzeMetaCognitionGap(String studentId, String subject) {
+    public MetaCognitionGapDto analyzeMetaCognitionGap(Long studentId, String subject) {
         List<LearningActivity> activities = learningActivityRepository.findByStudentIdAndSubject(studentId, subject);
         List<Grade> grades = gradeRepository.findByStudentIdAndSubjectOrderByExamDateDesc(studentId, subject);
 
@@ -285,7 +285,7 @@ public class ReportAnalysisService {
     }
 
     // 신규: 위험 학생 탐지 (연속 성적 하락 감지)
-    public RiskDetectionDto analyzeRisk(String studentId) {
+    public RiskDetectionDto analyzeRisk(Long studentId) {
         List<String> subjects = gradeRepository.findDistinctSubjectsByStudentId(studentId);
         List<RiskDetectionDto.SubjectRisk> subjectRisks = new ArrayList<>();
 

@@ -15,7 +15,7 @@ public class AiRecommendation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String studentId;
+    private Long studentId;
 
     private String title;
 

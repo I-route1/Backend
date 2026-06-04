@@ -40,30 +40,30 @@ public class AiCounselingService {
     }
 
     // 1️⃣ [수학 메타인지 모델 가동]
-    public Mono<AiReportResponse> generateMathReport(String studentId) {
+    public Mono<AiReportResponse> generateMathReport(Long studentId) {
         log.info("📐 [수학 AI 가동] 학생 ID: {}의 진짜 데이터를 DB에서 조회합니다...", studentId);
         return fetchRealStudentData(studentId)
                 .flatMap(realRequest -> sendToPythonServer("/api/ai/report/math", realRequest, "수학 메타인지 분석 리포트"));
     }
 
     // 2️⃣ [진로 탐색 및 작문 모델 가동]
-    public Mono<AiReportResponse> generateWritingReport(String studentId) {
+    public Mono<AiReportResponse> generateWritingReport(Long studentId) {
         log.info("✍️ [진로/작문 AI 가동] 학생 ID: {}의 진짜 데이터를 DB에서 조회합니다...", studentId);
         return fetchRealStudentData(studentId)
                 .flatMap(realRequest -> sendToPythonServer("/api/ai/report/writing", realRequest, "인공지능 기반 진로 탐색 리포트"));
     }
 
     // 3️⃣ [프리미엄 통합 분석 리포트 가동]
-    public Mono<AiReportResponse> generatePremiumReport(String studentId) {
+    public Mono<AiReportResponse> generatePremiumReport(Long studentId) {
         log.info("🚀 [통합 AI 가동] 학생 ID: {}의 진짜 데이터를 DB에서 조회합니다...", studentId);
         return fetchRealStudentData(studentId)
                 .flatMap(realRequest -> sendToPythonServer("/api/ai/report/premium", realRequest, "i-Route 프리미엄 통합 리포트"));
     }
 
     // 🔍 [리액티브 특화 방어막] DB 블로킹 조회 격리
-    private Mono<AiReportRequest> fetchRealStudentData(String studentId) {
+    private Mono<AiReportRequest> fetchRealStudentData(Long studentId) {
         return Mono.fromCallable(() -> {
-                    StudentInfo studentInfo = studentInfoRepository.findById(studentId)
+                    StudentInfo studentInfo = studentInfoRepository.findById(studentId.toString())
                             .orElseThrow(() -> new ResponseStatusException(
                                     HttpStatus.NOT_FOUND, "DB에 존재하지 않는 학생 ID입니다: " + studentId
                             ));
@@ -74,7 +74,7 @@ public class AiCounselingService {
                             .orElse(null);
 
                     return AiReportRequest.builder()
-                            .studentId(studentInfo.getStudentId())
+                            .studentId(studentId)
                             .currentKoreanGrade(studentInfo.getCurrentKoreanGrade())
                             .studyTime(studentInfo.getStudyTime())
                             .studentNote(studentInfo.getStudentNote())
@@ -116,7 +116,7 @@ public class AiCounselingService {
                 });
     }
 
-    public List<AiRecommendation> getReportsByStudentId(String studentId) {
+    public List<AiRecommendation> getReportsByStudentId(Long studentId) {
         log.info("[AI 진단 조회] 학생 ID {}의 과거 리포트 내역을 조회합니다.", studentId);
         return aiRecommendationRepository.findByStudentIdOrderByCreatedAtDesc(studentId);
     }

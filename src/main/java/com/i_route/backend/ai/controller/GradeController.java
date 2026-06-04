@@ -28,7 +28,7 @@ public class GradeController {
 
     // 🌟 2. 성적 조회 API (GET)
     @GetMapping("/{studentId}")
-    public ResponseEntity<List<GradeResponse>> getGrades(@PathVariable String studentId) {
+    public ResponseEntity<List<GradeResponse>> getGrades(@PathVariable Long studentId) {
         List<GradeResponse> responses = gradeService.getGradesByStudent(studentId);
         return ResponseEntity.ok(responses);
     }
@@ -50,7 +50,7 @@ public class GradeController {
 
     // 🌟 [NEW] 5. 학생 성적 추이 및 요약 분석 리포트 API (GET)
     @GetMapping("/{studentId}/analysis")
-    public ResponseEntity<GradeAnalysisResponse> getGradeAnalysis(@PathVariable String studentId) {
+    public ResponseEntity<GradeAnalysisResponse> getGradeAnalysis(@PathVariable Long studentId) {
         GradeAnalysisResponse response = gradeService.analyzeStudentGrades(studentId);
         return ResponseEntity.ok(response);
     }

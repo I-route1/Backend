@@ -7,7 +7,7 @@ import java.time.LocalDate;
 @Getter
 @NoArgsConstructor
 public class GradeRequest {
-    private String studentId;
+    private Long studentId;
     private String subject;
     private int score;
     private int gradeLevel;

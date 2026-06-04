@@ -20,7 +20,7 @@ public class StudyChecklistService {
     private final StudyChecklistRepository checklistRepository;
 
     @Transactional(readOnly = true)
-    public List<StudyChecklistResponse> getByDate(String studentId, LocalDate date) {
+    public List<StudyChecklistResponse> getByDate(Long studentId, LocalDate date) {
         return checklistRepository.findByStudentIdAndPlanDateOrderByIdAsc(studentId, date)
                 .stream()
                 .map(StudyChecklistResponse::from)

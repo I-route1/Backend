@@ -26,7 +26,7 @@ public class LearningActivityController {
 
     // 🌟 학습 기록 조회 (GET)
     @GetMapping("/{studentId}")
-    public ResponseEntity<List<LearningActivityResponse>> getActivities(@PathVariable String studentId) {
+    public ResponseEntity<List<LearningActivityResponse>> getActivities(@PathVariable Long studentId) {
         List<LearningActivityResponse> responses = learningActivityService.getActivitiesByStudent(studentId);
         return ResponseEntity.ok(responses);
     }

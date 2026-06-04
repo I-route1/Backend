@@ -20,7 +20,7 @@ public class StudyChecklistController {
 
     @GetMapping
     public ResponseEntity<List<StudyChecklistResponse>> getChecklist(
-            @RequestParam String studentId,
+            @RequestParam Long studentId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         LocalDate targetDate = date != null ? date : LocalDate.now();
         return ResponseEntity.ok(checklistService.getByDate(studentId, targetDate));

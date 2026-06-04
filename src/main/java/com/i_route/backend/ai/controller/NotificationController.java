@@ -25,7 +25,7 @@ public class NotificationController {
      * 학생의 전체 알림 목록 조회
      */
     @GetMapping
-    public ResponseEntity<List<ReviewNotification>> getNotifications(@RequestParam String studentId) {
+    public ResponseEntity<List<ReviewNotification>> getNotifications(@RequestParam Long studentId) {
         return ResponseEntity.ok(reviewNotificationRepository.findByStudentIdOrderByCreatedAtDesc(studentId));
     }
 
@@ -34,7 +34,7 @@ public class NotificationController {
      * 읽지 않은 알림만 조회
      */
     @GetMapping("/unread")
-    public ResponseEntity<List<ReviewNotification>> getUnreadNotifications(@RequestParam String studentId) {
+    public ResponseEntity<List<ReviewNotification>> getUnreadNotifications(@RequestParam Long studentId) {
         return ResponseEntity.ok(reviewNotificationRepository.findByStudentIdAndIsReadFalseOrderByCreatedAtDesc(studentId));
     }
 
@@ -55,7 +55,7 @@ public class NotificationController {
      * 에빙하우스 복습 알림 즉시 생성 (프론트엔드 요청용)
      */
     @PostMapping("/trigger")
-    public ResponseEntity<Map<String, Object>> triggerNotifications(@RequestParam String studentId) {
+    public ResponseEntity<Map<String, Object>> triggerNotifications(@RequestParam Long studentId) {
         int created = reviewSchedulerService.triggerReviewNotificationsForStudent(studentId);
         return ResponseEntity.ok(Map.of(
                 "studentId", studentId,

@@ -16,7 +16,7 @@ public class ReviewController {
     private final ReviewSchedulerService reviewSchedulerService;
 
     @GetMapping("/today")
-    public ResponseEntity<ReviewTodayDto> getTodayReviews(@RequestParam String studentId) {
+    public ResponseEntity<ReviewTodayDto> getTodayReviews(@RequestParam Long studentId) {
         return ResponseEntity.ok(reviewSchedulerService.getTodayReviews(studentId));
     }
 
