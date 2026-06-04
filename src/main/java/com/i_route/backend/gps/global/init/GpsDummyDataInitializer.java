@@ -67,18 +67,16 @@ public class GpsDummyDataInitializer implements CommandLineRunner {
         academyRepository.save(firstAcademy);
 
         // 5개 학원, 학원당 50명씩 250명 생성
-        // 테스트 학부모(userId 14)에 첫 번째 학원의 처음 5명을 자녀로 할당
+        // 테스트 학부모(userId 14)에 첫 5개 학생만 할당
         Random random = new Random(42);
         int studentId = 1;
-        int parentUserIdForTest = 14; // 테스트 학부모 계정
-        int childrenAssigned = 0;
+        final int PARENT_USER_ID = 14; // 테스트 학부모 계정
 
         for (Academy academy : academies) {
             List<Student> studentsForAcademy = new ArrayList<>();
 
             // 성적대 분포: 최상위(1등급) 5명, 상위(2등급) 10명, 중위(3등급) 20명, 하위(4-5등급) 15명
             int[] gradeDistribution = {5, 10, 20, 10, 5};
-            int studentIndex = 0;
 
             for (int gradeLevel = 1; gradeLevel <= 5; gradeLevel++) {
                 for (int count = 0; count < gradeDistribution[gradeLevel - 1]; count++) {
@@ -87,12 +85,8 @@ public class GpsDummyDataInitializer implements CommandLineRunner {
 
                     double koreanGrade = getGradeRange(gradeLevel, random);
 
-                    // 첫 번째 학원의 처음 5명만 테스트 학부모에 할당, 나머지는 parentId = null
-                    Long parentId = null;
-                    if (academies.indexOf(academy) == 0 && childrenAssigned < 5) {
-                        parentId = (long) parentUserIdForTest;
-                        childrenAssigned++;
-                    }
+                    // studentId 1~5만 테스트 학부모에 할당, 나머지는 null
+                    Long parentId = (studentId >= 1 && studentId <= 5) ? (long) PARENT_USER_ID : null;
 
                     Student student = Student.builder()
                             .name(name)
