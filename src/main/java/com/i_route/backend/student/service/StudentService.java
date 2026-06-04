@@ -37,8 +37,7 @@ public class StudentService {
 
     @Transactional(readOnly = true)
     public List<StudentResponse> getMyChildren(Long parentId) {
-        return studentRepository.findAll().stream()
-                .filter(s -> parentId.equals(s.getParentId()))
+        return studentRepository.findByParentId(parentId).stream()
                 .map(StudentResponse::from)
                 .collect(Collectors.toList());
     }
@@ -79,8 +78,7 @@ public class StudentService {
 
         Long academyId = academy.getAcademyId();
 
-        return studentRepository.findAll().stream()
-                .filter(s -> academyId.equals(s.getAcademyId()))
+        return studentRepository.findByAcademyId(academyId).stream()
                 .map(StudentResponse::from)
                 .collect(Collectors.toList());
     }
