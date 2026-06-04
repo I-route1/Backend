@@ -19,4 +19,8 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     // 오늘 특정 버스의 전체 출결 (관리자/교사용)
     List<Attendance> findByBusIdAndTimestampBetweenOrderByTimestampAsc(
             Long busId, LocalDateTime from, LocalDateTime to);
+
+    // 특정 기간의 모든 출결 기록 (학원 기사용)
+    List<Attendance> findByTimestampBetweenOrderByTimestampAsc(
+            LocalDateTime from, LocalDateTime to);
 }

@@ -160,18 +160,65 @@ public class GpsQueryService {
                 .collect(Collectors.toList());
     }
 
-    // 기사의 버스 탑승 현황 조회 (학원 정보 포함)
+    // 기사의 학원 학생 탑승 현황 조회
     public List<PassengerResponse> getDriverBusAttendance(Long userId) {
         User user = userRepository.findById(userId).orElse(null);
         if (user == null) {
             return List.of();
         }
 
-        Bus bus = busRepository.findByDriver_Id(userId).orElse(null);
-        if (bus == null) {
+        Academy academy = academyRepository.findByDriver_Id(userId).orElse(null);
+        if (academy == null) {
             return List.of();
         }
 
-        return getTodayPassengers(bus.getId());
+        Long academyId = academy.getAcademyId();
+
+        // 학원의 모든 학생 조회
+        List<Student> students = studentRepository.findAll().stream()
+                .filter(s -> academyId.equals(s.getAcademyId()))
+                .toList();
+
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1);
+
+        List<Attendance> todayAttendances = attendanceRepository
+                .findByTimestampBetweenOrderByTimestampAsc(startOfDay, endOfDay);
+
+        // 학생별 가장 최근 이벤트
+        Map<Long, AttendanceEventType> latestEventByStudent = todayAttendances.stream()
+                .collect(Collectors.toMap(
+                        Attendance::getStudentId,
+                        Attendance::getEventType,
+                        (existing, replacement) -> replacement
+                ));
+
+        return students.stream()
+                .map(student -> {
+                    RouteStop stop = student.getRouteStopId() != null
+                            ? routeStopRepository.findById(student.getRouteStopId()).orElse(null)
+                            : null;
+
+                    AttendanceEventType latestEvent = latestEventByStudent.get(student.getStudentId());
+                    PassengerStatus status;
+                    if (latestEvent == null) {
+                        status = PassengerStatus.WAITING;
+                    } else if (latestEvent == AttendanceEventType.BOARD) {
+                        status = PassengerStatus.BOARDED;
+                    } else {
+                        status = PassengerStatus.EXITED;
+                    }
+
+                    return PassengerResponse.builder()
+                            .studentId(student.getStudentId())
+                            .name(student.getName())
+                            .profileImage(student.getProfileImage())
+                            .stopName(stop != null ? stop.getStopName() : null)
+                            .status(status)
+                            .academyId(student.getAcademyId())
+                            .academyName(academy.getAcademyName())
+                            .build();
+                })
+                .collect(Collectors.toList());
     }
 }
