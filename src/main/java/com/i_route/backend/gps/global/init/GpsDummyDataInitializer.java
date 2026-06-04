@@ -11,12 +11,15 @@ import com.i_route.backend.gps.domain.route.repository.RouteRepository;
 import com.i_route.backend.gps.domain.route.repository.RouteStopRepository;
 import com.i_route.backend.gps.domain.student.entity.Student;
 import com.i_route.backend.gps.domain.student.repository.StudentRepository;
+import com.i_route.backend.user.entity.Academy;
+import com.i_route.backend.user.repository.AcademyRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalTime;
+import java.util.*;
 
 @Component
 @Profile("local")
@@ -28,118 +31,83 @@ public class GpsDummyDataInitializer implements CommandLineRunner {
     private final RouteStopRepository routeStopRepository;
     private final BusRepository busRepository;
     private final StudentRepository studentRepository;
-    //private final UserRepository userRepository;
+    private final AcademyRepository academyRepository;
+
+    private static final String[] FIRST_NAMES = {"민준", "서연", "준혁", "지은", "현우", "정현", "미영", "수현", "태희", "혜진",
+            "현정", "은정", "민지", "유진", "은지", "수진", "지수", "경은", "하나", "슬기"};
+    private static final String[] LAST_NAMES = {"김", "이", "박", "최", "정", "조", "윤", "장", "임", "전", "한", "홍", "신", "곽", "성", "원", "문", "구", "노", "도"};
+    private static final Student.LearningTendency[] TENDENCIES = {Student.LearningTendency.VISUAL, Student.LearningTendency.AUDITORY, Student.LearningTendency.KINESTHETIC};
+    private static final String[] NOTES = {"집중력 향상 필요", "참여도 높음", "개념 이해 부족", "꾸준한 노력형", "창의적 사고력 우수", "적극적 학습태도", "복습 강화 필요", "팀 활동 적극적"};
 
     @Override
     public void run(String... args) {
-       /* if (userRepository.count() == 0) {
-
-            userRepository.save(
-                    User.builder()
-                            .id(100L)
-                            .email("parent100@test.com")
-                            .emailVerified(true)
-                            .loginType(LoginType.EMAIL)
-                            .name("홍길동 학부모")
-                            .nickname("parent100")
-                            .phoneNumber("010-0000-0100")
-                            .premiumCredits(0)
-                            .role(Role.PARENT)
-                            .username("parent100")
-                            .build()
-            );
-
-            userRepository.save(
-                    User.builder()
-                            .id(101L)
-                            .email("parent101@test.com")
-                            .emailVerified(true)
-                            .loginType(LoginType.EMAIL)
-                            .name("김철수 학부모")
-                            .nickname("parent101")
-                            .phoneNumber("010-0000-0101")
-                            .premiumCredits(0)
-                            .role(Role.PARENT)
-                            .username("parent101")
-                            .build()
-            );
-        }*/
-
         if (busRepository.count() > 0) {
             return;
         }
 
-        Driver driver = driverRepository.save(
-                Driver.builder()
-                        .name("김기사")
-                        .phoneNumber("010-1111-2222")
-                        .build()
-        );
+        List<Academy> academies = academyRepository.findAll();
+        if (academies.isEmpty()) {
+            return;
+        }
 
-        Route route = routeRepository.save(
-                Route.builder()
-                        .routeName("영남대 A노선")
-                        .build()
-        );
+        // 5개 학원, 학원당 50명씩 250명 생성
+        Random random = new Random(42);
+        int studentId = 1;
 
-        RouteStop stop1 = routeStopRepository.save(
-                RouteStop.builder()
-                        .routeId(route.getId())
-                        .stopName("영남대 정문")
-                        .latitude(35.8428)
-                        .longitude(128.5586)
-                        .stopOrder(1)
-                        .build()
-        );
+        for (Academy academy : academies) {
+            List<Student> studentsForAcademy = new ArrayList<>();
 
-        RouteStop stop2 = routeStopRepository.save(
-                RouteStop.builder()
-                        .routeId(route.getId())
-                        .stopName("영남대 후문")
-                        .latitude(35.8450)
-                        .longitude(128.5630)
-                        .stopOrder(2)
-                        .build()
-        );
+            // 성적대 분포: 최상위(1등급) 5명, 상위(2등급) 10명, 중위(3등급) 20명, 하위(4-5등급) 15명
+            int[] gradeDistribution = {5, 10, 20, 10, 5};
+            int studentIndex = 0;
 
-        RouteStop stop3 = routeStopRepository.save(
-                RouteStop.builder()
-                        .routeId(route.getId())
-                        .stopName("압량네거리")
-                        .latitude(35.8500)
-                        .longitude(128.5700)
-                        .stopOrder(3)
-                        .build()
-        );
+            for (int gradeLevel = 1; gradeLevel <= 5; gradeLevel++) {
+                for (int count = 0; count < gradeDistribution[gradeLevel - 1]; count++) {
+                    String name = LAST_NAMES[random.nextInt(LAST_NAMES.length)] +
+                                 FIRST_NAMES[random.nextInt(FIRST_NAMES.length)];
 
-        Bus bus = busRepository.save(
-                Bus.builder()
-                        .busNumber("12가1234")
-                        .driver(driver)
-                        .route(route)
-                        .operationStatus(OperationStatus.OPERATING)
-                        .build()
-        );
+                    double koreanGrade = getGradeRange(gradeLevel, random);
+                    Student student = Student.builder()
+                            .name(name)
+                            .academyId(academy.getAcademyId())
+                            .parentId(200L + studentId)
+                            .expectedDropOffTime(LocalTime.of(22 + (studentId % 2), studentId % 60))
+                            .currentLevel(gradeLevel)
+                            .learningTendency(TENDENCIES[random.nextInt(TENDENCIES.length)])
+                            .currentKoreanGrade(koreanGrade)
+                            .studyTime((double) (2 + random.nextInt(4)))
+                            .studentNote(NOTES[random.nextInt(NOTES.length)])
+                            .recommendContext(getRecommendContext(gradeLevel))
+                            .build();
 
-        studentRepository.save(
-                Student.builder()
-                        .busId(bus.getId())
-                        .routeStopId(stop2.getId())
-                        .name("홍길동")
-                        .expectedDropOffTime(LocalTime.of(22, 0))
-                        .parentId(100L)
-                        .build()
-        );
+                    studentsForAcademy.add(student);
+                    studentId++;
+                }
+            }
 
-        studentRepository.save(
-                Student.builder()
-                        .busId(bus.getId())
-                        .routeStopId(stop3.getId())
-                        .name("김철수")
-                        .expectedDropOffTime(LocalTime.of(22, 10))
-                        .parentId(101L)
-                        .build()
-        );
+            studentRepository.saveAll(studentsForAcademy);
+        }
     }
 
+    private double getGradeRange(int gradeLevel, Random random) {
+        return switch (gradeLevel) {
+            case 1 -> 90 + random.nextDouble() * 10;      // 90~100
+            case 2 -> 80 + random.nextDouble() * 10;      // 80~90
+            case 3 -> 70 + random.nextDouble() * 10;      // 70~80
+            case 4 -> 60 + random.nextDouble() * 10;      // 60~70
+            case 5 -> 50 + random.nextDouble() * 10;      // 50~60
+            default -> 70 + random.nextDouble() * 10;
+        };
+    }
+
+    private String getRecommendContext(int gradeLevel) {
+        return switch (gradeLevel) {
+            case 1 -> "심화 과정 추천";
+            case 2 -> "상위권 진입 목표";
+            case 3 -> "기초 강화 필요";
+            case 4 -> "개념 이해 집중";
+            case 5 -> "전면 재학습 권장";
+            default -> "학습 계획 수립 필요";
+        };
+    }
 }
