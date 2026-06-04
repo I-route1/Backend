@@ -67,6 +67,7 @@ public class ReviewSchedulerService {
 
         for (AiRecommendation rec : found) {
             items.add(ReviewTodayDto.ReviewItem.builder()
+                    .id(rec.getId())
                     .title(rec.getTitle())
                     .dayLabel(dayLabel)
                     .originalDate(targetDate.toString())
@@ -104,6 +105,14 @@ public class ReviewSchedulerService {
                     .build());
         }
         return recs.size();
+    }
+
+    public void deleteReview(Long reviewId) {
+        if (!aiRecommendationRepository.existsById(reviewId)) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.NOT_FOUND, "복습 항목을 찾을 수 없습니다.");
+        }
+        aiRecommendationRepository.deleteById(reviewId);
     }
 
     /**

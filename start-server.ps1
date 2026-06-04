@@ -1,16 +1,29 @@
 # i-Route 백엔드 서버 기동 스크립트
 # 사용법: .\start-server.ps1
 
-# ── 1. Redis (WSL) ────────────────────────────────────────────────
+# PowerShell 콘솔 코드 페이지 및 출력 인코딩 UTF-8 설정
+chcp 65001 | Out-Null
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+
+# ── 1. Redis (Docker) ─────────────────────────────────────────────
 Write-Host "Redis 상태 확인 중..." -ForegroundColor Cyan
-$redisPing = wsl -e bash -c "redis-cli ping 2>/dev/null"
-if ($redisPing -eq "PONG") {
+$redisState = docker inspect -f '{{.State.Running}}' redis-container 2>$null
+if ($redisState -eq "true") {
     Write-Host "  Redis 이미 실행 중." -ForegroundColor DarkGray
 } else {
-    Write-Host "  Redis 시작 중..." -ForegroundColor Yellow
-    wsl -e bash -c "redis-server --daemonize yes --port 6379" | Out-Null
+    $exists = docker ps -a --format '{{.Names}}' | Select-String "redis-container"
+    if ($exists) {
+        Write-Host "  Redis 컨테이너 시작 중..." -ForegroundColor Yellow
+        docker start redis-container | Out-Null
+    } else {
+        Write-Host "  Redis 컨테이너 생성 중..." -ForegroundColor Yellow
+        docker network inspect iroute-net 2>$null | Out-Null
+        if ($LASTEXITCODE -ne 0) { docker network create iroute-net | Out-Null }
+        docker run -d --name redis-container --network iroute-net -p 6379:6379 redis:7 | Out-Null
+    }
     Start-Sleep -Seconds 2
-    $redisPing = wsl -e bash -c "redis-cli ping 2>/dev/null"
+    $redisPing = docker exec redis-container redis-cli ping 2>$null
     if ($redisPing -eq "PONG") {
         Write-Host "  Redis 기동 완료." -ForegroundColor Green
     } else {
@@ -29,10 +42,23 @@ $env:KAKAO_REST_API_KEY  = "3eb63a2338882943f3b2280a3460d9c8"
 $env:KAKAO_REDIRECT_URI  = "http://localhost:8080/api/auth/kakao/callback"
 $env:AI_SERVER_URL       = "http://localhost:8082"
 
-Write-Host "환경변수 설정 완료. 서버 기동 중..." -ForegroundColor Cyan
+Write-Host "환경변수 설정 완료." -ForegroundColor Cyan
 
-# ── 3. Spring Boot 서버 ───────────────────────────────────────────
-Start-Process -NoNewWindow -FilePath ".\gradlew.bat" -ArgumentList "bootRun" `
+# ── 3. JAR 빌드 ───────────────────────────────────────────────────
+Write-Host "JAR 빌드 중..." -ForegroundColor Yellow
+.\gradlew.bat bootJar -q
+if ($LASTEXITCODE -ne 0) { Write-Host "JAR 빌드 실패." -ForegroundColor Red; exit 1 }
+Write-Host "JAR 빌드 완료. 서버 기동 중..." -ForegroundColor Cyan
+
+# ── 4. Spring Boot 서버 ───────────────────────────────────────────
+$jar = Get-ChildItem ".\build\libs\*.jar" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+$jvmArgs = @(
+    "-Dfile.encoding=UTF-8",
+    "-Dstdout.encoding=UTF-8",
+    "-Dstderr.encoding=UTF-8",
+    "-jar", $jar.FullName
+)
+Start-Process -NoNewWindow -FilePath "java" -ArgumentList $jvmArgs `
     -WorkingDirectory (Get-Location) `
     -RedirectStandardOutput ".\server.log" `
     -RedirectStandardError ".\server-err.log"
@@ -60,7 +86,7 @@ if (-not $ready) {
 
 Write-Host "서버 기동 완료!" -ForegroundColor Green
 
-# ── 4. 테스트 계정 토큰 ───────────────────────────────────────────
+# ── 5. 테스트 계정 토큰 ───────────────────────────────────────────
 # 로그인 API 필드: username (이메일 아님)
 # - PARENT  : username=frontdev  (email=frontend@iroute.dev)
 # - ADMIN   : username=admin     (email=admin@iroute.dev)
@@ -90,7 +116,7 @@ foreach ($acc in $accounts) {
 
 Write-Host "`n============================`n" -ForegroundColor Cyan
 
-# ── 5. GPS 시뮬레이터 ─────────────────────────────────────────────
+# ── 6. GPS 시뮬레이터 ─────────────────────────────────────────────
 # busId=1 (BUS-001): stop-A(35.8468, 128.6132) ↔ stop-B(35.85, 128.62) 왕복
 # 5초마다 위치 전송 (기사 앱 대역)
 $sim = Start-Job -Name "GpsSimulator" -ScriptBlock {
