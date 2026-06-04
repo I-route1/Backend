@@ -48,6 +48,13 @@ spring:
   mvc:
     async:
       request-timeout: 180000
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+      indent-output: false
+    deserialization:
+      fail-on-unknown-properties: false
 
 logging:
   level:
