@@ -1,6 +1,7 @@
 package com.i_route.backend.student.controller;
 
 import com.i_route.backend.global.security.CustomUserDetails;
+import com.i_route.backend.student.dto.ChildCreateRequest;
 import com.i_route.backend.student.dto.StudentCreateRequest;
 import com.i_route.backend.student.dto.StudentResponse;
 import com.i_route.backend.student.service.StudentService;
@@ -38,5 +39,14 @@ public class StudentController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         List<StudentResponse> children = studentService.getMyChildren(userDetails.getId());
         return ResponseEntity.ok(children);
+    }
+
+    // 학원 관리자: 내 학원의 학생 목록 조회
+    @GetMapping("/academy/students")
+    @PreAuthorize("hasRole('ACADEMY')")
+    public ResponseEntity<List<StudentResponse>> getAcademyStudents(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        List<StudentResponse> students = studentService.getAcademyStudents(userDetails.getId());
+        return ResponseEntity.ok(students);
     }
 }
