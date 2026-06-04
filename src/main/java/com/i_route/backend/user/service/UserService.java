@@ -96,4 +96,5 @@ public class UserService {
         return new DuplicateCheckResponse(false, List.of(),
                 "사용 가능한 " + fieldName + "입니다.");
     }
+
 }

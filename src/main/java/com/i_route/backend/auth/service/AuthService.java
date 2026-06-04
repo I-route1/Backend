@@ -4,6 +4,7 @@ import com.i_route.backend.auth.dto.*;
 import com.i_route.backend.auth.repository.RefreshTokenRepository;
 import com.i_route.backend.auth.entity.EmailVerificationToken;
 import com.i_route.backend.auth.entity.RefreshToken;
+import com.i_route.backend.board.repository.*;
 import com.i_route.backend.user.entity.Academy;
 import com.i_route.backend.user.entity.User;
 import com.i_route.backend.user.repository.*;
@@ -43,6 +44,16 @@ public class AuthService {
 
     private final JavaMailSender mailSender;
 
+    private final CommentRepository commentRepository;
+
+    private final CommentLikeRepository commentLikeRepository;
+
+    private final PostBookmarkRepository postBookmarkRepository;
+
+    private final PostLikeRepository postLikeRepository;
+
+    private final PostRepository postRepository;
+
     private final JwtUtil jwtUtil;
     @Value("${jwt.refresh-expiration}")
     private long refreshExpiration;
@@ -50,6 +61,22 @@ public class AuthService {
     @Value("${app.frontend-base-url}")
     private String frontendBaseUrl;
 
+    private String normalizeBlankToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
+    }
+
+    private String normalizePhoneNumber(String phoneNumber) {
+        if (phoneNumber == null || phoneNumber.isBlank()) {
+            return null;
+        }
+
+        String normalized = phoneNumber.replaceAll("[\\s-]", "");
+
+        return normalized.isBlank() ? null : normalized;
+    }
     private String issueRefreshToken(Long userId) {
         // 기존 토큰 삭제 (중복 방지)
         refreshTokenRepository.deleteByUserId(userId);
@@ -127,8 +154,8 @@ public class AuthService {
                 .nickname(request.getNickname())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .name(request.getName())
-                .email(request.getEmail())
-                .phoneNumber(request.getPhoneNumber() != null ? request.getPhoneNumber().replaceAll("[\\s-]", "") : null)
+                .email(normalizeBlankToNull(request.getEmail()))
+                .phoneNumber(normalizePhoneNumber(request.getPhoneNumber()))
                 .role(role)
                 .loginType(User.LoginType.EMAIL)
                 .build();
@@ -181,15 +208,14 @@ public class AuthService {
             throw new IllegalArgumentException("잘못된 role 값입니다: " + request.getRole());
         }
 
-        // 1. User 생성
         User user = User.builder()
                 .username(request.getUsername())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .nickname(request.getNickname())
                 .name(request.getName())
-                .email(request.getEmail())
+                .email(normalizeBlankToNull(request.getEmail()))
                 .role(role)
-                .phoneNumber(request.getPhoneNumber())
+                .phoneNumber(normalizePhoneNumber(request.getPhoneNumber()))
                 .loginType(User.LoginType.EMAIL)
                 .build();
 
@@ -262,16 +288,36 @@ public class AuthService {
                 .build();
     }
 
-    // 소셜 회원 자동 가입
     public User socialRegister(SocialRegisterRequest request) {
+        String providerId = request.getProviderId();
+
+        if (providerId == null || providerId.isBlank()) {
+            throw new IllegalArgumentException("카카오 providerId가 없습니다.");
+        }
+
+        String nickname = request.getNickname();
+
+        if (nickname == null || nickname.isBlank()) {
+            nickname = "카카오회원_" + providerId;
+        } else {
+            nickname = "kakao_" + nickname;
+        }
+
+        String email = normalizeBlankToNull(request.getEmail());
+
+        if (email == null) {
+            email = "kakao_" + providerId + "@kakao.local";
+        }
 
         return userRepository.save(
                 User.builder()
-                        .kakaoId(request.getProviderId() != null
-                                ? Long.valueOf(request.getProviderId())
-                                : null)
-                        .nickname(request.getNickname())
-                        .email(request.getEmail())
+                        .kakaoId(Long.valueOf(providerId))
+                        .name(nickname)
+                        .nickname(nickname)
+                        .email(email)
+                        .username("kakao_" + providerId)
+                        .phoneNumber("KAKAO_" + providerId)
+                        .password("kakao_" + providerId)
                         .role(User.UserRole.PARENT)
                         .loginType(User.LoginType.KAKAO)
                         .emailVerified(true)
@@ -419,4 +465,37 @@ public class AuthService {
                 passwordEncoder.encode(newPassword)
         );
     }
+
+    @Transactional
+    public void deleteMyAccount(Long userId) {
+
+        // 댓글 관련
+
+        commentRepository.deleteByUser_Id(userId);
+
+        // 게시글에 달린 반응 삭제
+        postBookmarkRepository.deleteByUser_Id(userId);
+        postLikeRepository.deleteByUser_Id(userId);
+
+        // 내가 쓴 게시글에 달린 반응/댓글 삭제
+        commentLikeRepository.deleteByPostOwnerId(userId);
+
+        commentRepository.deleteByPost_User_Id(userId);
+
+        postBookmarkRepository.deleteByPost_User_Id(userId);
+        postLikeRepository.deleteByPost_User_Id(userId);
+
+        // 게시글 삭제
+        postRepository.deleteByUser_Id(userId);
+
+        // 회원 부가정보 삭제
+        academyRepository.deleteByUser_Id(userId);
+
+        // 마지막 회원 삭제
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        userRepository.delete(user);
+    }
+
 }
