@@ -41,9 +41,8 @@ public class GpsDummyDataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (busRepository.count() > 0) {
-            // 기존 학생 데이터 삭제 후 재생성 (부모 ID 설정 수정용)
-            studentRepository.deleteAll();
+        if (studentRepository.count() > 0) {
+            return;
         }
 
         List<Academy> academies = academyRepository.findAll();
