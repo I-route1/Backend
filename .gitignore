@@ -40,6 +40,13 @@ replay_pid*
 .env.local
 .env.*.local
 
+# AWS
+*.pem
+i_route_db_dump_mariadb.sql
+init.sql
+start.sh
+cf-config.json
+
 # Logs
 *.log
 *.tmp
