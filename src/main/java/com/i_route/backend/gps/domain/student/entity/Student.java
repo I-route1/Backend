@@ -31,4 +31,6 @@ public class Student {
     private String nfcCardId;
 
     private String gradeStudentId;
+
+    private String profileImage;
 }
