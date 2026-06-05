@@ -32,11 +32,12 @@ jobs:
           strip_components: 2
 
       - name: Restart Server
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_KEY }}
+          command_timeout: 60s
           script: |
             mv /home/ec2-user/*-SNAPSHOT.jar /home/ec2-user/app.jar
             pkill -f 'java -Dfile' || true
@@ -54,5 +55,5 @@ jobs:
             export SPRING_PROFILES_ACTIVE=prod
             nohup java -Dfile.encoding=UTF-8 -jar /home/ec2-user/app.jar > /home/ec2-user/server.log 2>&1 &
             disown $!
-            sleep 3
+            sleep 5
             echo "서버 시작 완료"
