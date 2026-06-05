@@ -32,28 +32,34 @@ jobs:
           strip_components: 2
 
       - name: Restart Server
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_KEY }}
-          command_timeout: 60s
-          script: |
+        env:
+          EC2_KEY: ${{ secrets.EC2_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          KAKAO_CLIENT_ID: ${{ secrets.KAKAO_CLIENT_ID }}
+          KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
+          AI_SERVER_URL: ${{ secrets.AI_SERVER_URL }}
+        run: |
+          echo "$EC2_KEY" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=30 ec2-user@$EC2_HOST << EOF
             mv /home/ec2-user/*-SNAPSHOT.jar /home/ec2-user/app.jar
             pkill -f 'java -Dfile' || true
             sleep 2
-            export JWT_SECRET=${{ secrets.JWT_SECRET }}
+            export JWT_SECRET="$JWT_SECRET"
             export I_ROUTE_DB_USERNAME=iroute
             export I_ROUTE_DB_PASSWORD=iroute_pw
             export DB_URL="jdbc:mysql://localhost:3306/i_route_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true"
             export MAIL_USERNAME=dev@example.com
             export MAIL_PASSWORD=dev-password
-            export KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }}
-            export KAKAO_REST_API_KEY=${{ secrets.KAKAO_REST_API_KEY }}
+            export KAKAO_CLIENT_ID="$KAKAO_CLIENT_ID"
+            export KAKAO_REST_API_KEY="$KAKAO_REST_API_KEY"
             export KAKAO_REDIRECT_URI=https://d3kh3x870d7dr4.cloudfront.net/oauth/kakao/callback
-            export AI_SERVER_URL=${{ secrets.AI_SERVER_URL }}
+            export AI_SERVER_URL="$AI_SERVER_URL"
             export SPRING_PROFILES_ACTIVE=prod
             nohup java -Dfile.encoding=UTF-8 -jar /home/ec2-user/app.jar > /home/ec2-user/server.log 2>&1 &
-            disown $!
-            sleep 5
+            disown \$!
+            sleep 3
             echo "서버 시작 완료"
+          EOF
+          rm -f /tmp/deploy_key
