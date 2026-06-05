@@ -53,4 +53,6 @@ jobs:
             export AI_SERVER_URL=${{ secrets.AI_SERVER_URL }}
             export SPRING_PROFILES_ACTIVE=prod
             nohup java -Dfile.encoding=UTF-8 -jar /home/ec2-user/app.jar > /home/ec2-user/server.log 2>&1 &
+            disown $!
+            sleep 3
             echo "서버 시작 완료"
