@@ -3,6 +3,7 @@ package com.i_route.backend.gps.domain.attendance.controller;
 import com.i_route.backend.gps.domain.attendance.dto.AttendanceResponse;
 import com.i_route.backend.gps.domain.attendance.dto.AttendanceTagRequest;
 import com.i_route.backend.gps.domain.attendance.dto.GradeStudentIdRequest;
+import com.i_route.backend.gps.domain.attendance.dto.ManualAttendanceRequest;
 import com.i_route.backend.gps.domain.attendance.dto.NfcPendingResponse;
 import com.i_route.backend.gps.domain.attendance.dto.NfcRegisterQueueRequest;
 import com.i_route.backend.gps.domain.attendance.dto.NfcRegisterRequest;
@@ -33,6 +34,18 @@ public class AttendanceController {
     public ResponseEntity<AttendanceResponse> tagCard(
             @Valid @RequestBody AttendanceTagRequest request) {
         return ResponseEntity.ok(attendanceService.processTag(request));
+    }
+
+    /**
+     * 기사 앱 → 수동 승하차 처리
+     * POST /api/gps/attendance/manual
+     * Body: { "studentId": 1, "eventType": "BOARD" }
+     */
+    @PreAuthorize("hasRole('DRIVER')")
+    @PostMapping("/attendance/manual")
+    public ResponseEntity<AttendanceResponse> manualAttendance(
+            @Valid @RequestBody ManualAttendanceRequest request) {
+        return ResponseEntity.ok(attendanceService.processManualAttendance(request));
     }
 
     /**
