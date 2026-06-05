@@ -57,7 +57,7 @@ jobs:
             export KAKAO_REDIRECT_URI=https://d3kh3x870d7dr4.cloudfront.net/oauth/kakao/callback
             export AI_SERVER_URL="$AI_SERVER_URL"
             export SPRING_PROFILES_ACTIVE=prod
-            nohup java -Dfile.encoding=UTF-8 -jar /home/ec2-user/app.jar > /home/ec2-user/server.log 2>&1 &
+            nohup java -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Seoul -jar /home/ec2-user/app.jar > /home/ec2-user/server.log 2>&1 &
             disown \$!
             sleep 3
             echo "서버 시작 완료"
