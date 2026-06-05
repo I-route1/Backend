@@ -1,0 +1,18 @@
+name: Stop Backend Server
+
+on:
+  workflow_dispatch:
+
+jobs:
+  stop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Stop Server
+        env:
+          EC2_KEY: ${{ secrets.EC2_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          echo "$EC2_KEY" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ec2-user@$EC2_HOST "pkill -f 'java' || true; echo '서버 종료 완료'"
+          rm -f /tmp/deploy_key
