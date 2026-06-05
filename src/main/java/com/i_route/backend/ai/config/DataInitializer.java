@@ -4,6 +4,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.i_route.backend.ai.entity.*;
 import com.i_route.backend.ai.repository.*;
+import com.i_route.backend.gps.domain.student.entity.Student;
+import com.i_route.backend.gps.domain.student.repository.StudentRepository;
+import com.i_route.backend.user.entity.Academy;
+import com.i_route.backend.user.entity.User;
+import com.i_route.backend.user.repository.AcademyRepository;
+import com.i_route.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -19,6 +25,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -34,6 +41,9 @@ public class DataInitializer implements ApplicationRunner {
     private final StudyLogRepository studyLogRepository;
     private final WrongAnswerEntityRepository wrongAnswerEntityRepository;
     private final WrongAnswerRepository wrongAnswerRepository;
+    private final StudentRepository studentRepository;
+    private final UserRepository userRepository;
+    private final AcademyRepository academyRepository;
 
     @Override
     @Transactional
@@ -47,6 +57,7 @@ public class DataInitializer implements ApplicationRunner {
         seedGradeEntities();
         seedLearningActivities();
         seedStudyLogs();
+        seedAcademyStudents();
     }
 
     // ─── 기존: 학습 자료 ──────────────────────────────────────
@@ -467,5 +478,62 @@ public class DataInitializer implements ApplicationRunner {
         }
         studyLogRepository.saveAll(logs);
         log.info("[DataInitializer] StudyLog {}개 시드 완료", logs.size());
+    }
+
+    // ─── 학원 관리자 계정에 테스트 학생 50명 시딩 ────────────────
+    private void seedAcademyStudents() {
+        List<User> academyUsers = userRepository.findAll().stream()
+                .filter(u -> u.getRole() == User.UserRole.ACADEMY)
+                .collect(Collectors.toList());
+
+        if (academyUsers.isEmpty()) {
+            log.warn("[DataInitializer] ACADEMY 계정 없음 — GPS 학생 시딩 스킵");
+            return;
+        }
+
+        User academyUser = academyUsers.get(0);
+        Academy academy = academyRepository.findByUser(academyUser).orElse(null);
+        if (academy == null) {
+            log.warn("[DataInitializer] ACADEMY 계정({})의 학원 레코드 없음 — GPS 학생 시딩 스킵",
+                    academyUser.getUsername());
+            return;
+        }
+
+        Long academyId = academy.getAcademyId();
+
+        // 이미 50명 이상이면 스킵
+        if (studentRepository.findByAcademyId(academyId).size() >= 50) {
+            log.info("[DataInitializer] 학원({}) 학생 이미 50명 이상 — 스킵", academy.getAcademyName());
+            return;
+        }
+
+        // inviteCode 없으면 자동 설정
+        if (academy.getInviteCode() == null || academy.getInviteCode().isBlank()) {
+            academy.setInviteCode("ACAD-" + academyId);
+            academyRepository.save(academy);
+            log.info("[DataInitializer] 학원({}) inviteCode 설정: ACAD-{}", academy.getAcademyName(), academyId);
+        }
+
+        String[] grades = {"중1", "중2", "중3", "고1", "고2", "고3"};
+        String[] names = {
+            "김민준", "이서연", "박지호", "최유진", "정하은", "윤도현", "강민서", "조수아", "임재원", "한소희",
+            "오준영", "신예린", "황민호", "배지수", "류승원", "문지아", "홍성민", "노현우", "전은지", "방채원",
+            "심민재", "양서현", "고준혁", "봉미래", "탁준서", "마지현", "구성민", "남도현", "변수진", "안채윤",
+            "하준서", "이민아", "김서진", "박도윤", "최나연", "정우진", "윤하늘", "강지원", "조민준", "임소연",
+            "오태양", "신민호", "황지아", "배준서", "류하린", "문서윤", "홍도현", "노지민", "전준혁", "방하은"
+        };
+
+        List<Student> students = new ArrayList<>();
+        for (int i = 0; i < 50; i++) {
+            students.add(Student.builder()
+                    .name(names[i])
+                    .grade(grades[i % grades.length])
+                    .academyId(academyId)
+                    .build());
+        }
+
+        studentRepository.saveAll(students);
+        log.info("[DataInitializer] 학원({}) GPS 학생 50명 시딩 완료 (academyId={})",
+                academy.getAcademyName(), academyId);
     }
 }
