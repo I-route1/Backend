@@ -10,6 +10,8 @@ import com.i_route.backend.user.entity.Academy;
 import com.i_route.backend.user.entity.User;
 import com.i_route.backend.user.repository.AcademyRepository;
 import com.i_route.backend.user.repository.UserRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -45,6 +47,9 @@ public class DataInitializer implements ApplicationRunner {
     private final UserRepository userRepository;
     private final AcademyRepository academyRepository;
 
+    @PersistenceContext
+    private EntityManager em;
+
     @Override
     @Transactional
     public void run(ApplicationArguments args) throws Exception {
@@ -58,6 +63,7 @@ public class DataInitializer implements ApplicationRunner {
         seedLearningActivities();
         seedStudyLogs();
         seedAcademyStudents();
+        seedTestStudentLinks();
     }
 
     // ─── 기존: 학습 자료 ──────────────────────────────────────
@@ -535,5 +541,19 @@ public class DataInitializer implements ApplicationRunner {
         studentRepository.saveAll(students);
         log.info("[DataInitializer] 학원({}) GPS 학생 50명 시딩 완료 (academyId={})",
                 academy.getAcademyName(), academyId);
+    }
+
+    // ─── 테스트 계정 연결: frontdev(userId=14) → studentId 1,2 / busId=1 ──
+    private void seedTestStudentLinks() {
+        // parentId=14(frontdev), busId=1 이미 세팅된 경우 스킵
+        Long count = (Long) em.createQuery(
+                "SELECT COUNT(s) FROM Student s WHERE s.studentId IN (1, 2) AND s.parentId = 14")
+                .getSingleResult();
+        if (count >= 2) return;
+
+        em.createQuery(
+                "UPDATE Student s SET s.parentId = 14, s.busId = 1 WHERE s.studentId IN (1, 2)")
+                .executeUpdate();
+        log.info("[DataInitializer] 테스트 학생(1,2) parentId=14, busId=1 링크 완료");
     }
 }
