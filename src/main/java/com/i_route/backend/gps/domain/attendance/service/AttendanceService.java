@@ -2,6 +2,7 @@ package com.i_route.backend.gps.domain.attendance.service;
 
 import com.i_route.backend.gps.domain.attendance.dto.AttendanceResponse;
 import com.i_route.backend.gps.domain.attendance.dto.AttendanceTagRequest;
+import com.i_route.backend.gps.domain.attendance.dto.ManualAttendanceRequest;
 import com.i_route.backend.gps.domain.attendance.entity.Attendance;
 import com.i_route.backend.gps.domain.attendance.entity.AttendanceEventType;
 import com.i_route.backend.gps.domain.attendance.repository.AttendanceRepository;
@@ -72,6 +73,54 @@ public class AttendanceService {
         }
 
         // WebSocket 알림은 트랜잭션 커밋 이후에 전송
+        if (student.getParentId() != null) {
+            Long parentId = student.getParentId();
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    messagingTemplate.convertAndSend("/topic/attendance/" + parentId, response);
+                    log.info("[WebSocket] 학부모 {}에게 출결 알림 전송", parentId);
+                }
+            });
+        }
+
+        return response;
+    }
+
+    @Transactional
+    public AttendanceResponse processManualAttendance(ManualAttendanceRequest request) {
+        Student student = studentRepository.findById(request.getStudentId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "학생을 찾을 수 없습니다: " + request.getStudentId()));
+
+        Long busId = student.getBusId();
+        AttendanceEventType eventType = request.getEventType();
+
+        Attendance attendance = Attendance.builder()
+                .studentId(student.getStudentId())
+                .busId(busId)
+                .eventType(eventType)
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        attendance = attendanceRepository.save(attendance);
+        log.info("[수동 출결] 학생={} eventType={} busId={}", student.getName(), eventType, busId);
+
+        AttendanceResponse response = AttendanceResponse.builder()
+                .attendanceId(attendance.getId())
+                .studentId(student.getStudentId())
+                .studentName(student.getName())
+                .busId(busId)
+                .eventType(eventType)
+                .timestamp(attendance.getTimestamp())
+                .build();
+
+        if (eventType == AttendanceEventType.BOARD) {
+            studentBoardingRedisRepository.markBoarded(student.getStudentId(), busId);
+        } else {
+            studentBoardingRedisRepository.markExited(student.getStudentId());
+        }
+
         if (student.getParentId() != null) {
             Long parentId = student.getParentId();
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
