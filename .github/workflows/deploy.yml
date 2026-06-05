@@ -19,7 +19,7 @@ jobs:
           distribution: 'corretto'
 
       - name: Build JAR
-        run: ./gradlew bootJar -x test
+        run: chmod +x gradlew && ./gradlew bootJar -x test
 
       - name: Deploy to EC2
         uses: appleboy/scp-action@master
