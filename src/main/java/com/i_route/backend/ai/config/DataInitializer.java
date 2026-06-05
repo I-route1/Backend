@@ -545,15 +545,15 @@ public class DataInitializer implements ApplicationRunner {
 
     // ─── 테스트 계정 연결: frontdev(userId=14) → studentId 1,2 / busId=1 ──
     private void seedTestStudentLinks() {
-        // parentId=14(frontdev), busId=1 이미 세팅된 경우 스킵
+        // parentId=14, busId=1, academyId=2 모두 세팅된 경우 스킵
         Long count = (Long) em.createQuery(
-                "SELECT COUNT(s) FROM Student s WHERE s.studentId IN (1, 2) AND s.parentId = 14")
+                "SELECT COUNT(s) FROM Student s WHERE s.studentId IN (1, 2) AND s.parentId = 14 AND s.academyId = 2")
                 .getSingleResult();
         if (count >= 2) return;
 
         em.createQuery(
-                "UPDATE Student s SET s.parentId = 14, s.busId = 1 WHERE s.studentId IN (1, 2)")
+                "UPDATE Student s SET s.parentId = 14, s.busId = 1, s.academyId = 2 WHERE s.studentId IN (1, 2)")
                 .executeUpdate();
-        log.info("[DataInitializer] 테스트 학생(1,2) parentId=14, busId=1 링크 완료");
+        log.info("[DataInitializer] 테스트 학생(1,2) parentId=14, busId=1, academyId=2 링크 완료");
     }
 }
