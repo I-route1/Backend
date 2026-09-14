@@ -26,4 +26,14 @@ public class MathAiController {
     public AiReportResponse generatePremiumReport(@RequestParam("studentId") Long studentId) {
         return aiCounselingService.generatePremiumReport(studentId).block();
     }
+
+    /**
+     * 영어/과학/사회/한국사 메타인지 분석 리포트.
+     * 수학·국어·프리미엄은 위의 고정 경로가 먼저 매칭되므로 여기로 들어오지 않는다.
+     */
+    @PostMapping("/{subject}")
+    public AiReportResponse generateSubjectReport(@PathVariable("subject") String subject,
+                                                  @RequestParam("studentId") Long studentId) {
+        return aiCounselingService.generateSubjectReport(studentId, subject).block();
+    }
 }
