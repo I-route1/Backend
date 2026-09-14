@@ -3,11 +3,14 @@ package com.i_route.backend.ai.controller;
 import com.i_route.backend.ai.entity.Grade;
 import com.i_route.backend.ai.repository.GradeRepository;
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.reactive.function.client.WebClient;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,10 +18,19 @@ import java.util.Map;
 @Slf4j
 @RestController
 @RequestMapping("/api/ai")
-@RequiredArgsConstructor
 public class AiReportController {
 
+    /** AI 서버 생성이 길어져도 이 정도면 충분하다 (어댑터 생성 5~15초 + RAG 검색). */
+    private static final Duration AI_TIMEOUT = Duration.ofSeconds(60);
+
     private final GradeRepository gradeRepository;
+    private final WebClient fastApiWebClient;
+
+    public AiReportController(GradeRepository gradeRepository,
+                              @Qualifier("fastApiWebClient") WebClient fastApiWebClient) {
+        this.gradeRepository = gradeRepository;
+        this.fastApiWebClient = fastApiWebClient;
+    }
 
     /**
      * POST /api/ai/predict
@@ -79,6 +91,15 @@ public class AiReportController {
             else if (gap < 0) trend = "하락";
         }
 
+        // 1순위: AI 서버에 위임. 과목별 파인튜닝 어댑터 + RAG 검색을 쓰므로
+        // 아래 규칙 기반 템플릿보다 내용이 구체적이다.
+        Map<String, Object> aiResult = requestAiRecommendation(studentId, subject, targetConcept);
+        if (aiResult != null) {
+            return ResponseEntity.ok(aiResult);
+        }
+
+        // 2순위: AI 서버가 꺼져 있거나 실패하면 규칙 기반으로 폴백한다.
+        // 응답 형식이 같아서 호출하는 쪽은 차이를 알 필요가 없다.
         String report = buildRecommendationReport(subject, targetConcept, avgScore, trend);
 
         Map<String, Object> result = new HashMap<>();
@@ -87,6 +108,31 @@ public class AiReportController {
         result.put("targetConcept", targetConcept);
         result.put("aiRecommendationReport", report);
         return ResponseEntity.ok(result);
+    }
+
+    /** AI 서버 호출. 실패하면 null을 반환해 호출부가 규칙 기반으로 폴백하게 한다. */
+    private Map<String, Object> requestAiRecommendation(Long studentId, String subject, String conceptTag) {
+        try {
+            Map<String, Object> body = fastApiWebClient.post()
+                    // FastAPI 쪽 파라미터명이 snake_case다 (main.py의 Query 선언).
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/api/ai/report/subject-recommend")
+                            .queryParam("student_id", studentId)
+                            .queryParam("subject", subject)
+                            .queryParam("concept_tag", conceptTag)
+                            .build())
+                    .retrieve()
+                    .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+                    .block(AI_TIMEOUT);
+
+            if (body != null && body.get("aiRecommendationReport") != null) {
+                return body;
+            }
+            log.warn("[AI 추천] 응답에 aiRecommendationReport가 없어 규칙 기반으로 폴백합니다: {}", body);
+        } catch (Exception e) {
+            log.warn("[AI 추천] AI 서버 호출 실패 — 규칙 기반으로 폴백합니다: {}", e.getMessage());
+        }
+        return null;
     }
 
     private String buildRecommendationReport(String subject, String concept, double avg, String trend) {
