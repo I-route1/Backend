@@ -43,11 +43,14 @@ C:\Users\User\IdeaProjects\AI\start-ai.ps1
 
 | 역할 | 아이디 | 비밀번호 |
 |------|--------|----------|
-| 학부모 | frontdev | Test1234! |
-| 관리자 | admin | Admin1234! |
-| 학원 | teacher | Teacher1234! |
-| 기사 | driver | Driver1234! |
-| 크레딧없음 | nocredit | Test1234! |
+| 학부모 | frontdev | `$TEST_PARENT_PASSWORD` |
+| 관리자 | admin | `$TEST_ADMIN_PASSWORD` |
+| 학원 | teacher | `$TEST_ACADEMY_PASSWORD` |
+| 기사 | driver | `$TEST_DRIVER_PASSWORD` |
+| 크레딧없음 | nocredit | `$TEST_NOPREM_PASSWORD` |
+
+비밀번호는 로컬 `.env`에 있습니다 (`.env.example` 참고). 이 저장소는 공개
+저장소라 문서에 평문으로 적지 않습니다.
 
 ---
 

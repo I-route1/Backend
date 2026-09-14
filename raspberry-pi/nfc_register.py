@@ -1,16 +1,19 @@
+import os
+import time
+
 import board
 import busio
-import time
-from digitalio import DigitalInOut
-from adafruit_pn532.spi import PN532_SPI
 import requests
+from adafruit_pn532.spi import PN532_SPI
+from digitalio import DigitalInOut
 
 # ──────────────────────────────────────────────
-# 설정
+# 설정 — 주소·계정은 .env에서 읽는다 (공개 저장소라 코드에 적지 않는다).
+# nfc_main.py를 먼저 실행하면 같은 .env를 쓴다. .env.example 참고.
 # ──────────────────────────────────────────────
-BACKEND_URL = "https://demystify-handcuff-protegee.ngrok-free.dev"
-ADMIN_USERNAME = "your_admin_username"
-ADMIN_PASSWORD = "your_admin_password"
+BACKEND_URL = (os.getenv("BACKEND_URL") or "").rstrip("/")
+ADMIN_USERNAME = os.getenv("NFC_USERNAME")
+ADMIN_PASSWORD = os.getenv("NFC_PASSWORD")
 POLL_INTERVAL = 1  # 폴링 간격 (초)
 # ──────────────────────────────────────────────
 

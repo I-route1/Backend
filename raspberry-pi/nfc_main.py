@@ -1,24 +1,51 @@
+"""NFC 출결 리더(라즈베리파이 + PN532).
+
+설정은 환경변수 또는 이 파일과 같은 디렉터리의 .env에서 읽는다.
+이 저장소는 공개 저장소라 주소·계정을 코드에 적지 않는다.
+
+    BACKEND_URL      예) https://d22mlgf6je9oud.cloudfront.net
+    NFC_USERNAME     NFC 등록 권한이 있는 계정 (admin 또는 teacher)
+    NFC_PASSWORD
+    BUS_ID           기본 1
+"""
+import os
+import sys
+import time
+from pathlib import Path
+
 import board
 import busio
-from digitalio import DigitalInOut
-from adafruit_pn532.spi import PN532_SPI
 import requests
-import time
-
-# ──────────────────────────────────────────────
-# 설정
-# ──────────────────────────────────────────────
-BACKEND_URL = "https://demystify-handcuff-protegee.ngrok-free.dev"
-BUS_ID = 1
-
-# admin 또는 teacher 계정 사용 가능 (둘 다 NFC 등록 권한 있음)
-LOGIN_USERNAME = "admin"
-LOGIN_PASSWORD = "Admin1234!"
-# LOGIN_USERNAME = "teacher"
-# LOGIN_PASSWORD = "Teacher1234!"
-# ──────────────────────────────────────────────
+from adafruit_pn532.spi import PN532_SPI
+from digitalio import DigitalInOut
 
 
+def _load_dotenv(path: Path) -> None:
+    if not path.is_file():
+        return
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, val = line.partition("=")
+        os.environ.setdefault(key.strip(), val.strip().strip('"').strip("'"))
+
+
+_load_dotenv(Path(__file__).parent / ".env")
+
+BACKEND_URL = (os.getenv("BACKEND_URL") or "").rstrip("/")
+LOGIN_USERNAME = os.getenv("NFC_USERNAME")
+LOGIN_PASSWORD = os.getenv("NFC_PASSWORD")
+BUS_ID = int(os.getenv("BUS_ID", "1"))
+
+_missing = [n for n, v in (("BACKEND_URL", BACKEND_URL),
+                           ("NFC_USERNAME", LOGIN_USERNAME),
+                           ("NFC_PASSWORD", LOGIN_PASSWORD)) if not v]
+if _missing:
+    print(f"설정이 없습니다: {', '.join(_missing)} — .env.example을 .env로 복사해 채우세요.")
+    sys.exit(1)
+
+# ngrok 터널을 쓰는 경우에만 필요한 헤더. 그 외 주소에서는 무시된다.
 HEADERS = {"ngrok-skip-browser-warning": "true"}
 
 
