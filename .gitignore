@@ -74,4 +74,7 @@ docker-compose.override.yml
 /uploads/
 /temp/
 *.tar
-*.imgstart-server.ps1
+*.img
+
+# 로컬 기동 스크립트 (.env에서 비밀정보를 읽어 실행 — 개인 환경마다 다름)
+start-server.ps1
