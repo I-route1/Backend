@@ -5,6 +5,7 @@ import com.i_route.backend.ai.dto.AiReportResponse;
 import com.i_route.backend.ai.entity.AiRecommendation;
 import com.i_route.backend.ai.repository.AiRecommendationRepository;
 import com.i_route.backend.ai.repository.LearningActivityRepository;
+import com.i_route.backend.ai.repository.WrongAnswerRepository;
 import com.i_route.backend.gps.domain.student.entity.Student;
 import com.i_route.backend.gps.domain.student.repository.StudentRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -37,35 +38,39 @@ public class AiCounselingService {
     private final AiRecommendationRepository aiRecommendationRepository;
     private final StudentRepository studentRepository;
     private final LearningActivityRepository learningActivityRepository;
+    private final WrongAnswerRepository wrongAnswerRepository;
 
     public AiCounselingService(@Qualifier("fastApiWebClient") WebClient webClient,
                                AiRecommendationRepository aiRecommendationRepository,
                                StudentRepository studentRepository,
-                               LearningActivityRepository learningActivityRepository) {
+                               LearningActivityRepository learningActivityRepository,
+                               WrongAnswerRepository wrongAnswerRepository) {
         this.fastApiWebClient = webClient;
         this.aiRecommendationRepository = aiRecommendationRepository;
         this.studentRepository = studentRepository;
         this.learningActivityRepository = learningActivityRepository;
+        this.wrongAnswerRepository = wrongAnswerRepository;
     }
 
     // 1️⃣ [수학 메타인지 모델 가동]
     public Mono<AiReportResponse> generateMathReport(Long studentId) {
         log.info("📐 [수학 AI 가동] 학생 ID: {}의 진짜 데이터를 DB에서 조회합니다...", studentId);
-        return fetchRealStudentData(studentId)
+        return fetchRealStudentData(studentId, "수학")
                 .flatMap(realRequest -> sendToPythonServer("/api/ai/report/math", realRequest, "수학 메타인지 분석 리포트"));
     }
 
     // 2️⃣ [진로 탐색 및 작문 모델 가동]
     public Mono<AiReportResponse> generateWritingReport(Long studentId) {
         log.info("✍️ [진로/작문 AI 가동] 학생 ID: {}의 진짜 데이터를 DB에서 조회합니다...", studentId);
-        return fetchRealStudentData(studentId)
+        return fetchRealStudentData(studentId, "국어")
                 .flatMap(realRequest -> sendToPythonServer("/api/ai/report/writing", realRequest, "인공지능 기반 진로 탐색 리포트"));
     }
 
     // 3️⃣ [프리미엄 통합 분석 리포트 가동]
     public Mono<AiReportResponse> generatePremiumReport(Long studentId) {
         log.info("🚀 [통합 AI 가동] 학생 ID: {}의 진짜 데이터를 DB에서 조회합니다...", studentId);
-        return fetchRealStudentData(studentId)
+        // 프리미엄은 AI 서버가 주 취약 과목을 고르므로 취약 개념도 그쪽에서 찾는다.
+        return fetchRealStudentData(studentId, null)
                 .flatMap(realRequest -> sendToPythonServer("/api/ai/report/premium", realRequest, "i-Route 프리미엄 통합 리포트"));
     }
 
@@ -78,7 +83,7 @@ public class AiCounselingService {
             ));
         }
         log.info("📚 [{} AI 가동] 학생 ID: {}의 진짜 데이터를 DB에서 조회합니다...", subject, studentId);
-        return fetchRealStudentData(studentId)
+        return fetchRealStudentData(studentId, subject)
                 .flatMap(realRequest -> sendToPythonServer(
                         // 과목명이 한글이라 UriBuilder로 경로 변수를 넘겨 인코딩을 맡긴다.
                         uriBuilder -> uriBuilder.path("/api/ai/report/{subject}").build(subject),
@@ -89,7 +94,8 @@ public class AiCounselingService {
     }
 
     // 🔍 [리액티브 특화 방어막] DB 블로킹 조회 격리
-    private Mono<AiReportRequest> fetchRealStudentData(Long studentId) {
+    // weakSubject가 있으면 그 과목의 최다 오답 개념을 weakConcept로 함께 넘긴다.
+    private Mono<AiReportRequest> fetchRealStudentData(Long studentId, String weakSubject) {
         return Mono.fromCallable(() -> {
                     Student student = studentRepository.findById(studentId)
                             .orElseThrow(() -> new ResponseStatusException(
@@ -101,6 +107,13 @@ public class AiCounselingService {
                             .map(activity -> activity.getInstructorFeedback())
                             .orElse(null);
 
+                    String weakConcept = weakSubject == null ? null
+                            : wrongAnswerRepository.findTopWeaknessByStudentIdAndSubject(studentId, weakSubject).stream()
+                                    .map(w -> w.getConceptTag())
+                                    .filter(tag -> tag != null && !tag.isBlank())
+                                    .findFirst()
+                                    .orElse("");
+
                     return AiReportRequest.builder()
                             .studentId(studentId)
                             .currentKoreanGrade(student.getCurrentKoreanGrade() != null ? student.getCurrentKoreanGrade() : 0.0)
@@ -108,6 +121,7 @@ public class AiCounselingService {
                             .studentNote(student.getStudentNote() != null ? student.getStudentNote() : "")
                             .recommendContext(student.getRecommendContext() != null ? student.getRecommendContext() : "")
                             .instructorFeedback(latestFeedback != null ? latestFeedback : "")
+                            .weakConcept(weakConcept)
                             .build();
                 })
                 .subscribeOn(Schedulers.boundedElastic());
