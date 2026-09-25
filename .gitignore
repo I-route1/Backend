@@ -42,6 +42,8 @@ replay_pid*
 
 # AWS
 *.pem
+# DB 덤프 — 사용자·결제·토큰 데이터가 들어 있어 공개 저장소에 올리지 않는다
+i_route_db_dump.sql
 i_route_db_dump_mariadb.sql
 init.sql
 start.sh
