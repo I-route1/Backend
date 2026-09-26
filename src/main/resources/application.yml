@@ -92,6 +92,7 @@ app:
 ai:
   server:
     url: ${AI_SERVER_URL:http://localhost:8082}
+    key: ${AI_SERVER_KEY:}
 
 toss:
   secret-key: ${TOSS_SECRET_KEY:test_sk_dummy}
