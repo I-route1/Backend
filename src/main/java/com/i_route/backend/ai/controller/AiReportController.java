@@ -21,7 +21,9 @@ import java.util.Map;
 public class AiReportController {
 
     /** AI 서버 생성이 길어져도 이 정도면 충분하다 (어댑터 생성 5~15초 + RAG 검색). */
-    private static final Duration AI_TIMEOUT = Duration.ofSeconds(60);
+    // CloudFront 원본 응답 한도(OriginReadTimeout 60초)보다 짧아야 한다. 같거나 길면 AI가 늦을 때
+    // 규칙 기반 폴백을 만들기 전에 CloudFront가 504를 돌려준다. 개념 설명은 보통 20초, 최대 40초.
+    private static final Duration AI_TIMEOUT = Duration.ofSeconds(50);
 
     private final GradeRepository gradeRepository;
     private final WebClient fastApiWebClient;
