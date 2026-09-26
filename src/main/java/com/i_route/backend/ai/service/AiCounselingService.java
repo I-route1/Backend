@@ -3,7 +3,10 @@ package com.i_route.backend.ai.service;
 import com.i_route.backend.ai.dto.AiReportRequest;
 import com.i_route.backend.ai.dto.AiReportResponse;
 import com.i_route.backend.ai.entity.AiRecommendation;
+import com.i_route.backend.ai.entity.Grade;
+import com.i_route.backend.ai.entity.WrongAnswer;
 import com.i_route.backend.ai.repository.AiRecommendationRepository;
+import com.i_route.backend.ai.repository.GradeRepository;
 import com.i_route.backend.ai.repository.LearningActivityRepository;
 import com.i_route.backend.ai.repository.WrongAnswerRepository;
 import com.i_route.backend.gps.domain.student.entity.Student;
@@ -21,8 +24,10 @@ import reactor.core.scheduler.Schedulers;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -39,17 +44,20 @@ public class AiCounselingService {
     private final StudentRepository studentRepository;
     private final LearningActivityRepository learningActivityRepository;
     private final WrongAnswerRepository wrongAnswerRepository;
+    private final GradeRepository gradeRepository;
 
     public AiCounselingService(@Qualifier("fastApiWebClient") WebClient webClient,
                                AiRecommendationRepository aiRecommendationRepository,
                                StudentRepository studentRepository,
                                LearningActivityRepository learningActivityRepository,
-                               WrongAnswerRepository wrongAnswerRepository) {
+                               WrongAnswerRepository wrongAnswerRepository,
+                               GradeRepository gradeRepository) {
         this.fastApiWebClient = webClient;
         this.aiRecommendationRepository = aiRecommendationRepository;
         this.studentRepository = studentRepository;
         this.learningActivityRepository = learningActivityRepository;
         this.wrongAnswerRepository = wrongAnswerRepository;
+        this.gradeRepository = gradeRepository;
     }
 
     // 1️⃣ [수학 메타인지 모델 가동]
@@ -69,7 +77,7 @@ public class AiCounselingService {
     // 3️⃣ [프리미엄 통합 분석 리포트 가동]
     public Mono<AiReportResponse> generatePremiumReport(Long studentId) {
         log.info("🚀 [통합 AI 가동] 학생 ID: {}의 진짜 데이터를 DB에서 조회합니다...", studentId);
-        // 프리미엄은 AI 서버가 주 취약 과목을 고르므로 취약 개념도 그쪽에서 찾는다.
+        // 과목을 null로 넘기면 오답이 가장 많은 과목을 주 취약 과목(weakSubject)으로 고른다.
         return fetchRealStudentData(studentId, null)
                 .flatMap(realRequest -> sendToPythonServer("/api/ai/report/premium", realRequest, "i-Route 프리미엄 통합 리포트"));
     }
@@ -94,8 +102,10 @@ public class AiCounselingService {
     }
 
     // 🔍 [리액티브 특화 방어막] DB 블로킹 조회 격리
-    // weakSubject가 있으면 그 과목의 최다 오답 개념을 weakConcept로 함께 넘긴다.
-    private Mono<AiReportRequest> fetchRealStudentData(Long studentId, String weakSubject) {
+    // reportSubject: 리포트 과목. 그 과목의 최다 오답 개념(weakConcept)과 최근 시험 백분위
+    // (subjectPercentile)를 함께 넘긴다. null이면(프리미엄) 오답 failCount 합이 가장 큰 과목을
+    // weakSubject로 고르고 그 과목의 개념과 백분위를 넘긴다.
+    private Mono<AiReportRequest> fetchRealStudentData(Long studentId, String reportSubject) {
         return Mono.fromCallable(() -> {
                     Student student = studentRepository.findById(studentId)
                             .orElseThrow(() -> new ResponseStatusException(
@@ -107,12 +117,8 @@ public class AiCounselingService {
                             .map(activity -> activity.getInstructorFeedback())
                             .orElse(null);
 
-                    String weakConcept = weakSubject == null ? null
-                            : wrongAnswerRepository.findTopWeaknessByStudentIdAndSubject(studentId, weakSubject).stream()
-                                    .map(w -> w.getConceptTag())
-                                    .filter(tag -> tag != null && !tag.isBlank())
-                                    .findFirst()
-                                    .orElse("");
+                    String weakSubject = reportSubject != null ? reportSubject : mostWrongSubject(studentId);
+                    String weakConcept = weakSubject == null ? "" : topWeakConcept(studentId, weakSubject);
 
                     return AiReportRequest.builder()
                             .studentId(studentId)
@@ -122,9 +128,48 @@ public class AiCounselingService {
                             .recommendContext(student.getRecommendContext() != null ? student.getRecommendContext() : "")
                             .instructorFeedback(latestFeedback != null ? latestFeedback : "")
                             .weakConcept(weakConcept)
+                            .weakSubject(reportSubject == null ? weakSubject : null)
+                            .subjectPercentile(weakSubject == null ? null : latestPercentile(studentId, weakSubject))
                             .build();
                 })
                 .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    private String topWeakConcept(Long studentId, String subject) {
+        return wrongAnswerRepository.findTopWeaknessByStudentIdAndSubject(studentId, subject).stream()
+                .map(WrongAnswer::getConceptTag)
+                .filter(tag -> tag != null && !tag.isBlank())
+                .findFirst()
+                .orElse("");
+    }
+
+    /** 오답 failCount 합이 가장 큰 과목. 오답이 없으면 null. */
+    private String mostWrongSubject(Long studentId) {
+        Map<String, Integer> failsBySubject = wrongAnswerRepository.findByStudentId(studentId).stream()
+                .filter(w -> w.getSubject() != null && !w.getSubject().isBlank())
+                .collect(Collectors.groupingBy(WrongAnswer::getSubject,
+                        Collectors.summingInt(w -> Math.max(1, w.getFailCount()))));
+        return failsBySubject.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse(null);
+    }
+
+    /**
+     * 그 과목 가장 최근 시험의 백분위. 없으면 null — AI 서버는 이때 국어 백분위
+     * (currentKoreanGrade)로 대신하고 그렇게 표시한다. 탐구 과목은 "과학탐구"로 저장된
+     * 성적도 있어 함께 찾는다.
+     */
+    private Double latestPercentile(Long studentId, String subject) {
+        List<Grade> grades = gradeRepository.findByStudentIdAndSubjectOrderByExamDateDesc(studentId, subject);
+        if (grades.isEmpty() && (subject.equals("과학") || subject.equals("사회"))) {
+            grades = gradeRepository.findByStudentIdAndSubjectOrderByExamDateDesc(studentId, subject + "탐구");
+        }
+        return grades.stream()
+                .map(Grade::getPercentile)
+                .filter(p -> p > 0)
+                .findFirst()
+                .orElse(null);
     }
 
     // 🔄 공통 파이썬 통신 + 비동기 DB 저장 헬퍼 메서드
