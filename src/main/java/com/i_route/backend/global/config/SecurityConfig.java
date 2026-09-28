@@ -24,6 +24,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final AiServerKeyFilter aiServerKeyFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -57,7 +58,8 @@ public class SecurityConfig {
                                 // WebSocket
                                 "/ws/**",
 
-                                // AI 서버 내부 서비스 호출 (Python → Java)
+                                // AI 서버 내부 서비스 호출 (Python → Java). JWT는 없지만
+                                // AiServerKeyFilter가 ai.server.key를 정했다면 X-AI-Key로 막는다.
                                 "/api/wrong-answer/ai-pipeline",
 
                                 "/error",
@@ -72,6 +74,10 @@ public class SecurityConfig {
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
+                )
+                .addFilterBefore(
+                        aiServerKeyFilter,
+                        JwtAuthenticationFilter.class
                 );
 
         return http.build();
