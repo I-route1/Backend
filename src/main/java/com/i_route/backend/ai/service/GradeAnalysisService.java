@@ -33,7 +33,6 @@ public class GradeAnalysisService {
         if (tag.contains("국어") || tag.contains("문학") || tag.contains("비문학")) return "국어";
         if (tag.contains("과학") || tag.contains("물리") || tag.contains("화학") || tag.contains("생물")) return "과학";
         if (tag.contains("사회") || tag.contains("역사") || tag.contains("지리") || tag.contains("경제")) return "사회";
-        if (tag.contains("한국사")) return "한국사";
         return "수학";
     }
 
@@ -52,7 +51,7 @@ public class GradeAnalysisService {
 
         // weakConceptTag가 과목명 단독이면 기본 개념으로 보강 (사회탐구/과학탐구 포함)
         boolean isSubjectOnly = weakConceptTag != null &&
-                weakConceptTag.matches("수학|영어|국어|과학|과학탐구|사회|사회탐구|한국사");
+                weakConceptTag.matches("수학|영어|국어|과학|과학탐구|사회|사회탐구");
         // 사회탐구 → 사회, 과학탐구 → 과학으로 AI 서버 인식 가능한 과목명으로 정규화
         String subject = isSubjectOnly
                 ? weakConceptTag.replace("사회탐구", "사회").replace("과학탐구", "과학")

@@ -37,7 +37,7 @@ public class AiCounselingService {
     // AI 서버 rag.py의 _SUBJECT_KEYWORDS와 동일한 과목 집합.
     // 수학/국어(writing)는 전용 엔드포인트가 따로 있어 /{subject}로는 받지 않는다.
     private static final Set<String> SUBJECT_REPORT_SUPPORTED =
-            Set.of("영어", "과학", "사회", "한국사");
+            Set.of("영어", "과학", "사회");
 
     private final WebClient fastApiWebClient;
     private final AiRecommendationRepository aiRecommendationRepository;
@@ -82,7 +82,7 @@ public class AiCounselingService {
                 .flatMap(realRequest -> sendToPythonServer("/api/ai/report/premium", realRequest, "i-Route 프리미엄 통합 리포트"));
     }
 
-    // 4️⃣ [전 과목 메타인지 리포트 - 영어/과학/사회/한국사]
+    // 4️⃣ [전 과목 메타인지 리포트 - 영어/과학/사회]
     public Mono<AiReportResponse> generateSubjectReport(Long studentId, String subject) {
         if (!SUBJECT_REPORT_SUPPORTED.contains(subject)) {
             return Mono.error(new ResponseStatusException(
