@@ -19,24 +19,43 @@ jobs:
           distribution: 'corretto'
 
       - name: Build JAR
-        run: chmod +x gradlew && ./gradlew bootJar -x test
+        run: |
+          chmod +x gradlew && ./gradlew bootJar -x test
+          cp build/libs/backend-*-SNAPSHOT.jar app.jar
 
-      - name: Deploy to EC2
-        uses: appleboy/scp-action@master
+      - name: Upload JAR to EC2
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_KEY }}
-          source: build/libs/*-SNAPSHOT.jar
+          source: app.jar
           target: /home/ec2-user/
-          strip_components: 2
 
-      - name: Stop Server
+      # start.sh(서버에만 있음, 비밀값 포함)가 /home/ec2-user/app.jar를 실행한다.
+      - name: Restart Server
         env:
           EC2_KEY: ${{ secrets.EC2_KEY }}
           EC2_HOST: ${{ secrets.EC2_HOST }}
         run: |
           echo "$EC2_KEY" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
-          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=30 ec2-user@$EC2_HOST "pkill -f 'java' || true; echo '서버 종료 완료'"
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=30 ec2-user@$EC2_HOST             "pkill -f 'java -Dfile' || true; sleep 5; bash /home/ec2-user/start.sh < /dev/null"
           rm -f /tmp/deploy_key
+
+      - name: Health Check
+        env:
+          EC2_KEY: ${{ secrets.EC2_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          echo "$EC2_KEY" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+          for i in $(seq 1 24); do
+            code=$(ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ec2-user@$EC2_HOST               "curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/" || true)
+            echo "시도 $i: HTTP $code"
+            if [ -n "$code" ] && [ "$code" != "000" ]; then rm -f /tmp/deploy_key; exit 0; fi
+            sleep 5
+          done
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ec2-user@$EC2_HOST "tail -50 /home/ec2-user/server.log"
+          rm -f /tmp/deploy_key
+          exit 1

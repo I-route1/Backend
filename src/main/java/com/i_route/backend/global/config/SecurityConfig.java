@@ -92,7 +92,7 @@ public class SecurityConfig {
                 "http://localhost:5173",
                 "http://127.0.0.1:3000",
                 "http://127.0.0.1:5173",
-                "https://d3kh3x870d7dr4.cloudfront.net",
+                "https://d2nos5u98g310z.cloudfront.net",
                 "https://*.ngrok-free.dev"
         ));
 
