@@ -17,7 +17,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .setAllowedOriginPatterns(
                         "http://localhost:3000",
                         "http://localhost:5173",
-                        "https://d3kh3x870d7dr4.cloudfront.net",
+                        "https://d2nos5u98g310z.cloudfront.net",
                         "https://*.ngrok-free.dev"
                 );
     }

@@ -18,8 +18,8 @@ public class WebConfig {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
                         .allowedOriginPatterns(
-                                "https://d3kh3x870d7dr4.cloudfront.net",
-                                "https://d22mlgf6je9oud.cloudfront.net",
+                                "https://d2nos5u98g310z.cloudfront.net",
+                                "https://d2t8h2oy220lpg.cloudfront.net",
                                 "https://*.ngrok-free.dev",
                                 "http://localhost:3000"
                         )
