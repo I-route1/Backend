@@ -33,7 +33,8 @@ jobs:
           source: app.jar
           target: /home/ec2-user/
 
-      # start.sh(서버에만 있음, 비밀값 포함)가 /home/ec2-user/app.jar를 실행한다.
+      # start.sh(서버에만 있음, 비밀값 포함)가 기존 java를 끄고 /home/ec2-user/app.jar를 실행한다.
+      # 여기서 pkill -f 'java ...'를 부르면 그 문자열이 든 원격 셸 자신이 죽어 ssh가 255로 끝난다.
       - name: Restart Server
         env:
           EC2_KEY: ${{ secrets.EC2_KEY }}
@@ -41,7 +42,7 @@ jobs:
         run: |
           echo "$EC2_KEY" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
-          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=30 ec2-user@$EC2_HOST             "pkill -f 'java -Dfile' || true; sleep 5; bash /home/ec2-user/start.sh < /dev/null"
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=30 ec2-user@$EC2_HOST             "bash /home/ec2-user/start.sh < /dev/null"
           rm -f /tmp/deploy_key
 
       - name: Health Check
