@@ -54,3 +54,9 @@ email:
 ai:
   server:
     url: http://localhost:8082
+
+app:
+  frontend-base-url: http://localhost:3000
+toss:
+  client-key: test_ck_local
+  secret-key: test_sk_local

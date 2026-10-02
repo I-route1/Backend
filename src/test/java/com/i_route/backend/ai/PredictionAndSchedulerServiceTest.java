@@ -139,7 +139,7 @@ class PredictionAndSchedulerServiceTest {
     @Mock private AiRecommendationRepository aiRecommendationRepository;
     @Mock private ReviewNotificationRepository reviewNotificationRepository;
 
-    private AiRecommendation rec(String studentId, String title) {
+    private AiRecommendation rec(Long studentId, String title) {
         return AiRecommendation.builder()
                 .studentId(studentId).title(title).build();
     }
@@ -150,12 +150,12 @@ class PredictionAndSchedulerServiceTest {
         LocalDate today = LocalDate.now();
 
         given(aiRecommendationRepository.findByStudentIdAndCreatedAtBetween(
-                eq("S-001"), any(LocalDateTime.class), any(LocalDateTime.class)))
-                .willReturn(List.of(rec("S-001", "이차방정식 풀이")))
+                eq(1L), any(LocalDateTime.class), any(LocalDateTime.class)))
+                .willReturn(List.of(rec(1L, "이차방정식 풀이")))
                 .willReturn(Collections.emptyList())
-                .willReturn(List.of(rec("S-001", "연립방정식")));
+                .willReturn(List.of(rec(1L, "연립방정식")));
 
-        ReviewTodayDto result = schedulerService.getTodayReviews("S-001");
+        ReviewTodayDto result = schedulerService.getTodayReviews(1L);
 
         assertThat(result.isHasReview()).isTrue();
         assertThat(result.getReviews()).hasSize(2);
@@ -165,10 +165,10 @@ class PredictionAndSchedulerServiceTest {
     @DisplayName("오늘 복습 목록 - 복습 항목 없으면 hasReview false")
     void getTodayReviews_noItems() {
         given(aiRecommendationRepository.findByStudentIdAndCreatedAtBetween(
-                anyString(), any(), any()))
+                anyLong(), any(), any()))
                 .willReturn(Collections.emptyList());
 
-        ReviewTodayDto result = schedulerService.getTodayReviews("S-001");
+        ReviewTodayDto result = schedulerService.getTodayReviews(1L);
 
         assertThat(result.isHasReview()).isFalse();
         assertThat(result.getReviews()).isEmpty();
@@ -178,15 +178,15 @@ class PredictionAndSchedulerServiceTest {
     @DisplayName("복습 알림 즉시 생성 - 3개 날짜 합산 카운트 반환")
     void triggerReviewNotifications_countReturned() {
         given(aiRecommendationRepository.findByStudentIdAndCreatedAtBetween(
-                eq("S-001"), any(), any()))
-                .willReturn(List.of(rec("S-001", "A")))        // 1일 전
-                .willReturn(List.of(rec("S-001", "B"), rec("S-001", "C"))) // 3일 전
+                eq(1L), any(), any()))
+                .willReturn(List.of(rec(1L, "A")))        // 1일 전
+                .willReturn(List.of(rec(1L, "B"), rec(1L, "C"))) // 3일 전
                 .willReturn(Collections.emptyList());           // 7일 전
 
         given(reviewNotificationRepository.save(any(ReviewNotification.class)))
                 .willAnswer(inv -> inv.getArgument(0));
 
-        int count = schedulerService.triggerReviewNotificationsForStudent("S-001");
+        int count = schedulerService.triggerReviewNotificationsForStudent(1L);
 
         assertThat(count).isEqualTo(3);
         then(reviewNotificationRepository).should(times(3)).save(any(ReviewNotification.class));
@@ -196,10 +196,10 @@ class PredictionAndSchedulerServiceTest {
     @DisplayName("복습 알림 즉시 생성 - 복습 항목 없으면 0 반환")
     void triggerReviewNotifications_zeroWhenEmpty() {
         given(aiRecommendationRepository.findByStudentIdAndCreatedAtBetween(
-                anyString(), any(), any()))
+                anyLong(), any(), any()))
                 .willReturn(Collections.emptyList());
 
-        int count = schedulerService.triggerReviewNotificationsForStudent("S-001");
+        int count = schedulerService.triggerReviewNotificationsForStudent(1L);
 
         assertThat(count).isZero();
         then(reviewNotificationRepository).should(never()).save(any());

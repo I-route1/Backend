@@ -78,7 +78,7 @@ class UserServiceTest {
     void checkSingleField_phone_normalizeAndDuplicate() {
         given(userRepository.existsByPhoneNumber("01012345678")).willReturn(true);
 
-        DuplicateCheckResponse resp = userService.checkSingleField("phone", "010-1234-5678");
+        DuplicateCheckResponse resp = userService.checkSingleField("phoneNumber", "010-1234-5678");
 
         assertThat(resp.isDuplicate()).isTrue();
         assertThat(resp.getDuplicates()).contains("휴대폰 번호");
@@ -123,7 +123,7 @@ class UserServiceTest {
                 .willReturn(Optional.of(existing));
 
         DuplicateCheckRequest req = new DuplicateCheckRequest();
-        req.setUsername("dup@test.com");
+        req.setEmail("dup@test.com");
         req.setNickname("중복닉");
         req.setPhoneNumber("01099999999");
 
