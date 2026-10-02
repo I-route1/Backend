@@ -42,6 +42,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/gps/parents/*/children").hasRole("PARENT")
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/oauth/**",
