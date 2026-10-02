@@ -4,7 +4,6 @@ import com.i_route.backend.board.dto.BoardRequestDto;
 import com.i_route.backend.board.entity.Board;
 import com.i_route.backend.board.repository.BoardRepository;
 import com.i_route.backend.board.service.BoardService;
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,7 +36,7 @@ class BoardServiceTest {
 
         given(boardRepository.findAll()).willReturn(List.of(board));
 
-        List<BoardRequestDto.Response> result = boardService.getBoards();
+        List<Board> result = boardService.getBoards();
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getName()).isEqualTo("공지사항");
@@ -49,9 +48,9 @@ class BoardServiceTest {
         Board board = new Board();
         board.setName("자유게시판");
 
-        given(boardRepository.findByNameContainingIgnoreCase("자유")).willReturn(List.of(board));
+        given(boardRepository.findByNameContaining("자유")).willReturn(List.of(board));
 
-        List<BoardRequestDto.Response> result = boardService.searchBoards("자유");
+        List<Board> result = boardService.searchBoards("자유");
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getName()).isEqualTo("자유게시판");
@@ -60,7 +59,7 @@ class BoardServiceTest {
     @Test
     @DisplayName("게시판 등록 - 성공")
     void createBoard_success() {
-        BoardRequestDto.Request request = new BoardRequestDto.Request();
+        BoardRequestDto request = new BoardRequestDto();
         request.setName("새 게시판");
         request.setDescription("설명");
 
@@ -70,7 +69,7 @@ class BoardServiceTest {
 
         given(boardRepository.save(any(Board.class))).willReturn(saved);
 
-        BoardRequestDto.Response result = boardService.createBoard(request);
+        Board result = boardService.createBoard(request);
 
         assertThat(result.getName()).isEqualTo("새 게시판");
     }
@@ -81,13 +80,13 @@ class BoardServiceTest {
         Board board = new Board();
         board.setName("기존 이름");
 
-        BoardRequestDto.Request request = new BoardRequestDto.Request();
+        BoardRequestDto request = new BoardRequestDto();
         request.setName("수정된 이름");
         request.setDescription("수정된 설명");
 
         given(boardRepository.findById(1L)).willReturn(Optional.of(board));
 
-        BoardRequestDto.Response result = boardService.updateBoard(1L, request);
+        Board result = boardService.updateBoard(1L, request);
 
         assertThat(result.getName()).isEqualTo("수정된 이름");
     }
@@ -97,11 +96,11 @@ class BoardServiceTest {
     void updateBoard_notFound() {
         given(boardRepository.findById(999L)).willReturn(Optional.empty());
 
-        BoardRequestDto.Request request = new BoardRequestDto.Request();
+        BoardRequestDto request = new BoardRequestDto();
         request.setName("이름");
 
         assertThatThrownBy(() -> boardService.updateBoard(999L, request))
-                .isInstanceOf(EntityNotFoundException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -121,7 +120,7 @@ class BoardServiceTest {
 
         given(boardRepository.findById(1L)).willReturn(Optional.of(board));
 
-        BoardRequestDto.Response result = boardService.getBoardDetail(1L);
+        Board result = boardService.getBoardDetail(1L);
 
         assertThat(result.getName()).isEqualTo("공지사항");
     }
@@ -132,6 +131,6 @@ class BoardServiceTest {
         given(boardRepository.findById(999L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> boardService.getBoardDetail(999L))
-                .isInstanceOf(EntityNotFoundException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }
