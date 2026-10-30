@@ -3,6 +3,7 @@ package com.i_route.backend.student.service;
 import com.i_route.backend.gps.domain.student.entity.Student;
 import com.i_route.backend.gps.domain.student.repository.StudentRepository;
 import com.i_route.backend.student.dto.ChildCreateRequest;
+import com.i_route.backend.student.dto.StudentCreateRequest;
 import com.i_route.backend.student.dto.StudentResponse;
 import com.i_route.backend.user.entity.Academy;
 import com.i_route.backend.user.entity.User;
@@ -23,41 +24,15 @@ public class StudentService {
     private final AcademyRepository academyRepository;
     private final UserRepository userRepository;
 
-    // 자녀 추가 및 저장 (ChildCreateRequest 활용)
     @Transactional
-    public StudentResponse addChild(Long parentId, ChildCreateRequest request) {
-        Long academyId = null;
-
-        // 학원 코드(InviteCode)로 학원 조회
-        if (request.getAcademies() != null && !request.getAcademies().isEmpty()) {
-            String academyCode = request.getAcademies().get(0).getCode();
-            if (academyCode != null && !academyCode.isBlank()) {
-                Academy academy = academyRepository.findByInviteCode(academyCode.trim())
-                        .orElse(null);
-                if (academy != null) {
-                    academyId = academy.getAcademyId();
-                }
-            }
-        }
-
-        // 기존 Student 엔티티 변경 없이 builder 그대로 활용 (grade 저장 추가)
+    public StudentResponse addStudent(Long parentId, StudentCreateRequest request) {
         Student student = Student.builder()
                 .name(request.getName())
-                .grade(request.getGrade()) // 👈 학년 매핑 추가
                 .parentId(parentId)
-                .academyId(academyId)     // 👈 학원 ID 매핑
+                .gradeStudentId(request.getGradeStudentId())
                 .build();
 
-        Student saved = studentRepository.save(student);
-
-        if (saved.getAcademyId() != null) {
-            Academy academy = academyRepository.findById(saved.getAcademyId()).orElse(null);
-            String academyName = academy != null ? academy.getAcademyName() : null;
-            String academyCode = academy != null ? academy.getInviteCode() : null;
-            return StudentResponse.from(saved, academyName, academyCode);
-        }
-
-        return StudentResponse.from(saved);
+        return StudentResponse.from(studentRepository.save(student));
     }
 
     @Transactional(readOnly = true)
@@ -75,17 +50,26 @@ public class StudentService {
                 .collect(Collectors.toList());
     }
 
-    // 💡 자녀 삭제 메서드 (추가)
     @Transactional
-    public void deleteStudent(Long parentId, Long studentId) {
-        Student student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new IllegalArgumentException("자녀 정보를 찾을 수 없습니다."));
+    public StudentResponse addChild(Long parentId, ChildCreateRequest request) {
+        Long academyId = null;
 
-        if (!student.getParentId().equals(parentId)) {
-            throw new IllegalArgumentException("삭제 권한이 없습니다.");
+        if (request.getAcademies() != null && !request.getAcademies().isEmpty()) {
+            String academyCode = request.getAcademies().get(0).getCode();
+            Academy academy = academyRepository.findByInviteCode(academyCode)
+                    .orElse(null);
+            if (academy != null) {
+                academyId = academy.getAcademyId();
+            }
         }
 
-        studentRepository.delete(student);
+        Student student = Student.builder()
+                .name(request.getName())
+                .parentId(parentId)
+                .academyId(academyId)
+                .build();
+
+        return StudentResponse.from(studentRepository.save(student));
     }
 
     @Transactional(readOnly = true)

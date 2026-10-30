@@ -2,10 +2,8 @@ package com.i_route.backend.user.service;
 
 import com.i_route.backend.user.dto.DuplicateCheckRequest;
 import com.i_route.backend.user.dto.DuplicateCheckResponse;
-import com.i_route.backend.user.dto.UserProfileResponse;
 import com.i_route.backend.user.entity.User;
 import com.i_route.backend.user.repository.UserRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.ArrayList;
@@ -99,18 +97,4 @@ public class UserService {
                 "사용 가능한 " + fieldName + "입니다.");
     }
 
-    @Transactional
-    public UserProfileResponse getMyProfile(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
-        return new UserProfileResponse(
-                user.getId(),
-                user.getName(),
-                user.getNickname(),
-                user.getEmail(),
-                user.getPhoneNumber(),
-                user.getRole().name()
-        );
-    }
 }

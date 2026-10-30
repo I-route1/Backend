@@ -35,7 +35,7 @@ public class User {
     @Column(nullable = false)
     private UserRole role;
 
-    @Column(nullable = true)
+    @Column(nullable = true, unique = true)
     private String phoneNumber;
 
     @Column(unique = true)
@@ -85,10 +85,30 @@ public class User {
         this.password = encryptedPassword;
     }
 
-    public void updateSocialProfile(String name, String nickname, String phoneNumber, UserRole role) {
-        if (name != null) this.name = name;
-        if (nickname != null) this.nickname = nickname;
-        if (phoneNumber != null) this.phoneNumber = phoneNumber;
-        if (role != null) this.role = role;
+    public static User ofKakao(Long kakaoId, String nickname, String email) {
+        return User.builder()
+                .kakaoId(kakaoId)
+                .name(
+                        nickname != null && !nickname.isBlank()
+                                ? nickname
+                                : "카카오사용자"
+                )
+                .nickname(
+                        nickname != null && !nickname.isBlank()
+                                ? nickname
+                                : "kakao_" + kakaoId
+                )
+                .email(
+                        email != null && !email.isBlank()
+                                ? email
+                                : "kakao_" + kakaoId + "@kakao.com"
+                )
+                .password(UUID.randomUUID().toString())
+                .role(UserRole.PARENT)
+                .loginType(LoginType.KAKAO)
+                .phoneNumber("KAKAO_" + kakaoId)
+                .username("kakao_" + kakaoId)
+                .emailVerified(true)
+                .build();
     }
 }

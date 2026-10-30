@@ -2,6 +2,7 @@ package com.i_route.backend.student.controller;
 
 import com.i_route.backend.global.security.CustomUserDetails;
 import com.i_route.backend.student.dto.ChildCreateRequest;
+import com.i_route.backend.student.dto.StudentCreateRequest;
 import com.i_route.backend.student.dto.StudentResponse;
 import com.i_route.backend.student.service.StudentService;
 import jakarta.validation.Valid;
@@ -21,13 +22,13 @@ public class StudentController {
 
     private final StudentService studentService;
 
-    // 학부모: 자녀 등록 / 수정 (ChildCreateRequest 기반)
+    // 학부모: 자녀 등록
     @PostMapping
     @PreAuthorize("hasRole('PARENT')")
     public ResponseEntity<StudentResponse> addStudent(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @Valid @RequestBody ChildCreateRequest request) {
-        StudentResponse response = studentService.addChild(userDetails.getId(), request);
+            @Valid @RequestBody StudentCreateRequest request) {
+        StudentResponse response = studentService.addStudent(userDetails.getId(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -38,16 +39,6 @@ public class StudentController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         List<StudentResponse> children = studentService.getMyChildren(userDetails.getId());
         return ResponseEntity.ok(children);
-    }
-
-    // 💡 학부모: 자녀 삭제 (추가)
-    @DeleteMapping("/{studentId}")
-    @PreAuthorize("hasRole('PARENT')")
-    public ResponseEntity<String> deleteStudent(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
-            @PathVariable Long studentId) {
-        studentService.deleteStudent(userDetails.getId(), studentId);
-        return ResponseEntity.ok("자녀 정보가 정상적으로 삭제되었습니다.");
     }
 
     // 학원 관리자: 내 학원의 학생 목록 조회
