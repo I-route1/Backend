@@ -1,11 +1,17 @@
 package com.i_route.backend.user.controller;
 
 import com.i_route.backend.global.security.CustomUserDetails;
-import com.i_route.backend.user.entity.User;
-import com.i_route.backend.user.repository.UserRepository;
+import com.i_route.backend.user.dto.UserProfileResponse;
+import com.i_route.backend.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.i_route.backend.user.entity.User;
+import com.i_route.backend.user.repository.UserRepository;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
@@ -17,6 +23,7 @@ import java.util.Map;
 public class UserController {
 
     private final UserRepository userRepository;
+    private final UserService userService;
 
     @GetMapping("/me/credits")
     public ResponseEntity<Map<String, Integer>> getCredits(
@@ -37,5 +44,14 @@ public class UserController {
         user.setPremiumCredits(user.getPremiumCredits() - 1);
         userRepository.save(user);
         return ResponseEntity.ok(Map.of("premiumCredits", user.getPremiumCredits()));
+    }
+
+    // GET /api/users/me -> 내 프로필 데이터 반환 (이메일, 전화번호 포함)
+    @GetMapping("/me")
+    public ResponseEntity<UserProfileResponse> getMyProfile(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        UserProfileResponse response = userService.getMyProfile(userDetails.getId());
+        return ResponseEntity.ok(response);
     }
 }

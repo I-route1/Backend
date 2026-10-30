@@ -66,36 +66,19 @@ public class AuthController {
     @Value("${kakao.redirect-uri}")
     private String redirectUri;
 
-    @GetMapping("/api/oauth/social/{provider}")
-    public void socialLogin(
+    // 1. 소셜 로그인 (GET 대신 POST로 받아 Body의 code 처리)
+    @PostMapping("/api/oauth/social/{provider}/token")
+    public ResponseEntity<AuthResponse> socialToken(
             @PathVariable String provider,
-            HttpServletResponse response
-    ) throws IOException {
+            @RequestBody Map<String, String> body
+    ) {
+        String code = body.get("code");
 
-        if (!provider.equals("kakao")) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST);
-            return;
+        if (!"kakao".equals(provider)) {
+            return ResponseEntity.badRequest().build();
         }
 
-        String url = "https://kauth.kakao.com/oauth/authorize"
-                + "?client_id=" + clientId
-                + "&redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8)
-                + "&response_type=code";
-
-        response.sendRedirect(url);
-    }
-
-    @GetMapping("/api/oauth/social/{provider}/token")
-    public ResponseEntity<?> socialToken(
-            @PathVariable String provider,
-            @RequestParam("code") String code
-    ) {
-
-        System.out.println("받은 code = " + code);
-
-        return ResponseEntity.ok(
-                authService.kakaoLogin(code)
-        );
+        return ResponseEntity.ok(authService.kakaoLogin(code));
     }
 
     // POST /api/oauth/social/{provider}/register → 소셜 회원 자동 가입
@@ -115,11 +98,17 @@ public class AuthController {
     @PostMapping("/api/oauth/social/{provider}/link")
     public ResponseEntity<Map<String, String>> socialLink(
             @PathVariable String provider,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody Map<String, String> body) {
 
-        authService.linkKakaoAccount(body.get("userId"), body.get("providerId"));
+        if (userDetails == null) {
+            return ResponseEntity.status(401).body(Map.of("message", "인증이 필요합니다."));
+        }
+
+        authService.linkKakaoAccount(userDetails.getId(), body.get("providerId"));
         return ResponseEntity.ok(Map.of("message", "카카오 계정이 연동되었습니다."));
     }
+
 
     // POST /api/auth/token/refresh
     @PostMapping("/api/auth/token/refresh")
