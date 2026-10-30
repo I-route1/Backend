@@ -60,7 +60,7 @@ public class AuthController {
     }
 
     // 소셜
-    @Value("${kakao.client-id}")
+    @Value("${kakao.client-id:}")
     private String clientId;
 
     @Value("${kakao.redirect-uri}")

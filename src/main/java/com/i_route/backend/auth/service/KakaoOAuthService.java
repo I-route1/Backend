@@ -25,7 +25,7 @@ public class KakaoOAuthService {
     private String redirectUri;
 
 
-    @Value("${kakao.admin-key}")
+    @Value("${kakao.admin-key:}")
     private String adminKey;
 
     private final RestTemplate restTemplate = new RestTemplate();
@@ -85,15 +85,17 @@ public class KakaoOAuthService {
         return response.getBody();
     }
 
-    // KakaoOAuthService.java 내부 연동 해제 메서드 점검
     public void unlinkKakaoUser(Long kakaoId) {
         if (kakaoId == null) return;
 
-        RestTemplate restTemplate = new RestTemplate();
+        // Admin Key가 비어있는 경우 요청을 보낼 필요 없이 처리
+        if (adminKey == null || adminKey.isBlank()) {
+            System.err.println("카카오 Admin Key가 설정되지 않아 연동 해제 요청을 건너뜁니다.");
+            return;
+        }
+
         HttpHeaders headers = new HttpHeaders();
-        // ⚠️ Content-Type이 application/x-www-form-urlencoded 인지 확인
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        // ⚠️ Authorization 헤더 형식이 KakaoAK {ADMIN_KEY} 인지 확인 (공백 중요)
         headers.set("Authorization", "KakaoAK " + adminKey);
 
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
