@@ -2,6 +2,7 @@ package com.i_route.backend.gps.domain.attendance.controller;
 
 import com.i_route.backend.gps.domain.attendance.dto.AttendanceResponse;
 import com.i_route.backend.gps.domain.attendance.dto.AttendanceTagRequest;
+import com.i_route.backend.gps.domain.attendance.dto.ChildResponse;
 import com.i_route.backend.gps.domain.attendance.dto.GradeStudentIdRequest;
 import com.i_route.backend.gps.domain.attendance.dto.ManualAttendanceRequest;
 import com.i_route.backend.gps.domain.attendance.dto.NfcPendingResponse;
@@ -24,6 +25,12 @@ import java.util.List;
 public class AttendanceController {
 
     private final AttendanceService attendanceService;
+
+    @PreAuthorize("hasRole('PARENT') and #parentId == authentication.principal.id")
+    @GetMapping("/parents/{parentId}/children")
+    public ResponseEntity<List<ChildResponse>> getChildren(@PathVariable Long parentId) {
+        return ResponseEntity.ok(attendanceService.getChildren(parentId));
+    }
 
     /**
      * 라즈베리파이(PN532) → NFC 카드 태그 시 호출

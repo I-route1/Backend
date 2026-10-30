@@ -37,7 +37,7 @@ class AuthServiceTest {
 
     @InjectMocks
     private AuthService authService;
-    private EmailService emailService;
+    @InjectMocks private EmailService emailService;
 
     @Mock private UserRepository userRepository;
     @Mock private AcademyRepository academyRepository;
@@ -51,7 +51,7 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(authService, "refreshExpiration", 1209600000L);
-        ReflectionTestUtils.setField(authService, "verificationExpiration", 3600L);
+        ReflectionTestUtils.setField(authService, "frontendBaseUrl", "http://localhost:3000");
     }
 
     // ============================================================
@@ -70,6 +70,8 @@ class AuthServiceTest {
         req.setName("홍길동");
         req.setPhoneNumber("010-1234-5678");
         req.setRole("PARENT");
+        given(emailVerificationTokenRepository.findTopByEmailOrderByIdDesc("test@test.com"))
+                .willReturn(Optional.of(EmailVerificationToken.builder().verified(true).build()));
 
         given(userRepository.existsByUsername("testuser")).willReturn(false);
         given(userRepository.existsByNickname("테스터")).willReturn(false);
@@ -92,6 +94,8 @@ class AuthServiceTest {
         req.setName("홍길동");
         req.setPhoneNumber("01012345678");
         req.setRole("INVALID_ROLE");
+        given(emailVerificationTokenRepository.findTopByEmailOrderByIdDesc("test@test.com"))
+                .willReturn(Optional.of(EmailVerificationToken.builder().verified(true).build()));
 
         given(userRepository.existsByUsername(anyString())).willReturn(false);
         given(userRepository.existsByNickname(anyString())).willReturn(false);
@@ -113,6 +117,8 @@ class AuthServiceTest {
         req.setName("홍길동");
         req.setPhoneNumber("010-1234-5678");
         req.setRole("PARENT");
+        given(emailVerificationTokenRepository.findTopByEmailOrderByIdDesc("test@test.com"))
+                .willReturn(Optional.of(EmailVerificationToken.builder().verified(true).build()));
 
         given(userRepository.existsByUsername(anyString())).willReturn(false);
         given(userRepository.existsByNickname(anyString())).willReturn(false);
@@ -135,7 +141,7 @@ class AuthServiceTest {
                 .password("encoded").nickname("테스터")
                 .role(User.UserRole.PARENT).loginType(User.LoginType.EMAIL).build();
 
-        given(userRepository.findByEmail("test@test.com")).willReturn(Optional.of(user));
+        given(userRepository.findByUsername("test@test.com")).willReturn(Optional.of(user));
         given(passwordEncoder.matches("password123", "encoded")).willReturn(true);
         given(jwtUtil.generateToken(1L)).willReturn("access-token");
         given(jwtUtil.generateRefreshToken(1L)).willReturn("refresh-token");
@@ -155,7 +161,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("로그인 실패 - 존재하지 않는 이메일")
     void login_userNotFound() {
-        given(userRepository.findByEmail(anyString())).willReturn(Optional.empty());
+        given(userRepository.findByUsername(anyString())).willReturn(Optional.empty());
 
         LoginRequest req = new LoginRequest();
         req.setUsername("none@test.com");
@@ -163,7 +169,7 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.login(req))
                 .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("유저 없음");
+                .hasMessageContaining("아이디 또는 비밀번호");
     }
 
     @Test
@@ -173,7 +179,7 @@ class AuthServiceTest {
                 .password("encoded").role(User.UserRole.PARENT)
                 .loginType(User.LoginType.EMAIL).build();
 
-        given(userRepository.findByEmail("test@test.com")).willReturn(Optional.of(user));
+        given(userRepository.findByUsername("test@test.com")).willReturn(Optional.of(user));
         given(passwordEncoder.matches("wrong", "encoded")).willReturn(false);
 
         LoginRequest req = new LoginRequest();
@@ -182,7 +188,7 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.login(req))
                 .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("비밀번호 틀림");
+                .hasMessageContaining("아이디 또는 비밀번호");
     }
 
     // ============================================================
@@ -265,8 +271,6 @@ class AuthServiceTest {
                 .role(User.UserRole.PARENT).loginType(User.LoginType.EMAIL).build();
 
         given(emailVerificationTokenRepository.findByToken("valid-token")).willReturn(Optional.of(token));
-        given(userRepository.findByEmail("test@test.com")).willReturn(Optional.of(user));
-
         assertThatNoException().isThrownBy(() -> emailService.verifyEmail("valid-token"));
         assertThat(token.isVerified()).isTrue();
     }
@@ -283,9 +287,7 @@ class AuthServiceTest {
 
         given(emailVerificationTokenRepository.findByToken("used-token")).willReturn(Optional.of(token));
 
-        assertThatThrownBy(() -> emailService.verifyEmail("used-token"))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("이미 인증");
+        assertThat(emailService.verifyEmail("used-token").getData()).contains("이미 인증");
     }
 
     @Test
@@ -300,9 +302,7 @@ class AuthServiceTest {
 
         given(emailVerificationTokenRepository.findByToken("expired-token")).willReturn(Optional.of(token));
 
-        assertThatThrownBy(() -> emailService.verifyEmail("expired-token"))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("만료");
+        assertThat(emailService.verifyEmail("expired-token").getCode()).isEqualTo("EXPIRED_TOKEN");
     }
 
     // ============================================================
@@ -360,7 +360,7 @@ class AuthServiceTest {
 
         given(userRepository.findByPhoneNumber("01012345678")).willReturn(Optional.of(user));
 
-        String email = authService.findEmailByPhoneNumber("010-1234-5678");
+        String email = authService.findUsernameAndEmailByPhoneNumber("010-1234-5678").getEmail();
         assertThat(email).isEqualTo("test@test.com");
     }
 
@@ -369,7 +369,7 @@ class AuthServiceTest {
     void findEmailByPhoneNumber_notFound() {
         given(userRepository.findByPhoneNumber(anyString())).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> authService.findEmailByPhoneNumber("01099999999"))
+        assertThatThrownBy(() -> authService.findUsernameAndEmailByPhoneNumber("01099999999"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("유저가 없습니다");
     }

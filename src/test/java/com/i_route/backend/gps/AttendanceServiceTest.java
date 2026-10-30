@@ -10,6 +10,10 @@ import com.i_route.backend.gps.domain.student.entity.Student;
 import com.i_route.backend.gps.domain.student.repository.StudentRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import com.i_route.backend.gps.domain.attendance.repository.StudentBoardingRedisRepository;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -39,6 +43,9 @@ class AttendanceServiceTest {
     @Mock private StudentRepository studentRepository;
     @Mock private SimpMessagingTemplate messagingTemplate;
 
+    @Mock private StudentBoardingRedisRepository studentBoardingRedisRepository;
+    @BeforeEach void beginTransaction() { TransactionSynchronizationManager.initSynchronization(); }
+    @AfterEach void endTransaction() { TransactionSynchronizationManager.clearSynchronization(); }
     // ── 헬퍼 ─────────────────────────────────────────────────────
 
     private Student student(Long id, String nfcCardId, Long parentId) {
@@ -131,6 +138,8 @@ class AttendanceServiceTest {
 
         attendanceService.processTag(tagRequest(1L, "A1B2C3D4"));
 
+        then(messagingTemplate).shouldHaveNoInteractions();
+        TransactionSynchronizationManager.getSynchronizations().forEach(sync -> sync.afterCommit());
         then(messagingTemplate).should().convertAndSend(eq("/topic/attendance/100"), any(AttendanceResponse.class));
     }
 

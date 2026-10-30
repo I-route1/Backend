@@ -2,6 +2,7 @@ package com.i_route.backend.gps.domain.attendance.service;
 
 import com.i_route.backend.gps.domain.attendance.dto.AttendanceResponse;
 import com.i_route.backend.gps.domain.attendance.dto.AttendanceTagRequest;
+import com.i_route.backend.gps.domain.attendance.dto.ChildResponse;
 import com.i_route.backend.gps.domain.attendance.dto.ManualAttendanceRequest;
 import com.i_route.backend.gps.domain.attendance.entity.Attendance;
 import com.i_route.backend.gps.domain.attendance.entity.AttendanceEventType;
@@ -37,6 +38,13 @@ public class AttendanceService {
     private final SimpMessagingTemplate messagingTemplate;
     private final NfcRegisterQueueRedisRepository nfcRegisterQueueRedisRepository;
     private final StudentBoardingRedisRepository studentBoardingRedisRepository;
+
+    @Transactional(readOnly = true)
+    public List<ChildResponse> getChildren(Long parentId) {
+        return studentRepository.findByParentId(parentId).stream()
+                .map(ChildResponse::from)
+                .toList();
+    }
 
     @Transactional
     public AttendanceResponse processTag(AttendanceTagRequest request) {

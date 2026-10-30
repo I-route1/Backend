@@ -11,8 +11,8 @@ import com.i_route.backend.gps.domain.gps.repository.CurrentLocationRedisReposit
 import com.i_route.backend.gps.domain.gps.service.GpsCommandService;
 import com.i_route.backend.gps.domain.gps.service.RouteDeviationService;
 import com.i_route.backend.gps.domain.gps.service.StopDetectionService;
-import com.i_route.backend.gps.global.exception.CustomException;
-import com.i_route.backend.gps.global.exception.ErrorCode;
+import com.i_route.backend.global.exception.CustomException;
+import com.i_route.backend.global.exception.ErrorCode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

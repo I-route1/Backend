@@ -137,7 +137,7 @@ public class PaymentService {
 
         paymentRepository.save(Payment.builder()
                 .orderId(orderId)
-                .paymentKey(chargeRes.getOrderId())
+                .paymentKey(chargeRes.getPaymentKey())
                 .userId(userId)
                 .planType(plan)
                 .amount(plan.getAmount())
@@ -187,7 +187,7 @@ public class PaymentService {
 
                 paymentRepository.save(Payment.builder()
                         .orderId(orderId)
-                        .paymentKey(res.getOrderId())
+                        .paymentKey(res.getPaymentKey())
                         .userId(sub.getUserId())
                         .planType(sub.getPlanType())
                         .amount(sub.getPlanType().getAmount())

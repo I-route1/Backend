@@ -40,7 +40,7 @@ class LearningActivityAndWrongAnswerServiceTest {
     @Mock
     private LearningActivityRepository activityRepository;
 
-    private LearningActivity activity(Long id, String studentId, String feedback) {
+    private LearningActivity activity(Long id, Long studentId, String feedback) {
         return LearningActivity.builder()
                 .id(id).studentId(studentId).subject("수학")
                 .studyDate(LocalDate.now()).studyDurationMinutes(60)
@@ -52,11 +52,11 @@ class LearningActivityAndWrongAnswerServiceTest {
     @DisplayName("학습 기록 저장 성공")
     void saveActivity_success() {
         LearningActivityRequest req = new LearningActivityRequest();
-        req.setStudentId("S-001"); req.setSubject("수학");
+        req.setStudentId(1L); req.setSubject("수학");
         req.setStudyDate(LocalDate.now()); req.setStudyDurationMinutes(90);
         req.setUnderstandingScore(5); req.setConcentrationScore(4);
 
-        LearningActivity saved = activity(1L, "S-001", null);
+        LearningActivity saved = activity(1L, 1L, null);
         given(activityRepository.save(any(LearningActivity.class))).willReturn(saved);
 
         LearningActivityResponse resp = activityService.saveActivity(req);
@@ -67,10 +67,10 @@ class LearningActivityAndWrongAnswerServiceTest {
     @Test
     @DisplayName("학습 기록 조회 - 최신순 반환")
     void getActivitiesByStudent_returnsData() {
-        given(activityRepository.findByStudentIdOrderByStudyDateDesc("S-001"))
-                .willReturn(List.of(activity(1L, "S-001", null), activity(2L, "S-001", null)));
+        given(activityRepository.findByStudentIdOrderByStudyDateDesc(1L))
+                .willReturn(List.of(activity(1L, 1L, null), activity(2L, 1L, null)));
 
-        List<LearningActivityResponse> result = activityService.getActivitiesByStudent("S-001");
+        List<LearningActivityResponse> result = activityService.getActivitiesByStudent(1L);
 
         assertThat(result).hasSize(2);
     }
@@ -78,7 +78,7 @@ class LearningActivityAndWrongAnswerServiceTest {
     @Test
     @DisplayName("강사 피드백 수정 성공")
     void updateFeedback_success() {
-        LearningActivity saved = activity(1L, "S-001", "기존 피드백");
+        LearningActivity saved = activity(1L, 1L, "기존 피드백");
         given(activityRepository.findById(1L)).willReturn(Optional.of(saved));
 
         FeedbackRequest req = new FeedbackRequest();
@@ -111,7 +111,7 @@ class LearningActivityAndWrongAnswerServiceTest {
     @Mock
     private WrongAnswerRepository wrongAnswerRepository;
 
-    private WrongAnswer wrongAnswer(String studentId, String questionId, int failCount) {
+    private WrongAnswer wrongAnswer(Long studentId, String questionId, int failCount) {
         WrongAnswer w = WrongAnswer.builder()
                 .studentId(studentId).subject("수학").questionId(questionId)
                 .conceptTag("이차방정식").errorType(ErrorType.CONCEPT_GAP)
@@ -122,28 +122,28 @@ class LearningActivityAndWrongAnswerServiceTest {
     @Test
     @DisplayName("오답 기록 - 신규 오답 저장")
     void recordWrongAnswer_newEntry() {
-        given(wrongAnswerRepository.findByStudentIdAndQuestionId("S-001", "Q-001"))
+        given(wrongAnswerRepository.findByStudentIdAndQuestionId(1L, "Q-001"))
                 .willReturn(Optional.empty());
 
-        WrongAnswer newWrong = wrongAnswer("S-001", "Q-001", 1);
+        WrongAnswer newWrong = wrongAnswer(1L, "Q-001", 1);
         given(wrongAnswerRepository.save(any(WrongAnswer.class))).willReturn(newWrong);
 
         WrongAnswer result = wrongAnswerService.recordWrongAnswer(
-                "S-001", "수학", "Q-001", "이차방정식", ErrorType.CONCEPT_GAP);
+                1L, "수학", "Q-001", "이차방정식", ErrorType.CONCEPT_GAP);
 
-        assertThat(result.getStudentId()).isEqualTo("S-001");
+        assertThat(result.getStudentId()).isEqualTo(1L);
         then(wrongAnswerRepository).should().save(any(WrongAnswer.class));
     }
 
     @Test
     @DisplayName("오답 기록 - 기존 오답 failCount 증가")
     void recordWrongAnswer_incrementExisting() {
-        WrongAnswer existing = wrongAnswer("S-001", "Q-001", 2);
-        given(wrongAnswerRepository.findByStudentIdAndQuestionId("S-001", "Q-001"))
+        WrongAnswer existing = wrongAnswer(1L, "Q-001", 2);
+        given(wrongAnswerRepository.findByStudentIdAndQuestionId(1L, "Q-001"))
                 .willReturn(Optional.of(existing));
         given(wrongAnswerRepository.save(existing)).willReturn(existing);
 
-        wrongAnswerService.recordWrongAnswer("S-001", "수학", "Q-001", "이차방정식", null);
+        wrongAnswerService.recordWrongAnswer(1L, "수학", "Q-001", "이차방정식", null);
 
         assertThat(existing.getFailCount()).isEqualTo(3);
     }
@@ -151,13 +151,13 @@ class LearningActivityAndWrongAnswerServiceTest {
     @Test
     @DisplayName("오답 기록 - errorType 업데이트")
     void recordWrongAnswer_updateErrorType() {
-        WrongAnswer existing = wrongAnswer("S-001", "Q-001", 1);
+        WrongAnswer existing = wrongAnswer(1L, "Q-001", 1);
         existing.setErrorType(ErrorType.CONCEPT_GAP);
-        given(wrongAnswerRepository.findByStudentIdAndQuestionId("S-001", "Q-001"))
+        given(wrongAnswerRepository.findByStudentIdAndQuestionId(1L, "Q-001"))
                 .willReturn(Optional.of(existing));
         given(wrongAnswerRepository.save(existing)).willReturn(existing);
 
-        wrongAnswerService.recordWrongAnswer("S-001", "수학", "Q-001", "이차방정식", ErrorType.CALCULATION_ERROR);
+        wrongAnswerService.recordWrongAnswer(1L, "수학", "Q-001", "이차방정식", ErrorType.CALCULATION_ERROR);
 
         assertThat(existing.getErrorType()).isEqualTo(ErrorType.CALCULATION_ERROR);
     }
@@ -166,13 +166,13 @@ class LearningActivityAndWrongAnswerServiceTest {
     @DisplayName("AI 취약점 조회 - 학생/과목별 반환")
     void getAiTargetWeakness_success() {
         List<WrongAnswer> expected = List.of(
-                wrongAnswer("S-001", "Q-001", 3),
-                wrongAnswer("S-001", "Q-002", 2)
+                wrongAnswer(1L, "Q-001", 3),
+                wrongAnswer(1L, "Q-002", 2)
         );
-        given(wrongAnswerRepository.findTopWeaknessByStudentIdAndSubject("S-001", "수학"))
+        given(wrongAnswerRepository.findTopWeaknessByStudentIdAndSubject(1L, "수학"))
                 .willReturn(expected);
 
-        List<WrongAnswer> result = wrongAnswerService.getAiTargetWeakness("S-001", "수학");
+        List<WrongAnswer> result = wrongAnswerService.getAiTargetWeakness(1L, "수학");
 
         assertThat(result).hasSize(2);
     }

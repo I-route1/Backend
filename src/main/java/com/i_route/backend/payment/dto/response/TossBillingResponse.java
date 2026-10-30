@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 public class TossBillingResponse {
 
     private String billingKey;
+    private String paymentKey;
     private String customerKey;
     private String method;
     private String status;
