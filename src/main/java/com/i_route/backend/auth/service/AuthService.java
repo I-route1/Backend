@@ -5,6 +5,7 @@ import com.i_route.backend.auth.repository.RefreshTokenRepository;
 import com.i_route.backend.auth.entity.EmailVerificationToken;
 import com.i_route.backend.auth.entity.RefreshToken;
 import com.i_route.backend.board.repository.*;
+import com.i_route.backend.gps.domain.student.repository.StudentRepository;
 import com.i_route.backend.user.entity.Academy;
 import com.i_route.backend.user.entity.User;
 import com.i_route.backend.user.repository.*;
@@ -53,6 +54,8 @@ public class AuthService {
     private final PostLikeRepository postLikeRepository;
 
     private final PostRepository postRepository;
+
+    private final StudentRepository studentRepository;
 
     private final JwtUtil jwtUtil;
     @Value("${jwt.refresh-expiration}")
@@ -268,26 +271,49 @@ public class AuthService {
     public void logout(String refreshToken) {
         refreshTokenRepository.deleteByToken(refreshToken);
     }
-    // ✅ 카카오 로그인 - Refresh Token 포함
+    // AuthService.java 내 kakaoLogin 메서드
+
     public AuthResponse kakaoLogin(String code) {
         String kakaoAccessToken = kakaoOAuthService.getAccessToken(code);
         KakaoUserInfoResponse userInfo = kakaoOAuthService.getUserInfo(kakaoAccessToken);
-        boolean isNewUser = userRepository.findByKakaoId(userInfo.getId()).isEmpty();
-        User user = userRepository.findByKakaoId(userInfo.getId())
+
+        Long kakaoId = userInfo.getId();
+        boolean isNewUser = userRepository.findByKakaoId(kakaoId).isEmpty();
+
+        User user = userRepository.findByKakaoId(kakaoId)
                 .orElseGet(() -> userRepository.save(
-                        User.ofKakao(userInfo.getId(), userInfo.getNickname(), null)
+                        User.builder()
+                                .kakaoId(kakaoId)
+                                .username("kakao_" + kakaoId)
+                                .nickname(userInfo.getNickname() != null ? userInfo.getNickname() : "카카오_임시유저")
+                                .name(userInfo.getNickname() != null ? userInfo.getNickname() : "카카오_임시유저")
+                                .email(normalizeBlankToNull(userInfo.getEmail()))
+                                // 💡 전화번호가 없으면 임시 번호 지정 (또는 null)
+                                .phoneNumber(userInfo.getPhoneNumber() != null ?
+                                        normalizePhoneNumber(userInfo.getPhoneNumber()) : "01000000000")
+                                .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                                .role(User.UserRole.PARENT)
+                                .loginType(User.LoginType.KAKAO)
+                                .emailVerified(true)
+                                .build()
                 ));
-        String accessToken = jwtUtil.generateToken(user.getId());        String refreshToken = issueRefreshToken(user.getId());
+
+        String accessToken = jwtUtil.generateToken(user.getId());
+        String refreshToken = issueRefreshToken(user.getId());
+
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .userId(String.valueOf(user.getId()))
                 .nickname(user.getNickname())
                 .role(user.getRole().name())
-                .isNewUser(isNewUser)
+                .isNewUser(isNewUser) // 👈 신규 유저 여부 반환
                 .build();
     }
+    // 2. 소셜 가입 후 추가 정보 및 역할(Role) 선택 업데이트
+    // AuthService.java 내 socialRegister 메서드
 
+    @Transactional
     public User socialRegister(SocialRegisterRequest request) {
         String providerId = request.getProviderId();
 
@@ -295,44 +321,49 @@ public class AuthService {
             throw new IllegalArgumentException("카카오 providerId가 없습니다.");
         }
 
-        String nickname = request.getNickname();
+        Long kakaoId = Long.parseLong(providerId);
 
-        if (nickname == null || nickname.isBlank()) {
-            nickname = "카카오회원_" + providerId;
-        } else {
-            nickname = "kakao_" + nickname;
+        User user = userRepository.findByKakaoId(kakaoId)
+                .orElseThrow(() -> new IllegalArgumentException("가입된 소셜 유저를 찾을 수 없습니다."));
+
+        // 프론트에서 사용자가 선택한 Role 반영
+        User.UserRole role = User.UserRole.PARENT;
+        if (request.getRole() != null && !request.getRole().isBlank()) {
+            role = User.UserRole.valueOf(request.getRole().toUpperCase());
         }
 
-        String email = normalizeBlankToNull(request.getEmail());
+        // 사용자가 입력한 전화번호 정규화 (숫자만 추출)
+        String inputPhone = normalizePhoneNumber(request.getPhoneNumber());
 
-        if (email == null) {
-            email = "kakao_" + providerId + "@kakao.local";
-        }
+        // 💡 사용자가 폼에 입력한 전화번호가 있으면 그것으로 업데이트하고, 없으면 기존 임시 번호 유지
+        String finalPhone = (inputPhone != null && !inputPhone.isBlank()) ? inputPhone : user.getPhoneNumber();
+        String finalName = (request.getName() != null && !request.getName().isBlank()) ? request.getName() : user.getName();
+        String finalNickname = (request.getNickname() != null && !request.getNickname().isBlank()) ? request.getNickname() : user.getNickname();
 
-        return userRepository.save(
-                User.builder()
-                        .kakaoId(Long.valueOf(providerId))
-                        .name(nickname)
-                        .nickname(nickname)
-                        .email(email)
-                        .username("kakao_" + providerId)
-                        .phoneNumber("KAKAO_" + providerId)
-                        .password("kakao_" + providerId)
-                        .role(User.UserRole.PARENT)
-                        .loginType(User.LoginType.KAKAO)
-                        .emailVerified(true)
-                        .build()
-        );
+        // 엔티티 업데이트
+        user.updateSocialProfile(finalName, finalNickname, finalPhone, role);
+
+        return user;
     }
+    // 3. 기존 계정에 카카오 연동 (타입 안정성 및 중복 연동 방지)
+    public void linkKakaoAccount(Long userId, String providerId) {
+        if (providerId == null || providerId.isBlank()) {
+            throw new IllegalArgumentException("providerId가 올바르지 않습니다.");
+        }
 
-    // 기존 계정 카카오 연동
-    public void linkKakaoAccount(String userId, String providerId) {
-        User user = userRepository.findById(Long.parseLong(userId))
-                .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다."));
-        user.setKakaoId(Long.parseLong(providerId));
+        Long kakaoId;
+        try {
+            kakaoId = Long.parseLong(providerId);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("providerId는 숫자 형식이어야 합니다.");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+
+        user.setKakaoId(kakaoId);
         userRepository.save(user);
     }
-
 
     public void sendVerificationEmail(String email) {
 
@@ -468,33 +499,36 @@ public class AuthService {
 
     @Transactional
     public void deleteMyAccount(Long userId) {
-
-        // 댓글 관련
-
-        commentRepository.deleteByUser_Id(userId);
-
-        // 게시글에 달린 반응 삭제
-        postBookmarkRepository.deleteByUser_Id(userId);
-        postLikeRepository.deleteByUser_Id(userId);
-
-        // 내가 쓴 게시글에 달린 반응/댓글 삭제
-        commentLikeRepository.deleteByPostOwnerId(userId);
-
-        commentRepository.deleteByPost_User_Id(userId);
-
-        postBookmarkRepository.deleteByPost_User_Id(userId);
-        postLikeRepository.deleteByPost_User_Id(userId);
-
-        // 게시글 삭제
-        postRepository.deleteByUser_Id(userId);
-
-        // 회원 부가정보 삭제
-        academyRepository.deleteByUser_Id(userId);
-
-        // 마지막 회원 삭제
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
+        System.out.println("====== 회원 탈퇴 디버깅 ======");
+        System.out.println("User ID: " + user.getId());
+        System.out.println("LoginType: " + user.getLoginType());
+        System.out.println("KakaoId: " + user.getKakaoId());
+
+        if (user.getLoginType() == User.LoginType.KAKAO && user.getKakaoId() != null) {
+            System.out.println("-> 카카오 연동 해제(Unlink) 호출 시작!");
+            kakaoOAuthService.unlinkKakaoUser(user.getKakaoId());
+        } else {
+            System.out.println("-> 조건 불일치로 카카오 연동 해제를 스킵합니다.");
+        }
+
+        // 기존 연관 데이터 삭제 로직
+        commentRepository.deleteByUser_Id(userId);
+        postBookmarkRepository.deleteByUser_Id(userId);
+        postLikeRepository.deleteByUser_Id(userId);
+        commentLikeRepository.deleteByPostOwnerId(userId);
+        commentRepository.deleteByPost_User_Id(userId);
+        postBookmarkRepository.deleteByPost_User_Id(userId);
+        postLikeRepository.deleteByPost_User_Id(userId);
+        postRepository.deleteByUser_Id(userId);
+        academyRepository.deleteByUser_Id(userId);
+
+        // 💡 학부모 탈퇴 시 연관된 자녀(Student) 데이터 삭제 추가!
+        studentRepository.deleteByParentId(userId);
+
+        // 최종 유저 삭제
         userRepository.delete(user);
     }
 

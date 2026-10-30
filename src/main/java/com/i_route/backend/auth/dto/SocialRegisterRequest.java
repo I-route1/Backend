@@ -11,4 +11,8 @@ public class SocialRegisterRequest {
     private String email;
     private String nickname;
     private String profileImage;
+    private String provider;
+    private String role;
+    private String name;
+    private String phoneNumber;
 }
