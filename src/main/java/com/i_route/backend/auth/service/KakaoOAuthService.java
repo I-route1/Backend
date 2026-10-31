@@ -24,6 +24,10 @@ public class KakaoOAuthService {
     @Value("${kakao.redirect-uri}")
     private String redirectUri;
 
+
+    @Value("${kakao.admin-key:}")
+    private String adminKey;
+
     private final RestTemplate restTemplate = new RestTemplate();
 
     public String getAccessToken(String code) {
@@ -79,5 +83,36 @@ public class KakaoOAuthService {
                 );
 
         return response.getBody();
+    }
+
+    public void unlinkKakaoUser(Long kakaoId) {
+        if (kakaoId == null) return;
+
+        // Admin Key가 비어있는 경우 요청을 보낼 필요 없이 처리
+        if (adminKey == null || adminKey.isBlank()) {
+            System.err.println("카카오 Admin Key가 설정되지 않아 연동 해제 요청을 건너뜁니다.");
+            return;
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        headers.set("Authorization", "KakaoAK " + adminKey);
+
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("target_id_type", "user_id");
+        params.add("target_id", String.valueOf(kakaoId));
+
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity(
+                    "https://kapi.kakao.com/v1/user/unlink",
+                    request,
+                    String.class
+            );
+            System.out.println("카카오 연동 해제 성공: " + response.getBody());
+        } catch (Exception e) {
+            System.err.println("카카오 연동 해제 실패 (kakaoId: " + kakaoId + "): " + e.getMessage());
+        }
     }
 }
