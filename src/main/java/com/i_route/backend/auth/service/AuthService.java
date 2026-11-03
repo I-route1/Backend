@@ -271,10 +271,8 @@ public class AuthService {
     public void logout(String refreshToken) {
         refreshTokenRepository.deleteByToken(refreshToken);
     }
+
     // AuthService.java 내 kakaoLogin 메서드
-
-    // AuthService.java
-
     public AuthResponse kakaoLogin(String code) {
         String kakaoAccessToken = kakaoOAuthService.getAccessToken(code);
         KakaoUserInfoResponse userInfo = kakaoOAuthService.getUserInfo(kakaoAccessToken);
@@ -282,25 +280,32 @@ public class AuthService {
         Long kakaoId = userInfo.getId();
         boolean isNewUser = userRepository.findByKakaoId(kakaoId).isEmpty();
 
-        // 카카오로부터 가져온 전화번호 정규화
+        // 1. 전화번호 가상 번호 생성 (고유값 보장)
         String kakaoPhone = (userInfo.getPhoneNumber() != null) ?
                 normalizePhoneNumber(userInfo.getPhoneNumber()) : null;
 
-        // 💡 전화번호가 없거나 비어있는 경우, kakaoId를 활용해 항상 고유한 가상 전화번호 생성
-        // DB의 UNIQUE & NOT NULL 제약조건을 모두 만족시킵니다.
         String finalPhoneNumber = (kakaoPhone != null && !kakaoPhone.isBlank()) ?
                 kakaoPhone : "KAKAO_" + kakaoId;
+
+        // 2. 닉네임 고유 처리 (카카오 닉네임이 없거나 중복 방지를 위한 처리)
+        // 카카오에서 가져온 닉네임이 있으면 활용하되, 없으면 kakaoId를 뒤에 붙여 중복을 막습니다.
+        String rawNickname = (userInfo.getNickname() != null && !userInfo.getNickname().isBlank()) ?
+                userInfo.getNickname() : "카카오유저";
+
+        // 만약 카카오 닉네임 자체가 이미 DB에 존재하는 경우를 대비해 처리하거나,
+        // 신규 가입 시 고유 닉네임 기본값(예: 카카오유저_123456)으로 세팅합니다.
+        String finalNickname = userRepository.existsByNickname(rawNickname) ?
+                rawNickname + "_" + kakaoId : rawNickname;
 
         User user = userRepository.findByKakaoId(kakaoId)
                 .orElseGet(() -> userRepository.save(
                         User.builder()
                                 .kakaoId(kakaoId)
                                 .username("kakao_" + kakaoId)
-                                .nickname(userInfo.getNickname() != null ? userInfo.getNickname() : "카카오_임시유저")
-                                .name(userInfo.getNickname() != null ? userInfo.getNickname() : "카카오_임시유저")
+                                .nickname(finalNickname) // 💡 고유 닉네임 적용
+                                .name(rawNickname)
                                 .email(normalizeBlankToNull(userInfo.getEmail()))
-                                // 💡 고유한 가상 전화번호 적용
-                                .phoneNumber(finalPhoneNumber)
+                                .phoneNumber(finalPhoneNumber) // 💡 고유 가상 전화번호 적용
                                 .password(passwordEncoder.encode(UUID.randomUUID().toString()))
                                 .role(User.UserRole.PARENT)
                                 .loginType(User.LoginType.KAKAO)
