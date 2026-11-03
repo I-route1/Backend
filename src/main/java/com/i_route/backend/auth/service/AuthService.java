@@ -287,15 +287,14 @@ public class AuthService {
         String finalPhoneNumber = (kakaoPhone != null && !kakaoPhone.isBlank()) ?
                 kakaoPhone : "KAKAO_" + kakaoId;
 
-        // 2. 닉네임 고유 처리 (카카오 닉네임이 없거나 중복 방지를 위한 처리)
-        // 카카오에서 가져온 닉네임이 있으면 활용하되, 없으면 kakaoId를 뒤에 붙여 중복을 막습니다.
         String rawNickname = (userInfo.getNickname() != null && !userInfo.getNickname().isBlank()) ?
                 userInfo.getNickname() : "카카오유저";
 
-        // 만약 카카오 닉네임 자체가 이미 DB에 존재하는 경우를 대비해 처리하거나,
-        // 신규 가입 시 고유 닉네임 기본값(예: 카카오유저_123456)으로 세팅합니다.
-        String finalNickname = userRepository.existsByNickname(rawNickname) ?
-                rawNickname + "_" + kakaoId : rawNickname;
+        // 💡 신규 가입 시 닉네임 앞에 '카카오_' 또는 'kakao_' 접두사를 붙이도록 변경
+        String kakaoNickname = "카카오_" + rawNickname; // 예: 카카오_정석희
+
+        String finalNickname = userRepository.existsByNickname(kakaoNickname) ?
+                kakaoNickname + "_" + kakaoId : kakaoNickname;
 
         User user = userRepository.findByKakaoId(kakaoId)
                 .orElseGet(() -> userRepository.save(
