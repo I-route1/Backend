@@ -273,12 +273,23 @@ public class AuthService {
     }
     // AuthService.java 내 kakaoLogin 메서드
 
+    // AuthService.java
+
     public AuthResponse kakaoLogin(String code) {
         String kakaoAccessToken = kakaoOAuthService.getAccessToken(code);
         KakaoUserInfoResponse userInfo = kakaoOAuthService.getUserInfo(kakaoAccessToken);
 
         Long kakaoId = userInfo.getId();
         boolean isNewUser = userRepository.findByKakaoId(kakaoId).isEmpty();
+
+        // 카카오로부터 가져온 전화번호 정규화
+        String kakaoPhone = (userInfo.getPhoneNumber() != null) ?
+                normalizePhoneNumber(userInfo.getPhoneNumber()) : null;
+
+        // 💡 전화번호가 없거나 비어있는 경우, kakaoId를 활용해 항상 고유한 가상 전화번호 생성
+        // DB의 UNIQUE & NOT NULL 제약조건을 모두 만족시킵니다.
+        String finalPhoneNumber = (kakaoPhone != null && !kakaoPhone.isBlank()) ?
+                kakaoPhone : "KAKAO_" + kakaoId;
 
         User user = userRepository.findByKakaoId(kakaoId)
                 .orElseGet(() -> userRepository.save(
@@ -288,9 +299,8 @@ public class AuthService {
                                 .nickname(userInfo.getNickname() != null ? userInfo.getNickname() : "카카오_임시유저")
                                 .name(userInfo.getNickname() != null ? userInfo.getNickname() : "카카오_임시유저")
                                 .email(normalizeBlankToNull(userInfo.getEmail()))
-                                // 💡 전화번호가 없으면 임시 번호 지정 (또는 null)
-                                .phoneNumber(userInfo.getPhoneNumber() != null ?
-                                        normalizePhoneNumber(userInfo.getPhoneNumber()) : "01000000000")
+                                // 💡 고유한 가상 전화번호 적용
+                                .phoneNumber(finalPhoneNumber)
                                 .password(passwordEncoder.encode(UUID.randomUUID().toString()))
                                 .role(User.UserRole.PARENT)
                                 .loginType(User.LoginType.KAKAO)
@@ -307,12 +317,11 @@ public class AuthService {
                 .userId(String.valueOf(user.getId()))
                 .nickname(user.getNickname())
                 .role(user.getRole().name())
-                .isNewUser(isNewUser) // 👈 신규 유저 여부 반환
+                .isNewUser(isNewUser)
                 .build();
     }
-    // 2. 소셜 가입 후 추가 정보 및 역할(Role) 선택 업데이트
-    // AuthService.java 내 socialRegister 메서드
 
+    // 2. 소셜 가입 후 추가 정보 및 역할(Role) 선택
     @Transactional
     public User socialRegister(SocialRegisterRequest request) {
         String providerId = request.getProviderId();
