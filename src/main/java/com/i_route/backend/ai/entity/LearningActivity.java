@@ -53,4 +53,8 @@ public class LearningActivity {
     public void updateFeedback(String feedback) {
         this.instructorFeedback = feedback;
     }
+
+    public void attachSubmissionId(String submissionId) {
+        this.submissionId = submissionId;
+    }
 }
