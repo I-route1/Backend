@@ -15,13 +15,15 @@ import java.time.LocalTime;
 public class LearningActivityRequest {
     @NotNull @Positive
     private Long studentId;
+    @Size(max = 64) @Pattern(regexp = ".*\\S.*", message = "submissionId는 공백일 수 없습니다.")
+    private String submissionId;
     @NotBlank @Size(max = 255)
     private String subject;
     @NotNull
     private LocalDate studyDate;
     @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime studyStartTime;
-    @Min(1)
+    @Min(1) @Max(1440)
     private int studyDurationMinutes;
     @Min(1) @Max(5)
     private int understandingScore;

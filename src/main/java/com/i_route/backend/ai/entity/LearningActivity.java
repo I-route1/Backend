@@ -6,6 +6,8 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 
 @Entity
+@Table(uniqueConstraints = @UniqueConstraint(name = "uk_activity_student_submission",
+        columnNames = {"student_id", "submission_id"}))
 @Getter
 @Builder
 @AllArgsConstructor
@@ -16,7 +18,11 @@ public class LearningActivity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "student_id")
     private Long studentId;           // 학생 ID
+
+    @Column(name = "submission_id", length = 64)
+    private String submissionId;
 
     private String subject;             // 학습 과목 (예: 국어, 수학, 영어)
 

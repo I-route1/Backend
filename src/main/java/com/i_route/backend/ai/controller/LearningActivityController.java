@@ -4,6 +4,7 @@ import com.i_route.backend.ai.dto.FeedbackRequest;
 import com.i_route.backend.ai.dto.LearningActivityRequest;
 import com.i_route.backend.ai.dto.LearningActivityResponse;
 import com.i_route.backend.ai.service.LearningActivityService;
+import com.i_route.backend.ai.service.StudentRecordAccess;
 import lombok.RequiredArgsConstructor;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -17,10 +18,12 @@ import java.util.List;
 public class LearningActivityController {
 
     private final LearningActivityService learningActivityService;
+    private final StudentRecordAccess access;
 
     // 🌟 학습 기록 입력 (POST)
     @PostMapping
     public ResponseEntity<LearningActivityResponse> saveActivity(@Valid @RequestBody LearningActivityRequest request) {
+        access.requireStudent(request.getStudentId());
         LearningActivityResponse response = learningActivityService.saveActivity(request);
         return ResponseEntity.ok(response);
     }
@@ -28,6 +31,7 @@ public class LearningActivityController {
     // 🌟 학습 기록 조회 (GET)
     @GetMapping("/{studentId}")
     public ResponseEntity<List<LearningActivityResponse>> getActivities(@PathVariable Long studentId) {
+        access.requireStudent(studentId);
         List<LearningActivityResponse> responses = learningActivityService.getActivitiesByStudent(studentId);
         return ResponseEntity.ok(responses);
     }
@@ -36,7 +40,8 @@ public class LearningActivityController {
     @PatchMapping("/{activityId}/feedback")
     public ResponseEntity<LearningActivityResponse> updateFeedback(
             @PathVariable Long activityId,
-            @RequestBody FeedbackRequest request) {
+            @Valid @RequestBody FeedbackRequest request) {
+        access.requireFeedback(activityId);
         return ResponseEntity.ok(learningActivityService.updateFeedback(activityId, request));
     }
 }

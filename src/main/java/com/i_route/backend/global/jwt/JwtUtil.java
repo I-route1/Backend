@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JwtUtil {
@@ -33,6 +34,7 @@ public class JwtUtil {
 
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
+                .claim("tokenType", "access")
                 .setIssuedAt(now)
                 .setExpiration(expiry)
                 .signWith(getKey())
@@ -47,6 +49,7 @@ public class JwtUtil {
 
         return Jwts.builder()
                 .setSubject(username)
+                .claim("tokenType", "access")
                 .setIssuedAt(now)
                 .setExpiration(expiry)
                 .signWith(getKey())
@@ -61,6 +64,8 @@ public class JwtUtil {
 
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
+                .claim("tokenType", "refresh")
+                .setId(UUID.randomUUID().toString())
                 .setIssuedAt(now)
                 .setExpiration(expiry)
                 .signWith(getKey())
@@ -81,7 +86,8 @@ public class JwtUtil {
     public boolean validateToken(String token) {
 
         try {
-            parseClaims(token);
+            var claims = parseClaims(token);
+            if ("refresh".equals(claims.get("tokenType"))) throw new IllegalArgumentException("Access Token이 필요합니다.");
             return true;
 
         } catch (ExpiredJwtException e) {
@@ -89,6 +95,16 @@ public class JwtUtil {
 
         } catch (JwtException | IllegalArgumentException e) {
             throw new RuntimeException("유효하지 않은 토큰입니다.");
+        }
+    }
+
+    public boolean validateRefreshToken(String token) {
+        try {
+            var claims = parseClaims(token);
+            // 기존에 DB에 저장된 소셜 로그인 토큰은 만료 전까지 갱신할 수 있다.
+            return claims.get("tokenType") == null || "refresh".equals(claims.get("tokenType"));
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
         }
     }
 
