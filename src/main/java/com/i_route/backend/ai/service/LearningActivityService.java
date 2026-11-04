@@ -4,6 +4,7 @@ import com.i_route.backend.ai.dto.FeedbackRequest;
 import com.i_route.backend.ai.dto.LearningActivityRequest;
 import com.i_route.backend.ai.dto.LearningActivityResponse;
 import com.i_route.backend.ai.entity.LearningActivity;
+import com.i_route.backend.ai.entity.MeasurementSource;
 import com.i_route.backend.ai.repository.LearningActivityRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -31,6 +32,10 @@ public class LearningActivityService {
                 .studyDurationMinutes(request.getStudyDurationMinutes())
                 .understandingScore(request.getUnderstandingScore())
                 .concentrationScore(request.getConcentrationScore())
+                .focusedRatio(request.getFocusedRatio())
+                .drowsyRatio(request.getDrowsyRatio())
+                .measurementSource(request.getMeasurementSource() == null
+                        ? MeasurementSource.MANUAL : request.getMeasurementSource())
                 .instructorFeedback(request.getInstructorFeedback())
                 .build();
 

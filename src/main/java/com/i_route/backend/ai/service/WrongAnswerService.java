@@ -16,6 +16,16 @@ public class WrongAnswerService {
 
     private final WrongAnswerRepository wrongAnswerRepository;
 
+    @Transactional(readOnly = true)
+    public List<WrongAnswer> getWrongAnswers(Long studentId, String subject) {
+        if (studentId == null || studentId <= 0) {
+            throw new IllegalArgumentException("studentId는 양수여야 합니다.");
+        }
+        return subject == null || subject.isBlank()
+                ? wrongAnswerRepository.findByStudentIdOrderByCreatedAtDescIdDesc(studentId)
+                : wrongAnswerRepository.findByStudentIdAndSubjectOrderByCreatedAtDescIdDesc(studentId, subject);
+    }
+
     /**
      * ✍️ 1. 학생의 오답 이력을 실시간으로 기록 및 누적하는 로직
      */

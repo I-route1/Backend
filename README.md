@@ -1,5 +1,7 @@
 ## 백엔드 개발 환경 (Environment)
 
+오답·OCR 채점·집중도 저장/조회: [API 명세](docs/learning-records-api.md)
+
 | 항목 | 버전           | 
 |------|--------------|
 | **Java** | 17           |

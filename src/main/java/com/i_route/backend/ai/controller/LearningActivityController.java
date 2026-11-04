@@ -5,6 +5,7 @@ import com.i_route.backend.ai.dto.LearningActivityRequest;
 import com.i_route.backend.ai.dto.LearningActivityResponse;
 import com.i_route.backend.ai.service.LearningActivityService;
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,7 +20,7 @@ public class LearningActivityController {
 
     // 🌟 학습 기록 입력 (POST)
     @PostMapping
-    public ResponseEntity<LearningActivityResponse> saveActivity(@RequestBody LearningActivityRequest request) {
+    public ResponseEntity<LearningActivityResponse> saveActivity(@Valid @RequestBody LearningActivityRequest request) {
         LearningActivityResponse response = learningActivityService.saveActivity(request);
         return ResponseEntity.ok(response);
     }

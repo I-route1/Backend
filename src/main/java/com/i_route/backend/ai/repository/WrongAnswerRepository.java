@@ -15,6 +15,10 @@ public interface WrongAnswerRepository extends JpaRepository<WrongAnswer, Long> 
     // 학생의 전체 오답 (프리미엄 리포트의 주 취약 과목 선정용)
     List<WrongAnswer> findByStudentId(Long studentId);
 
+    List<WrongAnswer> findByStudentIdOrderByCreatedAtDescIdDesc(Long studentId);
+
+    List<WrongAnswer> findByStudentIdAndSubjectOrderByCreatedAtDescIdDesc(Long studentId, String subject);
+
     // 이미 틀렸던 문항인지 체크
     Optional<WrongAnswer> findByStudentIdAndQuestionId(Long studentId, String questionId);
 

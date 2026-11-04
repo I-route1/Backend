@@ -31,6 +31,15 @@ public class LearningActivity {
 
     private int concentrationScore;     // 주관적 집중도 별점 (1~5점)
 
+    // 얼굴이 검출되어 분류된 표본 중 각 상태의 비율(0~1). 직접 입력은 null 허용.
+    private Double focusedRatio;
+
+    private Double drowsyRatio;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 16)
+    private MeasurementSource measurementSource;
+
     // 🌟 강사 피드백 영역
     @Column(length = 1000)
     private String instructorFeedback;

@@ -16,6 +16,14 @@ public class WrongAnswerController {
 
     private final WrongAnswerService wrongAnswerService;
 
+    /** 학생의 전체 오답. subject를 생략하면 모든 과목을 최신 등록순으로 반환한다. */
+    @GetMapping("/{studentId}")
+    public ResponseEntity<List<WrongAnswer>> getWrongAnswers(
+            @PathVariable Long studentId,
+            @RequestParam(required = false) String subject) {
+        return ResponseEntity.ok(wrongAnswerService.getWrongAnswers(studentId, subject));
+    }
+
     /**
      * ✍️ 프론트 없이 HTTP 파일로 오답을 직접 DB에 쏴보는 테스트용 API
      */
