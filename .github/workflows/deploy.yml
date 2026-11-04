@@ -29,7 +29,7 @@ jobs:
 
       - name: Build JAR
         run: |
-          chmod +x gradlew && ./gradlew bootJar -x test
+          chmod +x gradlew && ./gradlew learningRecordsTest bootJar -x test
           cp build/libs/backend-*-SNAPSHOT.jar app.jar
 
       - name: Apply mail and Kakao settings and deploy

@@ -49,3 +49,22 @@ springBoot {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+// 기존 테스트의 컴파일 상태와 독립적으로 학습 기록 API 계약과 DB 저장을 검증한다.
+sourceSets {
+    learningRecordsTest {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+configurations {
+    learningRecordsTestImplementation.extendsFrom testImplementation
+    learningRecordsTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+tasks.register('learningRecordsTest', Test) {
+    description = 'Verifies wrong answers, OCR persistence and attention measurements.'
+    group = 'verification'
+    testClassesDirs = sourceSets.learningRecordsTest.output.classesDirs
+    classpath = sourceSets.learningRecordsTest.runtimeClasspath
+    useJUnitPlatform()
+}
