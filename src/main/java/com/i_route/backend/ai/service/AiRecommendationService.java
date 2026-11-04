@@ -148,9 +148,14 @@ public class AiRecommendationService {
         List<Object[]> allAvgs = gradeRepository.findAllStudentAverageScores();
         long peerCount = allAvgs.stream()
                 .filter(row -> {
-                    Long sid = ((Number) row[0]).longValue();
-                    double avg = ((Number) row[1]).doubleValue();
-                    return !sid.equals(studentId) && Math.abs(avg - myAvg) <= 10;
+                    if (!(row[1] instanceof Number average)) return false;
+                    try {
+                        Long sid = Long.valueOf(String.valueOf(row[0]));
+                        return sid > 0 && !sid.equals(studentId) && Math.abs(average.doubleValue() - myAvg) <= 10;
+                    } catch (NumberFormatException e) {
+                        // S-0001 같은 옛 ID를 현재 학생에게 임의로 연결하지 않는다.
+                        return false;
+                    }
                 })
                 .count();
 

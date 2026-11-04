@@ -18,7 +18,7 @@ public interface GradeRepository extends JpaRepository<Grade, Long> {
     @Query("SELECT AVG(g.score) FROM Grade g WHERE g.subject = :subject")
     Double getAverageScoreBySubject(@Param("subject") String subject);
 
-    @Query("SELECT AVG(g.score) FROM Grade g WHERE g.studentId = :studentId")
+    @Query("SELECT AVG(g.score) FROM Grade g WHERE CAST(g.studentId AS string) = CAST(:studentId AS string)")
     Double getAverageScoreByStudent(@Param("studentId") Long studentId);
 
     // 표준편차 계산용 — 학생의 특정 과목 점수 목록 (날짜 오름차순)
@@ -26,7 +26,8 @@ public interface GradeRepository extends JpaRepository<Grade, Long> {
     List<Integer> findScoresByStudentAndSubject(@Param("studentId") Long studentId, @Param("subject") String subject);
 
     // 유사 성적대 피어 분석용 — 전체 학생 평균 성적 목록
-    @Query("SELECT g.studentId, AVG(g.score) FROM Grade g GROUP BY g.studentId")
+    // 과거 VARCHAR 학생 ID가 남아 있어도 Hibernate의 Long 추출 오류가 나지 않게 문자열로 읽는다.
+    @Query("SELECT CAST(g.studentId AS string), AVG(g.score) FROM Grade g GROUP BY g.studentId")
     List<Object[]> findAllStudentAverageScores();
 
     // 선배 성공 경로용 — 특정 과목 전체 성적 (날짜 오름차순)

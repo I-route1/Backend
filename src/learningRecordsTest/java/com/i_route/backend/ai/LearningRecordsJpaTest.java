@@ -56,7 +56,7 @@ class LearningRecordsJpaTest {
         em.persist(StudyMaterial.builder().title("함수 연습").materialType("교재").level(4).subjectId(2L).build());
         em.flush();
         em.clear();
-        assertThat(grades.findAllStudentAverageScores()).allSatisfy(row -> assertThat(row[0]).isInstanceOf(Long.class));
+        assertThat(grades.findAllStudentAverageScores()).allSatisfy(row -> assertThat(row[0]).isInstanceOf(String.class));
         assertThat(recommendations.recommendByPeerContent(14L)).singleElement().satisfies(r -> {
             assertThat(r.getTitle()).isEqualTo("함수 연습");
             assertThat(r.getMatchReason()).contains("1명");
