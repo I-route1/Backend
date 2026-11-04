@@ -50,6 +50,8 @@ start.sh
 cf-config.json
 
 # Logs
+__pycache__/
+*.py[cod]
 *.log
 *.tmp
 *.swp

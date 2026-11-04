@@ -18,8 +18,9 @@
 ## 자동 배포 (GitHub Actions)
 
 ### 백엔드 (`develop` push 또는 Actions 탭에서 수동 실행)
-빌드 → `app.jar`를 EC2 `/home/ec2-user/`에 업로드 → `start.sh`로 재시작 → 최대 2분간 응답 확인.
-응답이 없으면 서버 로그 50줄을 남기고 실패로 표시됩니다.
+배포 스크립트 테스트 → 빌드 → GitHub Secrets의 메일·카카오 Admin Key를 서버에 전달 →
+SMTP 인증 확인(메일 발송 없음) → `start.sh`로 재시작 → `/health`의 200/OK와 Java 프로세스의 설정 일치를 확인합니다.
+실패하면 이전 JAR·설정·시작 스크립트를 복구하고 재시작합니다. 동시 배포는 순서대로 처리합니다.
 
 ### 프론트엔드 (`main` push 또는 Actions 탭에서 수동 실행)
 빌드 → S3 업로드(`--delete`) → CloudFront 캐시 무효화.
@@ -57,8 +58,11 @@ Tailscale 대역(100.64.0.0/10)에서만 허용합니다.
 
 ## EC2 서버 관리
 
-서버 환경변수(DB·JWT·메일·Kakao·AI 주소)는 EC2의 `/home/ec2-user/start.sh`에만 있습니다.
-값을 바꾸면 그 파일을 고친 뒤 재시작합니다. DB 비밀번호는 `~/.i_route_db_pw`에서 읽습니다.
+DB·JWT·AI 주소 등 기존 설정은 EC2 `/home/ec2-user/start.sh`에서 유지합니다.
+메일·카카오 Admin Key는 GitHub Secrets에서 배포 시 `/home/ec2-user/.i_route_runtime.env`로
+전달하며 파일 권한은 600입니다. `start.sh`가 Java 실행 직전에 이를 읽어 이전 값을 덮어씁니다.
+변경할 때는 GitHub Secrets를 수정하고 재배포하세요. DB 비밀번호는 `~/.i_route_db_pw`에서 읽습니다.
+배포 직전 백업은 권한 700의 `~/.deploy/<실행 ID>-<시도>/` 안에 보관하며 비밀값을 포함할 수 있으므로 공개하지 않습니다.
 
 ```bash
 # SSH 접속 (키는 저장소에 두지 않습니다)
@@ -80,8 +84,9 @@ EC2에는 Java 17, MariaDB(`i_route_db`), Redis, 스왑 2GB, Tailscale(`i-route-
 
 ## GitHub Secrets
 
-**Backend 레포** — 워크플로가 쓰는 것은 `EC2_HOST`, `EC2_KEY` 둘뿐입니다.
-(`JWT_SECRET`, `KAKAO_*`, `AI_SERVER_URL`은 예전 설정의 흔적이고, 실제 값은 EC2 `start.sh`에 있습니다.)
+**Backend 레포** — 필수 Secrets: `EC2_HOST`, `EC2_KEY`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `KAKAO_ADMIN_KEY`.
+메일/관리자 키가 비어 있으면 서버를 변경하기 전에 중단합니다. 실제 값은 로그에 출력하지 않습니다.
+`JWT_SECRET`, 기타 `KAKAO_*`, `AI_SERVER_URL`은 기존 EC2 설정을 그대로 사용합니다.
 
 **Frontend 레포**
 - `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` — IAM 사용자 `github-front-deploy`(정책 `i-route-front-deploy`: 버킷 업로드와 캐시 무효화만)
