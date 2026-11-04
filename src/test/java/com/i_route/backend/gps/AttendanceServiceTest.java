@@ -10,6 +10,10 @@ import com.i_route.backend.gps.domain.student.entity.Student;
 import com.i_route.backend.gps.domain.student.repository.StudentRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -38,6 +42,11 @@ class AttendanceServiceTest {
     @Mock private AttendanceRepository attendanceRepository;
     @Mock private StudentRepository studentRepository;
     @Mock private SimpMessagingTemplate messagingTemplate;
+    @Mock private com.i_route.backend.gps.domain.attendance.repository.NfcRegisterQueueRedisRepository nfcQueue;
+    @Mock private com.i_route.backend.gps.domain.attendance.repository.StudentBoardingRedisRepository boarding;
+
+    @BeforeEach void beginSynchronization() { TransactionSynchronizationManager.initSynchronization(); }
+    @AfterEach void clearSynchronization() { TransactionSynchronizationManager.clearSynchronization(); }
 
     // ── 헬퍼 ─────────────────────────────────────────────────────
 
@@ -92,7 +101,7 @@ class AttendanceServiceTest {
     @DisplayName("NFC 태그 처리 성공 - BOARD 이후 태그는 EXIT")
     void processTag_afterBoard_isExit() {
         Student s = student(7L, "A1B2C3D4", 100L);
-        Attendance lastBoard = attendance(1L, 7L, AttendanceEventType.BOARD, LocalDateTime.now().minusHours(1));
+        Attendance lastBoard = attendance(1L, 7L, AttendanceEventType.BOARD, LocalDate.now().atStartOfDay());
 
         given(studentRepository.findByNfcCardId("A1B2C3D4")).willReturn(Optional.of(s));
         given(attendanceRepository.findTopByStudentIdOrderByTimestampDesc(7L)).willReturn(Optional.of(lastBoard));
@@ -108,7 +117,7 @@ class AttendanceServiceTest {
     @DisplayName("NFC 태그 처리 성공 - EXIT 이후 태그는 BOARD")
     void processTag_afterExit_isBoard() {
         Student s = student(7L, "A1B2C3D4", 100L);
-        Attendance lastExit = attendance(2L, 7L, AttendanceEventType.EXIT, LocalDateTime.now().minusHours(1));
+        Attendance lastExit = attendance(2L, 7L, AttendanceEventType.EXIT, LocalDate.now().atStartOfDay());
 
         given(studentRepository.findByNfcCardId("A1B2C3D4")).willReturn(Optional.of(s));
         given(attendanceRepository.findTopByStudentIdOrderByTimestampDesc(7L)).willReturn(Optional.of(lastExit));
@@ -131,6 +140,8 @@ class AttendanceServiceTest {
 
         attendanceService.processTag(tagRequest(1L, "A1B2C3D4"));
 
+        then(messagingTemplate).shouldHaveNoInteractions();
+        TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
         then(messagingTemplate).should().convertAndSend(eq("/topic/attendance/100"), any(AttendanceResponse.class));
     }
 

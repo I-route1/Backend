@@ -148,7 +148,7 @@ public class AiRecommendationService {
         List<Object[]> allAvgs = gradeRepository.findAllStudentAverageScores();
         long peerCount = allAvgs.stream()
                 .filter(row -> {
-                    String sid = (String) row[0];
+                    Long sid = ((Number) row[0]).longValue();
                     double avg = ((Number) row[1]).doubleValue();
                     return !sid.equals(studentId) && Math.abs(avg - myAvg) <= 10;
                 })
