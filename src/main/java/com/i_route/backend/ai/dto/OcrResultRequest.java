@@ -2,16 +2,17 @@ package com.i_route.backend.ai.dto;
 
 import com.i_route.backend.ai.entity.ErrorType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.util.List;
 
 public record OcrResultRequest(
-        @NotNull @Positive Long studentId,
+        @NotNull @Positive @JsonDeserialize(using = ExactStudentIdDeserializer.class) Long studentId,
         @NotBlank @Size(max = 255) String subject,
         @NotBlank @Size(max = 64) String submissionId,
-        @NotNull @Positive Integer totalQuestions,
-        @NotNull @Min(0) Integer correctCount,
+        @NotNull @Positive @JsonDeserialize(using = ExactIntegerDeserializer.class) Integer totalQuestions,
+        @NotNull @Min(0) @JsonDeserialize(using = ExactIntegerDeserializer.class) Integer correctCount,
         @NotEmpty @Size(max = 1000) List<@NotNull @Valid Question> questions) {
 
     public record Question(
