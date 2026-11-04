@@ -11,6 +11,7 @@ import java.time.LocalTime;
 @Builder
 public class LearningActivityResponse {
     private Long id;
+    private String submissionId;
     private String subject;
     private LocalDate studyDate;
     private LocalTime studyStartTime;
@@ -26,6 +27,7 @@ public class LearningActivityResponse {
     public static LearningActivityResponse from(LearningActivity activity) {
         return LearningActivityResponse.builder()
                 .id(activity.getId())
+                .submissionId(activity.getSubmissionId())
                 .subject(activity.getSubject())
                 .studyDate(activity.getStudyDate())
                 .studyStartTime(activity.getStudyStartTime())

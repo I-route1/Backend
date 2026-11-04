@@ -178,6 +178,20 @@ class LearningRecordsEdgeTest {
         mvc.perform(post("/api/activities").header("Authorization", "Bearer " + parent).contentType("application/json")
                 .content(json.writeValueAsString(r))).andExpect(status().isConflict());
     }
+    @Test void legacyPwaRetryAndUpgradeAttachKeyWithoutCreatingAnotherActivity() throws Exception {
+        var legacy = evaluation(null);
+        var results = concurrent(() -> activities.saveActivity(legacy));
+        var id = results.get(0).getId();
+        assertThat(results).extracting(LearningActivityResponse::getId).containsOnly(id);
+        var keyed = evaluation("upgraded");
+        assertThat(activities.saveActivity(keyed).getId()).isEqualTo(id);
+        assertThat(activities.saveActivity(keyed).getSubmissionId()).isEqualTo("upgraded");
+        assertThat(activities.saveActivity(legacy).getId()).isEqualTo(id);
+        assertThat(activities.getActivitiesByStudent(own)).hasSize(1);
+        // 시각이 없는 구형 클라이언트의 서로 다른 학습을 임의로 합치지 않는다.
+        legacy.setStudyStartTime(null);
+        assertThat(activities.saveActivity(legacy).getId()).isNotEqualTo(activities.saveActivity(legacy).getId());
+    }
     @Test void concurrentConflictingOcrKeysReturnConflictAndValidationHasNoPartialWrites() throws Exception {
         var counter = new java.util.concurrent.atomic.AtomicInteger();
         var results = concurrent(() -> {
