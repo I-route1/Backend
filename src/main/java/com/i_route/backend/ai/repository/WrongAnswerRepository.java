@@ -8,6 +8,7 @@ import java.util.Optional;
 
 @Repository
 public interface WrongAnswerRepository extends JpaRepository<WrongAnswer, Long> {
+    Optional<WrongAnswer> findFirstByStudentIdAndSubjectAndQuestionIdOrderByIdAsc(Long studentId, String subject, String questionId);
 
     // 특정 학생의 특정 개념 오답 이력 조회
     List<WrongAnswer> findByStudentIdAndConceptTag(Long studentId, String conceptTag);

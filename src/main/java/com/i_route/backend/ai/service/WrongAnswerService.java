@@ -15,6 +15,7 @@ import java.util.Optional;
 public class WrongAnswerService {
 
     private final WrongAnswerRepository wrongAnswerRepository;
+    private final StudentRecordLock studentLock;
 
     @Transactional(readOnly = true)
     public List<WrongAnswer> getWrongAnswers(Long studentId, String subject) {
@@ -32,7 +33,8 @@ public class WrongAnswerService {
     @Transactional
     public WrongAnswer recordWrongAnswer(Long studentId, String subject, String questionId,
                                         String conceptTag, ErrorType errorType) {
-        Optional<WrongAnswer> existingWrong = wrongAnswerRepository.findByStudentIdAndQuestionId(studentId, questionId);
+        studentLock.lock(studentId);
+        Optional<WrongAnswer> existingWrong = wrongAnswerRepository.findFirstByStudentIdAndSubjectAndQuestionIdOrderByIdAsc(studentId, subject, questionId);
 
         if (existingWrong.isPresent()) {
             WrongAnswer wrongAnswer = existingWrong.get();

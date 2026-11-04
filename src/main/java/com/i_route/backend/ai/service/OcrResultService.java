@@ -16,10 +16,12 @@ import java.util.List;
 public class OcrResultService {
     private final OcrGradingResultRepository repository;
     private final WrongAnswerService wrongAnswerService;
+    private final StudentRecordLock studentLock;
 
     /** 결과와 오답을 같은 트랜잭션에 저장. 네트워크 재전송은 오답 횟수를 늘리지 않는다. */
     @Transactional
     public OcrResultResponse save(OcrResultRequest request) {
+        studentLock.lock(request.studentId());
         var existing = repository.findByStudentIdAndSubmissionId(request.studentId(), request.submissionId());
         if (existing.isPresent()) {
             var result = OcrResultResponse.from(existing.get());

@@ -6,6 +6,7 @@ import com.i_route.backend.ai.repository.*;
 import com.i_route.backend.ai.service.*;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
@@ -30,13 +31,19 @@ class LearningRecordsJpaTest {
     @EnableAutoConfiguration
     @EntityScan("com.i_route.backend")
     @EnableJpaRepositories("com.i_route.backend.ai.repository")
-    @Import({OcrResultService.class, WrongAnswerService.class, LearningActivityService.class})
+    @Import({OcrResultService.class, WrongAnswerService.class, LearningActivityService.class, StudentRecordLock.class})
     static class Config {}
 
     @Autowired OcrResultService ocr;
     @Autowired WrongAnswerService wrongAnswers;
     @Autowired LearningActivityService activities;
     @Autowired EntityManager em;
+
+    @BeforeEach
+    void students() {
+        em.createNativeQuery("insert into student(student_id, name) values (14, 'test'), (15, 'other')").executeUpdate();
+        em.flush();
+    }
 
     private OcrResultRequest request(Long studentId, String submissionId, String subject, boolean correct) {
         return new OcrResultRequest(studentId, subject, submissionId, 1, correct ? 1 : 0,

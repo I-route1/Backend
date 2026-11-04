@@ -20,13 +20,14 @@ class LearningRecordsApiTest {
     final OcrResultService ocr = mock(OcrResultService.class);
     final WrongAnswerService wrong = mock(WrongAnswerService.class);
     final LearningActivityService activities = mock(LearningActivityService.class);
+    final StudentRecordAccess access = mock(StudentRecordAccess.class);
     MockMvc mvc;
     final ObjectMapper json = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
-        mvc = MockMvcBuilders.standaloneSetup(new OcrResultController(ocr),
-                new WrongAnswerController(wrong), new LearningActivityController(activities))
+        mvc = MockMvcBuilders.standaloneSetup(new OcrResultController(ocr, access),
+                new WrongAnswerController(wrong, access), new LearningActivityController(activities, access))
                 .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 

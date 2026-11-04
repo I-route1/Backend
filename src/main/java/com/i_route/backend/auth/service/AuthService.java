@@ -24,6 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @Transactional
@@ -83,6 +85,7 @@ public class AuthService {
     private String issueRefreshToken(Long userId) {
         // 기존 토큰 삭제 (중복 방지)
         refreshTokenRepository.deleteByUserId(userId);
+        refreshTokenRepository.flush();
         String refreshToken = jwtUtil.generateRefreshToken(userId);
         refreshTokenRepository.save(RefreshToken.builder()
                 .token(refreshToken)
@@ -93,14 +96,16 @@ public class AuthService {
     }
     // ✅ Access Token 재발급
     public AuthResponse reissueAccessToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "다시 로그인해주세요.");
+        }
         RefreshToken saved = refreshTokenRepository.findByToken(refreshToken)
-                .orElseThrow(() -> new RuntimeException("유효하지 않은 Refresh Token입니다."));
-        if (saved.isExpired()) {
-            refreshTokenRepository.delete(saved);
-            throw new RuntimeException("Refresh Token이 만료되었습니다. 다시 로그인해주세요.");
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "다시 로그인해주세요."));
+        if (saved.isExpired() || !jwtUtil.validateRefreshToken(refreshToken)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "다시 로그인해주세요.");
         }
         User user = userRepository.findById(saved.getUserId())
-                .orElseThrow(() -> new RuntimeException("유저 없음"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "다시 로그인해주세요."));
         String newAccessToken = jwtUtil.generateToken(user.getId());
 
         return AuthResponse.builder()
@@ -255,7 +260,7 @@ public class AuthService {
         }
 
         String accessToken = jwtUtil.generateToken(user.getId());
-        String refreshToken = jwtUtil.generateRefreshToken(user.getId());
+        String refreshToken = issueRefreshToken(user.getId());
 
         return AuthResponse.builder()
                 .accessToken(accessToken)
