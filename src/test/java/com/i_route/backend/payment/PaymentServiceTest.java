@@ -144,8 +144,8 @@ class PaymentServiceTest {
 
         PaymentOrderResponse result = paymentService.createOrder(1L, orderRequest(PlanType.PREMIUM_REPORT));
 
-        assertThat(result.getOrderName()).isEqualTo("AI 프리미엄 통합 리포트");
-        assertThat(result.getAmount()).isEqualTo(5000);
+        assertThat(result.getOrderName()).isEqualTo("AI 프리미엄 통합 리포트 1회");
+        assertThat(result.getAmount()).isEqualTo(3000);
         assertThat(result.getClientKey()).isEqualTo("test_ck_xxx");
         assertThat(result.getOrderId()).isNotBlank();
     }
@@ -172,7 +172,7 @@ class PaymentServiceTest {
         given(userRepository.save(any(User.class))).willReturn(u);
 
         PaymentHistoryResponse result = paymentService.confirmPayment(1L,
-                confirmRequest("tviva20241234567890", "order-123", 5000));
+                confirmRequest("tviva20241234567890", "order-123", 3000));
 
         assertThat(result.getStatus()).isEqualTo(PaymentStatus.DONE);
         assertThat(u.getPremiumCredits()).isEqualTo(1);
@@ -184,7 +184,7 @@ class PaymentServiceTest {
         given(paymentRepository.findByOrderId("unknown")).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> paymentService.confirmPayment(1L,
-                confirmRequest("key", "unknown", 5000)))
+                confirmRequest("key", "unknown", 3000)))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("주문을 찾을 수 없습니다");
     }
@@ -196,7 +196,7 @@ class PaymentServiceTest {
         given(paymentRepository.findByOrderId("order-123")).willReturn(Optional.of(payment));
 
         assertThatThrownBy(() -> paymentService.confirmPayment(1L,
-                confirmRequest("key", "order-123", 5000)))
+                confirmRequest("key", "order-123", 3000)))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("본인의 결제만");
     }
@@ -208,7 +208,7 @@ class PaymentServiceTest {
         given(paymentRepository.findByOrderId("order-123")).willReturn(Optional.of(payment));
 
         assertThatThrownBy(() -> paymentService.confirmPayment(1L,
-                confirmRequest("key", "order-123", 5000)))
+                confirmRequest("key", "order-123", 3000)))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("이미 처리된 주문");
     }
@@ -234,7 +234,7 @@ class PaymentServiceTest {
                 .willThrow(new RuntimeException("Toss API 오류"));
 
         assertThatThrownBy(() -> paymentService.confirmPayment(1L,
-                confirmRequest("key", "order-123", 5000)))
+                confirmRequest("key", "order-123", 3000)))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("결제 승인 중 오류");
 

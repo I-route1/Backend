@@ -1,84 +1,76 @@
 package com.i_route.backend.ai;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.i_route.backend.ai.dto.AiSearchRequest;
 import com.i_route.backend.ai.entity.AiRecommendation;
 import com.i_route.backend.ai.repository.AiRecommendationRepository;
 import com.i_route.backend.ai.service.GradeAnalysisService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
+import com.sun.net.httpserver.HttpServer;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.reactive.function.client.WebClient;
-
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import static org.mockito.ArgumentMatchers.any;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
 
-/**
- * AI 서버(localhost:8082) 실제 연동 통합 테스트.
- * 실행 전 AI 서버가 기동 중이어야 합니다.
- */
+/** 실제 HTTP 직렬화/응답 처리와 저장을 검증하며 외부 AI 서버에는 접속하지 않는다. */
 @ExtendWith(MockitoExtension.class)
+@Timeout(15)
 class GradeAnalysisServiceIntegrationTest {
+    @Mock AiRecommendationRepository repository;
+    HttpServer server;
+    GradeAnalysisService service;
+    final ObjectMapper json = new ObjectMapper();
+    final List<AiSearchRequest> requests = new CopyOnWriteArrayList<>();
+    final List<String> methods = new CopyOnWriteArrayList<>();
+    int responseStatus = 200;
 
-    @Mock
-    private AiRecommendationRepository aiRecommendationRepository;
-
-    private GradeAnalysisService gradeAnalysisService;
-
-    @BeforeEach
-    void setUp() {
-        WebClient webClient = WebClient.builder()
-                .baseUrl("http://localhost:8082")
-                .build();
-        gradeAnalysisService = new GradeAnalysisService(webClient, aiRecommendationRepository);
+    @BeforeEach void setUp() throws Exception {
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/api/ai/search", exchange -> {
+            methods.add(exchange.getRequestMethod());
+            requests.add(json.readValue(exchange.getRequestBody(), AiSearchRequest.class));
+            byte[] body = "{\"contexts\":[\"이차방정식 판별식 복습\",\"개념 확인 문제\"]}".getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
+            exchange.sendResponseHeaders(responseStatus, body.length);
+            try (var output = exchange.getResponseBody()) { output.write(body); }
+        });
+        server.start();
+        service = new GradeAnalysisService(WebClient.builder().baseUrl("http://127.0.0.1:" + server.getAddress().getPort()).build(), repository);
     }
+    @AfterEach void tearDown() { if (server != null) server.stop(0); }
 
-    @Test
-    @Timeout(value = 30, unit = TimeUnit.SECONDS)
-    @DisplayName("[통합] AI 서버 실제 호출 - 취약 개념 추천 후 DB 저장")
-    void processStudentGrade_realAiServer_savesConcepts() {
-        given(aiRecommendationRepository.save(any(AiRecommendation.class)))
-                .willAnswer(inv -> inv.getArgument(0));
-
-        gradeAnalysisService.processStudentGrade(
-                "S-001", 60, List.of(50, 60, 70, 80, 90), "이차방정식"
-        );
-
-        then(aiRecommendationRepository).should(atLeastOnce()).save(any(AiRecommendation.class));
+    @Test void processStudentGrade_postsConceptAndPersistsReturnedContexts() {
+        var result = service.processStudentGrade(1L, 60, List.of(50,60,70,80,90), "이차방정식");
+        assertThat(methods).containsExactly("POST");
+        assertThat(requests).singleElement().satisfies(r -> {
+            assertThat(r.getQuestion()).isEqualTo("이차방정식");
+            assertThat(r.getSubject()).isEqualTo("수학");
+        });
+        assertThat(result).containsExactly("이차방정식 판별식 복습", "개념 확인 문제");
+        then(repository).should(times(2)).save(any(AiRecommendation.class));
     }
-
-    @Test
-    @Timeout(value = 30, unit = TimeUnit.SECONDS)
-    @DisplayName("[통합] 평균보다 높은 점수 - AI 서버 호출 후 저장 확인")
-    void processStudentGrade_aboveAverage_stillCallsAi() {
-        given(aiRecommendationRepository.save(any(AiRecommendation.class)))
-                .willAnswer(inv -> inv.getArgument(0));
-
-        gradeAnalysisService.processStudentGrade(
-                "S-002", 95, List.of(60, 70, 75, 80, 95), "함수"
-        );
-
-        then(aiRecommendationRepository).should(atLeastOnce()).save(any(AiRecommendation.class));
+    @Test void processStudentGrade_aboveAverageStillCallsAi() {
+        service.processStudentGrade(2L,95,List.of(60,70,75,80,95),"함수");
+        assertThat(requests).hasSize(1);
+        then(repository).should(times(2)).save(any(AiRecommendation.class));
     }
-
-    @Test
-    @Timeout(value = 30, unit = TimeUnit.SECONDS)
-    @DisplayName("[통합] 학생 ID별 AI 추천이 해당 학생 ID로 저장됨")
-    void processStudentGrade_savedWithCorrectStudentId() {
-        given(aiRecommendationRepository.save(any(AiRecommendation.class)))
-                .willAnswer(inv -> inv.getArgument(0));
-
-        gradeAnalysisService.processStudentGrade(
-                "S-999", 55, List.of(55, 65, 75), "미적분"
-        );
-
-        then(aiRecommendationRepository).should(atLeastOnce()).save(argThat(rec ->
-                "S-999".equals(rec.getStudentId())
-        ));
+    @Test void processStudentGrade_savesEveryContextForRequestedStudent() {
+        service.processStudentGrade(999L,55,List.of(55,65,75),"미적분");
+        then(repository).should(times(2)).save(argThat(r -> r.getStudentId().equals(999L)));
+        then(repository).should().save(argThat(r -> "이차방정식 판별식 복습".equals(r.getCareerAnalysis())));
+        then(repository).should().save(argThat(r -> "개념 확인 문제".equals(r.getCareerAnalysis())));
+    }
+    @Test void processStudentGrade_aiFailureDoesNotSaveRecommendations() {
+        responseStatus = 503;
+        assertThatThrownBy(() -> service.processStudentGrade(1L,60,List.of(50,60),"이차방정식"))
+                .isInstanceOf(org.springframework.web.reactive.function.client.WebClientResponseException.ServiceUnavailable.class);
+        then(repository).shouldHaveNoInteractions();
     }
 }

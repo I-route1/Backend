@@ -50,7 +50,7 @@ tasks.named('test') {
 	useJUnitPlatform()
 }
 
-// 기존 테스트의 컴파일 상태와 독립적으로 학습 기록 API 계약과 DB 저장을 검증한다.
+// 학습 기록 통합 테스트는 별도 소스셋으로 관리하며 표준 test/check에서도 함께 실행한다.
 sourceSets {
     learningRecordsTest {
         compileClasspath += sourceSets.main.output
@@ -67,4 +67,8 @@ tasks.register('learningRecordsTest', Test) {
     testClassesDirs = sourceSets.learningRecordsTest.output.classesDirs
     classpath = sourceSets.learningRecordsTest.runtimeClasspath
     useJUnitPlatform()
+}
+
+tasks.named('test') {
+    dependsOn tasks.named('learningRecordsTest')
 }

@@ -1,183 +1,97 @@
 package com.i_route.backend.board;
 
 import com.i_route.backend.board.dto.PostRequestDto;
-import com.i_route.backend.board.entity.Board;
-import com.i_route.backend.board.entity.Post;
-import com.i_route.backend.board.repository.*;
-import com.i_route.backend.user.entity.User;
-import com.i_route.backend.user.repository.UserRepository;
-import jakarta.persistence.EntityNotFoundException;
-import org.junit.jupiter.api.DisplayName;
+import com.i_route.backend.board.entity.*;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.List;
-import java.util.Optional;
-
+import java.util.*;
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
 
-@ExtendWith(MockitoExtension.class)
-class PostServiceTest {
-
-    @InjectMocks
-    private PostService postService;
-
-    @Mock private PostRepository postRepository;
-    @Mock private BoardRepository boardRepository;
-    @Mock private CommentRepository commentRepository;
-    @Mock private PostBookmarkRepository postBookmarkRepository;
-    @Mock private PostLikeRepository postLikeRepository;
-    @Mock private CommentLikeRepository commentLikeRepository;
-    @Mock private UserRepository userRepository;
-
-    private Board mockBoard() {
-        Board board = new Board();
-        board.setName("테스트 게시판");
-        return board;
+class PostServiceTest extends BoardServiceTestSupport {
+    @Test void getPosts_returnsPostsWithUserFlagsAndCounts() {
+        given(posts.findAll()).willReturn(List.of(post()));
+        given(postLikes.countByPostId(10L)).willReturn(3L);
+        given(comments.countByPostId(10L)).willReturn(2L);
+        given(postLikes.existsByPostIdAndUserId(10L, 7L)).willReturn(true);
+        var result = service.getPosts(7L);
+        assertThat(result).singleElement().satisfies(p -> {
+            assertThat(p.getTitle()).isEqualTo("제목");
+            assertThat(p.getUserId()).isEqualTo(7L);
+            assertThat(p.getLikeCount()).isEqualTo(3L);
+            assertThat(p.getCommentCount()).isEqualTo(2L);
+            assertThat(p.isLikedByMe()).isTrue();
+        });
     }
-
-    private Post mockPost(Board board) {
-        Post post = new Post();
-        post.setBoard(board);
-        post.setTitle("테스트 제목");
-        post.setContent("테스트 내용");
-        post.setAuthor("작성자");
-        return post;
+    @Test void getPostDetail_countsOneViewForRepeatedImmediateReadsBySameUser() {
+        var post = post(); given(posts.findById(10L)).willReturn(Optional.of(post));
+        assertThat(service.getPostDetail(10L, 7L).getTitle()).isEqualTo("제목");
+        service.getPostDetail(10L, 7L);
+        assertThat(post.getViewCount()).isEqualTo(1);
+        service.getPostDetail(10L, 8L);
+        assertThat(post.getViewCount()).isEqualTo(2);
     }
-
-    @Test
-    @DisplayName("게시글 목록 조회 - 성공")
-    void getPostsByBoard_success() {
-        Post post = mockPost(mockBoard());
-        given(postRepository.findByBoardId(1L)).willReturn(List.of(post));
-
-        List<PostRequestDto.Response> result = postService.getPostsByBoard(1L);
-
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getTitle()).isEqualTo("테스트 제목");
+    @Test void getPostDetail_missingPostThrows() {
+        assertThatThrownBy(() -> service.getPostDetail(999L, 7L)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("게시글을 찾을 수 없습니다");
     }
-
-    @Test
-    @DisplayName("게시글 상세 조회 - 성공")
-    void getPostDetail_success() {
-        Post post = mockPost(mockBoard());
-        given(postRepository.findById(1L)).willReturn(Optional.of(post));
-
-        PostRequestDto.Response result = postService.getPostDetail(1L);
-
-        assertThat(result.getTitle()).isEqualTo("테스트 제목");
+    @Test void createPost_usesAuthenticatedAuthorAndRequestContent() {
+        given(boards.findAll()).willReturn(List.of(board()));
+        given(users.findById(7L)).willReturn(Optional.of(author()));
+        given(posts.save(any(Post.class))).willAnswer(inv -> { Post p = inv.getArgument(0); p.setId(10L); return p; });
+        var request = new PostRequestDto(); request.setTitle("새 제목"); request.setContent("새 내용"); request.setAuthor("위조 작성자");
+        var result = service.createPost(request, 7L);
+        assertThat(result.getTitle()).isEqualTo("새 제목");
+        assertThat(result.getContent()).isEqualTo("새 내용");
+        assertThat(result.getAuthor()).isEqualTo("작성자");
+        assertThat(result.getCategory()).isEqualTo("자유");
+        then(posts).should().save(argThat(p -> p.getUser().getId().equals(7L) && p.getBoard().getId().equals(1L)));
     }
-
-    @Test
-    @DisplayName("게시글 상세 조회 - 없는 ID 예외")
-    void getPostDetail_notFound() {
-        given(postRepository.findById(999L)).willReturn(Optional.empty());
-
-        assertThatThrownBy(() -> postService.getPostDetail(999L))
-                .isInstanceOf(EntityNotFoundException.class);
+    @Test void updatePost_updatesTextAndPreservesCategoryIfOmitted() {
+        var post = post(); given(posts.findById(10L)).willReturn(Optional.of(post));
+        var request = new PostRequestDto(); request.setTitle("수정 제목"); request.setContent("수정 내용");
+        var result = service.updatePost(10L, request, 7L);
+        assertThat(result.getTitle()).isEqualTo("수정 제목");
+        assertThat(result.getContent()).isEqualTo("수정 내용");
+        assertThat(result.getCategory()).isEqualTo("자유");
+        assertThat(result.getUpdatedAt()).isNotNull();
     }
-
-    @Test
-    @DisplayName("게시글 작성 - 성공")
-    void createPost_success() {
-        Board board = mockBoard();
-        Post post = mockPost(board);
-
-        PostRequestDto.Request request = new PostRequestDto.Request();
-        request.setTitle("새 제목");
-        request.setContent("새 내용");
-        request.setAuthor("작성자");
-
-        given(boardRepository.findById(1L)).willReturn(Optional.of(board));
-        given(postRepository.save(any(Post.class))).willReturn(post);
-
-        PostRequestDto.Response result = postService.createPost(1L, request);
-
-        assertThat(result.getTitle()).isEqualTo("테스트 제목");
+    @Test void deletePost_deletesRequestedPost() {
+        service.deletePost(10L); then(posts).should().deleteById(10L);
     }
-
-    @Test
-    @DisplayName("게시글 수정 - 성공")
-    void updatePost_success() {
-        Post post = mockPost(mockBoard());
-        given(postRepository.findById(1L)).willReturn(Optional.of(post));
-
-        PostRequestDto.Request request = new PostRequestDto.Request();
-        request.setTitle("수정된 제목");
-        request.setContent("수정된 내용");
-
-        PostRequestDto.Response result = postService.updatePost(1L, request);
-
-        assertThat(result.getTitle()).isEqualTo("수정된 제목");
+    private void existingPostAndUser() {
+        given(posts.findById(10L)).willReturn(Optional.of(post()));
+        given(users.findById(7L)).willReturn(Optional.of(author()));
     }
-
-    @Test
-    @DisplayName("게시글 삭제 - 성공")
-    void deletePost_success() {
-        willDoNothing().given(postRepository).deleteById(1L);
-
-        assertThatCode(() -> postService.deletePost(1L))
-                .doesNotThrowAnyException();
+    @Test void likePost_addsLikeForAuthenticatedUser() {
+        existingPostAndUser();
+        given(postLikes.existsByPostIdAndUserId(10L, 7L)).willReturn(false, true);
+        assertThat(service.likePost(10L, 7L).isLikedByMe()).isTrue();
+        then(postLikes).should().save(argThat(l -> l.getPost().getId().equals(10L) && l.getUser().getId().equals(7L)));
     }
-
-    @Test
-    @DisplayName("게시글 좋아요 - 새로 추가")
-    void likePost_add() {
-        Post post = mockPost(mockBoard());
-        User user = new User();
-
-        given(postLikeRepository.findByPostIdAndUserId(1L, String.valueOf(1L))).willReturn(Optional.empty());
-        given(postRepository.findById(1L)).willReturn(Optional.of(post));
-        given(userRepository.findById(1L)).willReturn(Optional.of(user));
-        given(postLikeRepository.save(any(PostLike.class))).willReturn(new PostLike());
-
-        assertThatCode(() -> postService.likePost(1L, String.valueOf(1L)))
-                .doesNotThrowAnyException();
+    @Test void likePost_removesExistingLike() {
+        existingPostAndUser();
+        given(postLikes.existsByPostIdAndUserId(10L, 7L)).willReturn(true, false);
+        assertThat(service.likePost(10L, 7L).isLikedByMe()).isFalse();
+        then(postLikes).should().deleteByPostIdAndUserId(10L, 7L);
+        then(postLikes).should(never()).save(any());
     }
-
-    @Test
-    @DisplayName("게시글 좋아요 - 이미 있으면 취소(토글)")
-    void likePost_toggle() {
-        PostLike existing = new PostLike();
-        given(postLikeRepository.findByPostIdAndUserId(1L, String.valueOf(1L))).willReturn(Optional.of(existing));
-
-        assertThatCode(() -> postService.likePost(1L, String.valueOf(1L)))
-                .doesNotThrowAnyException();
-
-        then(postLikeRepository).should().delete(existing);
+    @Test void bookmarkPost_addsBookmarkForAuthenticatedUser() {
+        existingPostAndUser();
+        given(bookmarks.existsByPostIdAndUserId(10L, 7L)).willReturn(false, true);
+        assertThat(service.bookmarkPost(10L, 7L).isBookmarked()).isTrue();
+        then(bookmarks).should().save(argThat(b -> b.getPost().getId().equals(10L) && b.getUser().getId().equals(7L)));
     }
-
-    @Test
-    @DisplayName("게시글 북마크 - 새로 추가")
-    void bookmarkPost_add() {
-        Post post = mockPost(mockBoard());
-        User user = new User();
-
-        given(postBookmarkRepository.findByPostIdAndUserId(1L, 1L)).willReturn(Optional.empty());
-        given(postRepository.findById(1L)).willReturn(Optional.of(post));
-        given(userRepository.findById(1L)).willReturn(Optional.of(user));
-        given(postBookmarkRepository.save(any(PostBookmarkRepository.class))).willReturn(new PostBookmarkRepository());
-
-        assertThatCode(() -> postService.bookmarkPost(1L, String.valueOf(1L)))
-                .doesNotThrowAnyException();
+    @Test void bookmarkPost_removesExistingBookmark() {
+        existingPostAndUser();
+        given(bookmarks.existsByPostIdAndUserId(10L, 7L)).willReturn(true, false);
+        assertThat(service.bookmarkPost(10L, 7L).isBookmarked()).isFalse();
+        then(bookmarks).should().deleteByPostIdAndUserId(10L, 7L);
     }
-
-    @Test
-    @DisplayName("내 북마크 게시글 목록 조회")
-    void getMyBookmarkedPosts_success() {
-        Post post = mockPost(mockBoard());
-        PostBookmarkRepository bookmark = new PostBookmarkRepository();
-        bookmark.setPost(post);
-
-        given(postBookmarkRepository.findByUserId(1L)).willReturn(List.of(bookmark));
-
-        List<PostRequestDto.Response> result = postService.getMyBookmarkedPosts(String.valueOf(1L));
-
-        assertThat(result).hasSize(1);
+    @Test void getPosts_marksOwnBookmarkedPostsWithoutMarkingOtherUsers() {
+        given(posts.findAll()).willReturn(List.of(post()));
+        given(bookmarks.existsByPostIdAndUserId(10L, 7L)).willReturn(true);
+        assertThat(service.getPosts(7L).get(0).isBookmarked()).isTrue();
+        assertThat(service.getPosts(8L).get(0).isBookmarked()).isFalse();
     }
 }

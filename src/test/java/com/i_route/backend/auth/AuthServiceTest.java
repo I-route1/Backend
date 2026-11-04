@@ -37,6 +37,7 @@ class AuthServiceTest {
 
     @InjectMocks
     private AuthService authService;
+    @InjectMocks
     private EmailService emailService;
 
     @Mock private UserRepository userRepository;
@@ -51,7 +52,12 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(authService, "refreshExpiration", 1209600000L);
-        ReflectionTestUtils.setField(authService, "verificationExpiration", 3600L);
+        ReflectionTestUtils.setField(authService, "frontendBaseUrl", "http://frontend.test");
+    }
+
+    private void verifiedSignupEmail() {
+        given(emailVerificationTokenRepository.findTopByEmailOrderByIdDesc("test@test.com"))
+                .willReturn(Optional.of(EmailVerificationToken.builder().email("test@test.com").verified(true).build()));
     }
 
     // ============================================================
@@ -61,6 +67,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("회원가입 성공 - 정상 입력")
     void signup_success() {
+        verifiedSignupEmail();
         ParentRegisterRequestDto req = new ParentRegisterRequestDto();
         req.setUsername("testuser");
         req.setEmail("test@test.com");
@@ -83,6 +90,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("회원가입 실패 - 잘못된 역할")
     void signup_invalidRole() {
+        verifiedSignupEmail();
         ParentRegisterRequestDto req = new ParentRegisterRequestDto();
         req.setUsername("testuser");
         req.setEmail("test@test.com");
@@ -104,6 +112,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("회원가입 시 전화번호 하이픈 제거")
     void signup_phoneNumberNormalized() {
+        verifiedSignupEmail();
         ParentRegisterRequestDto req = new ParentRegisterRequestDto();
         req.setUsername("testuser");
         req.setEmail("test@test.com");
@@ -135,7 +144,7 @@ class AuthServiceTest {
                 .password("encoded").nickname("테스터")
                 .role(User.UserRole.PARENT).loginType(User.LoginType.EMAIL).build();
 
-        given(userRepository.findByEmail("test@test.com")).willReturn(Optional.of(user));
+        given(userRepository.findByUsername("test@test.com")).willReturn(Optional.of(user));
         given(passwordEncoder.matches("password123", "encoded")).willReturn(true);
         given(jwtUtil.generateToken(1L)).willReturn("access-token");
         given(jwtUtil.generateRefreshToken(1L)).willReturn("refresh-token");
@@ -153,17 +162,17 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("로그인 실패 - 존재하지 않는 이메일")
+    @DisplayName("로그인 실패 - 존재하지 않는 아이디")
     void login_userNotFound() {
-        given(userRepository.findByEmail(anyString())).willReturn(Optional.empty());
+        given(userRepository.findByUsername(anyString())).willReturn(Optional.empty());
 
         LoginRequest req = new LoginRequest();
         req.setUsername("none@test.com");
         req.setPassword("password123");
 
         assertThatThrownBy(() -> authService.login(req))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("유저 없음");
+                .isInstanceOfSatisfying(com.i_route.backend.global.exception.CustomException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(com.i_route.backend.global.exception.ErrorCode.INVALID_CREDENTIALS));
     }
 
     @Test
@@ -173,7 +182,7 @@ class AuthServiceTest {
                 .password("encoded").role(User.UserRole.PARENT)
                 .loginType(User.LoginType.EMAIL).build();
 
-        given(userRepository.findByEmail("test@test.com")).willReturn(Optional.of(user));
+        given(userRepository.findByUsername("test@test.com")).willReturn(Optional.of(user));
         given(passwordEncoder.matches("wrong", "encoded")).willReturn(false);
 
         LoginRequest req = new LoginRequest();
@@ -181,8 +190,8 @@ class AuthServiceTest {
         req.setPassword("wrong");
 
         assertThatThrownBy(() -> authService.login(req))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("비밀번호 틀림");
+                .isInstanceOfSatisfying(com.i_route.backend.global.exception.CustomException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(com.i_route.backend.global.exception.ErrorCode.INVALID_CREDENTIALS));
     }
 
     // ============================================================
@@ -213,6 +222,7 @@ class AuthServiceTest {
                 .role(User.UserRole.PARENT).loginType(User.LoginType.EMAIL).build();
 
         given(refreshTokenRepository.findByToken("valid-refresh")).willReturn(Optional.of(saved));
+        given(jwtUtil.validateRefreshToken("valid-refresh")).willReturn(true);
         given(userRepository.findById(1L)).willReturn(Optional.of(u));
         given(jwtUtil.generateToken(1L)).willReturn("new-access-token");
 
@@ -227,8 +237,8 @@ class AuthServiceTest {
         given(refreshTokenRepository.findByToken(anyString())).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.reissueAccessToken("invalid"))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("유효하지 않은");
+                .isInstanceOfSatisfying(org.springframework.web.server.ResponseStatusException.class,
+                        e -> assertThat(e.getStatusCode().value()).isEqualTo(401));
     }
 
     @Test
@@ -243,8 +253,8 @@ class AuthServiceTest {
         given(refreshTokenRepository.findByToken("expired-refresh")).willReturn(Optional.of(expired));
 
         assertThatThrownBy(() -> authService.reissueAccessToken("expired-refresh"))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("만료");
+                .isInstanceOfSatisfying(org.springframework.web.server.ResponseStatusException.class,
+                        e -> assertThat(e.getStatusCode().value()).isEqualTo(401));
     }
 
     // ============================================================
@@ -261,18 +271,14 @@ class AuthServiceTest {
                 .verified(false)
                 .build();
 
-        User user = User.builder().id(1L).email("test@test.com")
-                .role(User.UserRole.PARENT).loginType(User.LoginType.EMAIL).build();
-
         given(emailVerificationTokenRepository.findByToken("valid-token")).willReturn(Optional.of(token));
-        given(userRepository.findByEmail("test@test.com")).willReturn(Optional.of(user));
-
-        assertThatNoException().isThrownBy(() -> emailService.verifyEmail("valid-token"));
+        assertThat(emailService.verifyEmail("valid-token").isSuccess()).isTrue();
         assertThat(token.isVerified()).isTrue();
+        then(emailVerificationTokenRepository).should().save(token);
     }
 
     @Test
-    @DisplayName("이메일 인증 실패 - 이미 인증된 토큰")
+    @DisplayName("이메일 재인증 - 이미 인증된 토큰은 성공 안내")
     void verifyEmail_alreadyVerified() {
         EmailVerificationToken token = EmailVerificationToken.builder()
                 .token("used-token")
@@ -283,9 +289,10 @@ class AuthServiceTest {
 
         given(emailVerificationTokenRepository.findByToken("used-token")).willReturn(Optional.of(token));
 
-        assertThatThrownBy(() -> emailService.verifyEmail("used-token"))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("이미 인증");
+        var result = emailService.verifyEmail("used-token");
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(result.getData()).contains("이미 인증");
+        then(emailVerificationTokenRepository).should(never()).save(any());
     }
 
     @Test
@@ -300,9 +307,11 @@ class AuthServiceTest {
 
         given(emailVerificationTokenRepository.findByToken("expired-token")).willReturn(Optional.of(token));
 
-        assertThatThrownBy(() -> emailService.verifyEmail("expired-token"))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("만료");
+        var result = emailService.verifyEmail("expired-token");
+        assertThat(result.isSuccess()).isFalse();
+        assertThat(result.getCode()).isEqualTo("EXPIRED_TOKEN");
+        assertThat(token.isVerified()).isFalse();
+        then(emailVerificationTokenRepository).should(never()).save(any());
     }
 
     // ============================================================
@@ -360,8 +369,8 @@ class AuthServiceTest {
 
         given(userRepository.findByPhoneNumber("01012345678")).willReturn(Optional.of(user));
 
-        String email = authService.findEmailByPhoneNumber("010-1234-5678");
-        assertThat(email).isEqualTo("test@test.com");
+        var result = authService.findUsernameAndEmailByPhoneNumber("010-1234-5678");
+        assertThat(result.getEmail()).isEqualTo("test@test.com");
     }
 
     @Test
@@ -369,7 +378,7 @@ class AuthServiceTest {
     void findEmailByPhoneNumber_notFound() {
         given(userRepository.findByPhoneNumber(anyString())).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> authService.findEmailByPhoneNumber("01099999999"))
+        assertThatThrownBy(() -> authService.findUsernameAndEmailByPhoneNumber("01099999999"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("유저가 없습니다");
     }

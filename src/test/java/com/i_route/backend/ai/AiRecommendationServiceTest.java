@@ -47,24 +47,24 @@ class AiRecommendationServiceTest {
     @DisplayName("자료 추천 - 학생 레벨에 맞는 자료 반환")
     void recommendMaterials_success() {
         given(studentRepository.findById(1L)).willReturn(Optional.of(student(1L, 3, StudyTendency.VISUAL)));
-        StudyMaterial mat = StudyMaterial.builder().materialId(10L).title("기초 수학").materialType("PDF").level(3).build();
+        StudyMaterial mat = StudyMaterial.builder().materialId(10L).title("기초 수학").materialType("교재").level(3).build();
         given(materialRepository.findByLevelLessThanEqualOrderByLevelDesc(3)).willReturn(List.of(mat));
 
         List<MaterialRecommendationDto> result = service.recommendMaterials(1L);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getTitle()).isEqualTo("기초 수학");
-        assertThat(result.get(0).getMatchReason()).contains("3");
+        assertThat(result.get(0).getMatchReason()).contains("시각형", "현재 레벨 딱 맞춤");
+        then(materialRepository).should().findByLevelLessThanEqualOrderByLevelDesc(3);
     }
 
     @Test
-    @DisplayName("자료 추천 - 학생 없으면 예외")
+    @DisplayName("자료 추천 - 학생 없으면 빈 목록")
     void recommendMaterials_studentNotFound() {
         given(studentRepository.findById(99L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.recommendMaterials(99L))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("학생을 찾을 수 없습니다");
+        assertThat(service.recommendMaterials(99L)).isEmpty();
+        then(materialRepository).shouldHaveNoInteractions();
     }
 
     // ============================================================
@@ -124,13 +124,15 @@ class AiRecommendationServiceTest {
     }
 
     @Test
-    @DisplayName("목표 로드맵 - 목표 없으면 예외")
+    @DisplayName("목표 로드맵 - 목표 없으면 미설정 안내")
     void recommendGoalRoadmap_noGoal() {
         given(targetGoalRepository.findByStudentId(1L)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.recommendGoalRoadmap(1L))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("목표가 없습니다");
+        var result = service.recommendGoalRoadmap(1L);
+        assertThat(result.getStudentId()).isEqualTo(1L);
+        assertThat(result.getTargetKeyword()).isEqualTo("미설정");
+        assertThat(result.getWeeklyMilestones()).isEmpty();
+        assertThat(result.getOverallStrategy()).contains("목표를 먼저 설정");
     }
 
     // ============================================================
@@ -201,9 +203,9 @@ class AiRecommendationServiceTest {
     @Test
     @DisplayName("피어 콘텐츠 추천 - 성적 데이터 없으면 빈 리스트")
     void recommendByPeerContent_noGrade() {
-        given(gradeRepository.getAverageScoreByStudent("S-001")).willReturn(null);
+        given(gradeRepository.getAverageScoreByStudent(1L)).willReturn(null);
 
-        List<MaterialRecommendationDto> result = service.recommendByPeerContent("S-001");
+        List<MaterialRecommendationDto> result = service.recommendByPeerContent(1L);
 
         assertThat(result).isEmpty();
     }
@@ -211,16 +213,16 @@ class AiRecommendationServiceTest {
     @Test
     @DisplayName("피어 콘텐츠 추천 - 유사 성적대 자료 반환")
     void recommendByPeerContent_withGrade() {
-        given(gradeRepository.getAverageScoreByStudent("S-001")).willReturn(80.0);
+        given(gradeRepository.getAverageScoreByStudent(1L)).willReturn(80.0);
         given(gradeRepository.findAllStudentAverageScores())
-                .willReturn(List.of(new Object[]{"S-002", 78.0}, new Object[]{"S-003", 50.0}));
-        StudyMaterial mat = StudyMaterial.builder().materialId(1L).title("심화 문제집").materialType("BOOK").level(4).build();
+                .willReturn(List.of(new Object[]{1L, 80.0}, new Object[]{2L, 78.0}, new Object[]{3L, 50.0}));
+        StudyMaterial mat = StudyMaterial.builder().materialId(1L).title("심화 문제집").materialType("교재").level(4).build();
         given(materialRepository.findByLevelLessThanEqualOrderByLevelDesc(4)).willReturn(List.of(mat));
 
-        List<MaterialRecommendationDto> result = service.recommendByPeerContent("S-001");
+        List<MaterialRecommendationDto> result = service.recommendByPeerContent(1L);
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getMatchReason()).contains("1명"); // S-002만 ±10 이내
+        assertThat(result.get(0).getMatchReason()).contains("1명"); // 본인은 제외하고 학생 2만 ±10 이내
     }
 
     // ============================================================
@@ -230,10 +232,10 @@ class AiRecommendationServiceTest {
     @Test
     @DisplayName("피어 성공 경로 - 성적 데이터 없으면 메시지 반환")
     void recommendPeerSuccessPath_noData() {
-        given(gradeRepository.findByStudentIdAndSubjectOrderByExamDateDesc("S-001", "수학"))
+        given(gradeRepository.findByStudentIdAndSubjectOrderByExamDateDesc(1L, "수학"))
                 .willReturn(Collections.emptyList());
 
-        PeerSuccessPathDto result = service.recommendPeerSuccessPath("S-001", "수학");
+        PeerSuccessPathDto result = service.recommendPeerSuccessPath(1L, "수학");
 
         assertThat(result.getSimilarStudentsCount()).isZero();
         assertThat(result.getSuccessMessage()).contains("성적 데이터가 없어");
