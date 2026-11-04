@@ -3,7 +3,7 @@ package com.i_route.backend.ai.dto;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.i_route.backend.ai.entity.MeasurementSource;
 import jakarta.validation.constraints.*;
 import java.time.LocalDate;
@@ -14,6 +14,7 @@ import java.time.LocalTime;
 @NoArgsConstructor
 public class LearningActivityRequest {
     @NotNull @Positive
+    @JsonDeserialize(using = ExactStudentIdDeserializer.class)
     private Long studentId;
     @Size(max = 64) @Pattern(regexp = ".*\\S.*", message = "submissionId는 공백일 수 없습니다.")
     private String submissionId;
@@ -21,13 +22,15 @@ public class LearningActivityRequest {
     private String subject;
     @NotNull
     private LocalDate studyDate;
-    @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime studyStartTime;
     @Min(1) @Max(1440)
+    @JsonDeserialize(using = ExactIntegerDeserializer.class)
     private int studyDurationMinutes;
     @Min(1) @Max(5)
+    @JsonDeserialize(using = ExactIntegerDeserializer.class)
     private int understandingScore;
     @Min(1) @Max(5)
+    @JsonDeserialize(using = ExactIntegerDeserializer.class)
     private int concentrationScore;
     @DecimalMin("0.0") @DecimalMax("1.0")
     private Double focusedRatio;

@@ -86,4 +86,20 @@ class LearningRecordsApiTest {
         }
         verify(activities, times(2)).saveActivity(any());
     }
+
+    @Test void rejectsFractionalCountsScoresStudentIdsAndMidnightRollover() throws Exception {
+        String base = """
+                {"studentId":14,"subject":"수학","studyDate":"2026-11-05","studyStartTime":"10:17:00",
+                 "studyDurationMinutes":30,"understandingScore":4,"concentrationScore":3}
+                """;
+        for (String invalid : List.of(base.replace("\"studentId\":14", "\"studentId\":14.9"),
+                base.replace("\"studyDurationMinutes\":30", "\"studyDurationMinutes\":30.5"),
+                base.replace("\"understandingScore\":4", "\"understandingScore\":4.5"),
+                base.replace("10:17:00", "24:00:00"))) {
+            mvc.perform(post("/api/activities").contentType("application/json").content(invalid)).andExpect(status().isBadRequest());
+        }
+        var valid = json.writeValueAsString(input(1, 0, List.of(question(""))));
+        mvc.perform(post("/api/ocr-results").contentType("application/json")
+                .content(valid.replace("\"totalQuestions\":1", "\"totalQuestions\":1.5"))).andExpect(status().isBadRequest());
+    }
 }
