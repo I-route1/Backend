@@ -131,6 +131,50 @@ class LearningRecordsEdgeTest {
                 .andExpect(status().isForbidden());
         assertThat(activities.getActivitiesByStudent(otherAcademy)).isEmpty();
     }
+    @Test void academyCalendarBoundariesPersistAndUnsupportedYearsDoNotWrite() throws Exception {
+        int index = 0;
+        for (String date : List.of("1000-01-01", "2000-02-29", "2024-02-29", "9999-12-31")) {
+            var r = evaluation("calendar-" + index++);
+            r.setStudyDate(LocalDate.parse(date)); r.setStudyStartTime(LocalTime.of(23,59));
+            r.setStudyDurationMinutes(index % 2 == 0 ? 1440 : 1);
+            mvc.perform(post("/api/activities").header("Authorization", "Bearer " + academy)
+                    .contentType("application/json").content(json.writeValueAsString(r)))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.studyDate").value(date))
+                    .andExpect(jsonPath("$.studyStartTime").value("23:59:00"));
+        }
+        var body = json.writeValueAsString(evaluation("invalid-calendar"));
+        for (String date : List.of("0001-01-01", "0999-12-31", "10000-01-01", "1900-02-29", "2026-02-29")) {
+            mvc.perform(post("/api/activities").header("Authorization", "Bearer " + academy)
+                    .contentType("application/json").content(body.replace("2026-11-05", date)))
+                    .andExpect(status().isBadRequest());
+        }
+        assertThat(activities.getActivitiesByStudent(own)).hasSize(4);
+    }
+    @Test void concurrentParentAndAcademySubmissionsShareOneRecordButSeparateStudentsAndContent() throws Exception {
+        var body = json.writeValueAsString(evaluation("cross-role"));
+        var counter = new java.util.concurrent.atomic.AtomicInteger();
+        var ids = concurrent(() -> {
+            var token = counter.getAndIncrement() % 2 == 0 ? academy : parent;
+            var response = mvc.perform(post("/api/activities").header("Authorization", "Bearer " + token)
+                    .contentType("application/json").content(body)).andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString();
+            return json.readTree(response).get("id").asLong();
+        });
+        assertThat(ids).containsOnly(ids.get(0));
+        var r = evaluation("cross-role"); r.setStudentId(foreign);
+        var other = mvc.perform(post("/api/activities").header("Authorization", "Bearer " + academy)
+                .contentType("application/json").content(json.writeValueAsString(r))).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        assertThat(json.readTree(other).get("id").asLong()).isNotEqualTo(ids.get(0));
+        r.setStudentId(own); r.setUnderstandingScore(2);
+        mvc.perform(post("/api/activities").header("Authorization", "Bearer " + academy)
+                .contentType("application/json").content(json.writeValueAsString(r))).andExpect(status().isConflict());
+        r.setSubmissionId("changed-content");
+        mvc.perform(post("/api/activities").header("Authorization", "Bearer " + academy)
+                .contentType("application/json").content(json.writeValueAsString(r))).andExpect(status().isOk());
+        assertThat(activities.getActivitiesByStudent(own)).hasSize(2);
+        assertThat(activities.getActivitiesByStudent(foreign)).hasSize(1);
+    }
     @Test void requiresAccessTokenAndRejectsMissingMalformedExpiredAndRefreshTokens() throws Exception {
         String path = "/api/activities/" + own;
         mvc.perform(get(path)).andExpect(status().isUnauthorized());
