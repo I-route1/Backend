@@ -108,6 +108,29 @@ class LearningRecordsEdgeTest {
         mvc.perform(get("/api/ocr-results/" + saved.id() + "?studentId=" + foreign)
                 .header("Authorization", "Bearer " + academy)).andExpect(status().isNotFound());
     }
+    @Test void academyCanSaveOwnedStudentEvaluationAndParentReadsTheSameRecord() throws Exception {
+        var request = evaluation("academy-evaluation");
+        var body = json.writeValueAsString(request);
+        var content = mvc.perform(post("/api/activities").header("Authorization", "Bearer " + academy)
+                .contentType("application/json").content(body)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.subject").value("국어"))
+                .andExpect(jsonPath("$.measurementSource").value("MANUAL"))
+                .andExpect(jsonPath("$.understandingScore").value(5))
+                .andExpect(jsonPath("$.concentrationScore").value(1))
+                .andReturn().getResponse().getContentAsString();
+        var id = json.readTree(content).get("id").asLong();
+        mvc.perform(post("/api/activities").header("Authorization", "Bearer " + academy)
+                .contentType("application/json").content(body)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id));
+        mvc.perform(get("/api/activities/" + own).header("Authorization", "Bearer " + parent))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(id));
+        request.setStudentId(otherAcademy);
+        mvc.perform(post("/api/activities").header("Authorization", "Bearer " + academy)
+                .contentType("application/json").content(json.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+        assertThat(activities.getActivitiesByStudent(otherAcademy)).isEmpty();
+    }
     @Test void requiresAccessTokenAndRejectsMissingMalformedExpiredAndRefreshTokens() throws Exception {
         String path = "/api/activities/" + own;
         mvc.perform(get(path)).andExpect(status().isUnauthorized());
