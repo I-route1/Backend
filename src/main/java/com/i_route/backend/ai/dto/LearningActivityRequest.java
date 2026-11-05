@@ -40,6 +40,12 @@ public class LearningActivityRequest {
     @Size(max = 1000)
     private String instructorFeedback;
 
+    @AssertTrue(message = "학습일은 1000-01-01부터 9999-12-31까지 입력할 수 있습니다.")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public boolean isStudyDateSupported() {
+        return studyDate == null || (studyDate.getYear() >= 1000 && studyDate.getYear() <= 9999);
+    }
+
     @AssertTrue(message = "카메라 측정은 집중·졸음 비율이 필요하며 비율의 합은 1 이하여야 합니다.")
     @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isMeasurementValid() {
