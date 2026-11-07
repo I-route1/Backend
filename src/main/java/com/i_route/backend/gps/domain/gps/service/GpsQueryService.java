@@ -103,7 +103,7 @@ public class GpsQueryService {
     }
 
     // 기사의 오늘 배정 탑승 명단 조회
-    public List<PassengerResponse> getTodayPassengers(Long busId) {
+    public List<PassengerResponse> getTodayPassengers(Long busId, Long academyScope) {
         busRepository.findById(busId)
                 .orElseThrow(() -> new CustomException(ErrorCode.BUS_NOT_FOUND));
 
@@ -124,6 +124,7 @@ public class GpsQueryService {
                 ));
 
         return students.stream()
+                .filter(student -> academyScope == null || academyScope.equals(student.getAcademyId()))
                 .map(student -> {
                     RouteStop stop = student.getRouteStopId() != null
                             ? routeStopRepository.findById(student.getRouteStopId()).orElse(null)

@@ -44,6 +44,9 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/gps/attendance/**").authenticated()
+                        .requestMatchers(HttpMethod.HEAD, "/api/gps/attendance/**").authenticated()
+                        .requestMatchers("/api/gps/buses/*/passengers/today").authenticated()
                         .requestMatchers(
                                 "/api/child/**",
                                 "/api/auth/**",

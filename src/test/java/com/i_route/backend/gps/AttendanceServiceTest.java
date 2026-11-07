@@ -235,7 +235,7 @@ class AttendanceServiceTest {
                 .willReturn(records);
         given(studentRepository.findById(7L)).willReturn(Optional.of(s));
 
-        List<AttendanceResponse> result = attendanceService.getBusAttendanceToday(1L);
+        List<AttendanceResponse> result = attendanceService.getBusAttendanceToday(1L, null);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getStudentName()).isEqualTo("홍길동");
@@ -253,7 +253,7 @@ class AttendanceServiceTest {
                 .willReturn(records);
         given(studentRepository.findById(999L)).willReturn(Optional.empty());
 
-        List<AttendanceResponse> result = attendanceService.getBusAttendanceToday(1L);
+        List<AttendanceResponse> result = attendanceService.getBusAttendanceToday(1L, null);
 
         assertThat(result.get(0).getStudentName()).isEqualTo("미등록");
     }

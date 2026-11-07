@@ -62,7 +62,7 @@ configurations {
     learningRecordsTestRuntimeOnly.extendsFrom testRuntimeOnly
 }
 tasks.register('learningRecordsTest', Test) {
-    description = 'Verifies wrong answers, OCR persistence and attention measurements.'
+    description = 'Verifies student record authorization, attendance, OCR persistence and attention measurements.'
     group = 'verification'
     testClassesDirs = sourceSets.learningRecordsTest.output.classesDirs
     classpath = sourceSets.learningRecordsTest.runtimeClasspath
