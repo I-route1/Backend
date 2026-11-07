@@ -21,12 +21,17 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.*;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.reactive.function.client.*;
 import reactor.core.publisher.Mono;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.IntStream;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import java.nio.charset.StandardCharsets;
 import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -53,12 +58,12 @@ class CounselingReportsIntegrationTest {
                 ai.calls++;
                 return Mono.just(ClientResponse.create(ai.status)
                         .header("Content-Type", "application/json")
-                        .body("{\"studentId\":" + ai.studentId + ",\"careerAnalysis\":\"분석 본문\",\"learningGuide\":\"학습 안내\"}")
+                        .body(ai.body != null ? ai.body : "{\"studentId\":" + ai.studentId + ",\"careerAnalysis\":\"분석 본문\",\"learningGuide\":\"학습 안내\"}")
                         .build());
             }).build();
         }
     }
-    static class AiStub { volatile int calls; volatile Long studentId; volatile HttpStatus status; }
+    static class AiStub { volatile int calls; volatile Long studentId; volatile HttpStatus status; volatile String body; }
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
     @Autowired JwtUtil jwt;
@@ -85,7 +90,7 @@ class CounselingReportsIntegrationTest {
         parent = jwt.generateToken(p.getId()); academy = jwt.generateToken(a.getId());
         noAcademy = jwt.generateToken(user(User.UserRole.ACADEMY).getId());
         driver = jwt.generateToken(user(User.UserRole.DRIVER).getId()); admin = jwt.generateToken(user(User.UserRole.ADMIN).getId());
-        ai.calls = 0; ai.studentId = own; ai.status = HttpStatus.OK;
+        ai.calls = 0; ai.studentId = own; ai.status = HttpStatus.OK; ai.body = null;
     }
     private String path(Long studentId) { return "/api/counseling/reports?studentId=" + studentId; }
     private AiRecommendation report(Long studentId, String title, String subject, LocalDateTime date) {
@@ -214,5 +219,209 @@ class CounselingReportsIntegrationTest {
                 .header("Authorization", "Bearer " + parent)).andExpect(status().isServiceUnavailable());
         assertThat(json.readTree(read(own, parent))).hasSize(1);
         assertThat(ai.calls).isEqualTo(1);
+    }
+
+    @Test void rejectsDuplicateStudentIdsRegardlessOfOrderOrWhetherValuesAreEqual() throws Exception {
+        for (String[] ids : List.of(new String[]{own.toString(), sameAcademy.toString()},
+                new String[]{sameAcademy.toString(), own.toString()}, new String[]{own.toString(), own.toString()},
+                new String[]{own.toString(), "invalid"})) {
+            mvc.perform(get("/api/counseling/reports").param("studentId", ids)
+                    .header("Authorization", "Bearer " + parent)).andExpect(status().isBadRequest());
+        }
+        assertThat(ai.calls).isZero();
+    }
+
+    @Test void rejectsNonDecimalAndWhitespaceStudentIdsInsteadOfCoercingThemToAnotherId() throws Exception {
+        for (String raw : List.of(" " + own + " ", "+" + own, "0x" + Long.toHexString(own),
+                own.toString().charAt(0) + " " + own.toString().substring(1))) {
+            mvc.perform(get("/api/counseling/reports").param("studentId", raw)
+                    .header("Authorization", "Bearer " + parent)).andExpect(status().isBadRequest());
+        }
+        assertThat(ai.calls).isZero();
+    }
+
+    @Test void unsupportedMethodsAndPathsReturnClientErrorsWithoutChangingHistory() throws Exception {
+        var saved = report(own, "보존할 리포트", "국어", null);
+        for (var request : List.of(put(path(own)), patch(path(own)), delete(path(own)))) {
+            mvc.perform(request.header("Authorization", "Bearer " + parent)).andExpect(status().isMethodNotAllowed())
+                    .andExpect(header().string("Allow", org.hamcrest.Matchers.containsString("GET")));
+        }
+        for (String path : List.of("/api/counseling/reports/", "/api/counseling/reports/1")) {
+            mvc.perform(get(path).header("Authorization", "Bearer " + parent)).andExpect(status().isNotFound());
+        }
+        assertThat(reports.findById(saved.getId())).isPresent();
+        assertThat(ai.calls).isZero();
+    }
+
+    @Test void unacceptableResponseTypeIs406RatherThanServerError() throws Exception {
+        mvc.perform(get(path(own)).accept(MediaType.TEXT_HTML).header("Authorization", "Bearer " + parent))
+                .andExpect(status().isNotAcceptable());
+        assertThat(ai.calls).isZero();
+    }
+
+    @Test void corsAllowsHeadAndRejectsUntrustedOrigins() throws Exception {
+        mvc.perform(options(path(own)).header("Origin", "https://d2nos5u98g310z.cloudfront.net")
+                .header("Access-Control-Request-Method", "HEAD").header("Access-Control-Request-Headers", "Authorization"))
+                .andExpect(status().isOk());
+        mvc.perform(get(path(own)).header("Origin", "https://untrusted.invalid")
+                .header("Authorization", "Bearer " + parent)).andExpect(status().isForbidden())
+                .andExpect(header().doesNotExist("Access-Control-Allow-Origin"));
+        assertThat(ai.calls).isZero();
+    }
+
+    @Test void conditionalRequestsAndPreviousSuccessfulReadsCannotBypassAuthenticationOrOwnership() throws Exception {
+        report(own, "비공개 리포트", "수학", null);
+        read(own, parent);
+        mvc.perform(get(path(own)).header("Authorization", "Bearer " + parent)
+                .header("If-None-Match", "*").header("If-Modified-Since", "Fri, 31 Dec 9999 23:59:59 GMT"))
+                .andExpect(status().isOk()).andExpect(header().doesNotExist("ETag"))
+                .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("no-store")));
+        mvc.perform(get(path(own)).header("If-None-Match", "*")).andExpect(status().isUnauthorized());
+        denied(sameAcademy, parent);
+        read(own, academy);
+        mvc.perform(head(path(sameAcademy)).header("Authorization", "Bearer " + parent)).andExpect(status().isForbidden());
+        mvc.perform(get(path(own)).header("Authorization", "Bearer invalid")).andExpect(status().isUnauthorized());
+    }
+
+    @Test void reassigningParentImmediatelyRevokesOldParentsExistingToken() throws Exception {
+        report(own, "이전 보호자에게 노출하면 안 되는 리포트", "영어", null);
+        read(own, parent);
+        var newParent = user(User.UserRole.PARENT);
+        jdbc.update("UPDATE student SET parent_id = ? WHERE student_id = ?", newParent.getId(), own);
+        denied(own, parent);
+        assertThat(json.readTree(read(own, jwt.generateToken(newParent.getId())))).hasSize(1);
+    }
+
+    @Test void transferringAcademyImmediatelyRevokesOldAcademysExistingToken() throws Exception {
+        report(own, "전학 리포트", "영어", null);
+        read(own, academy);
+        var nextUser = user(User.UserRole.ACADEMY);
+        var next = academies.save(Academy.builder().user(nextUser).academyName("next-school").build());
+        jdbc.update("UPDATE student SET academy_id = ? WHERE student_id = ?", next.getAcademyId(), own);
+        denied(own, academy);
+        assertThat(json.readTree(read(own, jwt.generateToken(nextUser.getId())))).hasSize(1);
+        read(own, parent);
+    }
+
+    @Test void changingRoleOrDeletingAccountInvalidatesPreviouslyAuthorizedAccess() throws Exception {
+        read(own, parent);
+        jdbc.update("UPDATE users SET role = 'DRIVER' WHERE id = ?", parentId);
+        denied(own, parent);
+        users.deleteById(parentId);
+        mvc.perform(get(path(own)).header("Authorization", "Bearer " + parent)).andExpect(status().isUnauthorized());
+    }
+
+    @Test void deletedStudentsOrMissingOwnershipNeverExposeOrphanedReports() throws Exception {
+        var saved = report(own, "삭제 학생 리포트", "사회", null);
+        students.deleteById(own);
+        denied(own, parent); denied(own, academy); denied(own, admin);
+        assertThat(reports.findById(saved.getId())).isPresent();
+        var unassigned = students.save(Student.builder().name("unassigned").build());
+        report(unassigned.getStudentId(), "소속 없는 리포트", "수학", null);
+        denied(unassigned.getStudentId(), parent); denied(unassigned.getStudentId(), academy);
+        assertThat(json.readTree(read(unassigned.getStudentId(), admin))).hasSize(1);
+    }
+
+    @Test void expiredFutureAndWronglySignedTokensAreRejected() throws Exception {
+        String secret = "counseling-test-signing-key-not-a-production-secret-12345678901234567890";
+        var key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        var future = new Date(System.currentTimeMillis() + 120000);
+        for (String token : List.of(
+                Jwts.builder().setSubject(parentId.toString()).claim("tokenType", "access")
+                        .setExpiration(new Date(System.currentTimeMillis() - 120000)).signWith(key).compact(),
+                Jwts.builder().setSubject(parentId.toString()).claim("tokenType", "access")
+                        .setNotBefore(future).setExpiration(new Date(future.getTime() + 60000)).signWith(key).compact(),
+                Jwts.builder().setSubject(parentId.toString()).claim("tokenType", "access").setExpiration(future)
+                        .signWith(Keys.hmacShaKeyFor((secret + "wrong").getBytes(StandardCharsets.UTF_8))).compact())) {
+            mvc.perform(get(path(own)).header("Authorization", "Bearer " + token)).andExpect(status().isUnauthorized());
+        }
+        assertThat(ai.calls).isZero();
+    }
+
+    @Test void largeHistoryAndUnicodeContentRoundTripWithoutTruncationOrWrites() throws Exception {
+        String analysis = "한글🙂 \\\"인용\\\"\n<태그>&수식: x²\t".repeat(150);
+        var time = LocalDateTime.of(2026, 11, 7, 10, 0, 0, 123456000);
+        reports.saveAll(IntStream.range(0, 251).mapToObj(i -> AiRecommendation.builder()
+                .studentId(own).title("리포트 " + i).subject("수학").careerAnalysis(analysis)
+                .learningGuide("학습 안내\n".repeat(100)).createdAt(time).build()).toList());
+        var before = reports.findByStudentIdOrderByCreatedAtDescIdDesc(own);
+        var rows = json.readTree(read(own, parent));
+        assertThat(rows).hasSize(251);
+        for (int i = 0; i < rows.size(); i++) {
+            assertThat(rows.get(i).get("id").asLong()).isEqualTo(before.get(i).getId());
+            assertThat(rows.get(i).get("careerAnalysis").asText()).isEqualTo(analysis);
+        }
+        assertThat(read(own, parent)).isEqualTo(read(own, academy));
+        assertThat(reports.findByStudentIdOrderByCreatedAtDescIdDesc(own)).hasSize(251);
+        assertThat(ai.calls).isZero();
+    }
+
+    @Test void extremeAndNullDatesStillSortDeterministically() throws Exception {
+        var old = report(own, "오래된 리포트", "국어", LocalDateTime.of(1000, 1, 1, 0, 0));
+        var future = report(own, "미래 리포트", "영어", LocalDateTime.of(9999, 12, 31, 23, 59, 59, 999999000));
+        var missing1 = report(own, "날짜 없음1", "수학", null);
+        var missing2 = report(own, "날짜 없음2", "수학", null);
+        jdbc.update("UPDATE ai_recommendation SET created_at = NULL WHERE id IN (?, ?)", missing1.getId(), missing2.getId());
+        var rows = json.readTree(read(own, parent));
+        assertThat(rows.findValuesAsText("id")).containsExactly(future.getId().toString(), old.getId().toString(),
+                missing2.getId().toString(), missing1.getId().toString());
+    }
+
+    @Test void blankSubjectUsesOnlyRecognizedLegacyTitleAndUnknownSubjectIsPreserved() throws Exception {
+        var known = report(own, "수학 메타인지 분석 리포트", " \t\n", null);
+        var unknown = report(own, "임의 제목", " ", null);
+        var explicit = report(own, "수학 메타인지 분석 리포트", "기타 과목", null);
+        var rows = json.readTree(read(own, parent));
+        for (var row : rows) {
+            if (row.get("id").asLong() == known.getId()) assertThat(row.get("subject").asText()).isEqualTo("수학");
+            if (row.get("id").asLong() == unknown.getId()) assertThat(row.get("subject").isNull()).isTrue();
+            if (row.get("id").asLong() == explicit.getId()) assertThat(row.get("subject").asText()).isEqualTo("기타 과목");
+        }
+    }
+
+    @Test void emptyOrInvalidAiResponsesNeverReturnSuccessOrCreateHistory() throws Exception {
+        for (String body : List.of("", "null", "{}", "[]", "{broken}",
+                "{\"studentId\":" + own + ",\"careerAnalysis\":\" \"}")) {
+            ai.body = body;
+            mvc.perform(post("/api/counseling/math").param("studentId", own.toString())
+                    .header("Authorization", "Bearer " + parent)).andExpect(status().isServiceUnavailable());
+            assertThat(json.readTree(read(own, parent))).isEmpty();
+        }
+    }
+
+    @Test void aiResponseForAnotherStudentIsNotStoredUnderEitherStudent() throws Exception {
+        ai.studentId = sameAcademy;
+        mvc.perform(post("/api/counseling/math").param("studentId", own.toString())
+                .header("Authorization", "Bearer " + parent)).andExpect(status().isServiceUnavailable());
+        assertThat(reports.findByStudentIdOrderByCreatedAtDescIdDesc(own)).isEmpty();
+        assertThat(reports.findByStudentIdOrderByCreatedAtDescIdDesc(sameAcademy)).isEmpty();
+    }
+
+    @Test void partialAiReportsKeepOptionalMissingContentFieldsAndAreReadable() throws Exception {
+        for (String field : List.of("careerAnalysis", "learningGuide")) {
+            ai.body = "{\"studentId\":" + own + ",\"" + field + "\":\"부분 분석\"}";
+            mvc.perform(post("/api/counseling/math").param("studentId", own.toString())
+                    .header("Authorization", "Bearer " + parent)).andExpect(status().isOk());
+            var row = json.readTree(read(own, parent)).get(0);
+            assertThat(row.get(field).asText()).isEqualTo("부분 분석");
+            assertThat(row.get(field.equals("careerAnalysis") ? "learningGuide" : "careerAnalysis").isNull()).isTrue();
+        }
+        assertThat(reports.findByStudentIdOrderByCreatedAtDescIdDesc(own)).hasSize(2);
+    }
+
+    @Test void databaseSaveFailureDoesNotReturnGenerationSuccessOrDestroyExistingReports() throws Exception {
+        var existing = report(own, "기존 기록", "수학", null);
+        String constraint = "reject_report_save_" + own;
+        jdbc.execute("ALTER TABLE ai_recommendation ADD CONSTRAINT " + constraint
+                + " CHECK (student_id <> " + own + " OR title <> '수학 메타인지 분석 리포트')");
+        try {
+            mvc.perform(post("/api/counseling/math").param("studentId", own.toString())
+                    .header("Authorization", "Bearer " + parent)).andExpect(status().isServiceUnavailable());
+            var rows = json.readTree(read(own, parent));
+            assertThat(rows).hasSize(1);
+            assertThat(rows.get(0).get("id").asLong()).isEqualTo(existing.getId());
+        } finally {
+            jdbc.execute("ALTER TABLE ai_recommendation DROP CONSTRAINT " + constraint);
+        }
     }
 }

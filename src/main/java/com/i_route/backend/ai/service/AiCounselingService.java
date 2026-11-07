@@ -187,7 +187,15 @@ public class AiCounselingService {
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(AiReportResponse.class)
+                .switchIfEmpty(Mono.error(new IllegalStateException("AI 리포트 응답이 비어 있습니다.")))
                 .flatMap(resource -> Mono.fromCallable(() -> {
+                    if (!request.getStudentId().equals(resource.getStudentId())) {
+                        throw new IllegalStateException("AI 응답의 학생이 요청과 일치하지 않습니다.");
+                    }
+                    if ((resource.getCareerAnalysis() == null || resource.getCareerAnalysis().isBlank())
+                            && (resource.getLearningGuide() == null || resource.getLearningGuide().isBlank())) {
+                        throw new IllegalStateException("AI 리포트 내용이 비어 있습니다.");
+                    }
                     log.info("[AI Core 응답 완료] {} DB 저장을 시작합니다.", reportTitle);
 
                     AiRecommendation recommendation = AiRecommendation.builder()

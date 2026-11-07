@@ -21,6 +21,25 @@ import java.util.Map;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Map<String, String>> handleMethodNotAllowed(
+            org.springframework.web.HttpRequestMethodNotSupportedException e) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).headers(e.getHeaders())
+                .body(Map.of("error", "지원하지 않는 HTTP 메서드입니다."));
+    }
+
+    @ExceptionHandler({org.springframework.web.servlet.resource.NoResourceFoundException.class,
+            org.springframework.web.servlet.NoHandlerFoundException.class})
+    public ResponseEntity<Map<String, String>> handleUnknownPath(Exception e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "요청한 경로를 찾을 수 없습니다."));
+    }
+
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotAcceptableException.class)
+    public ResponseEntity<Void> handleNotAcceptable(org.springframework.web.HttpMediaTypeNotAcceptableException e) {
+        // JSON을 받을 수 없는 요청에 JSON 오류를 다시 직렬화하지 않는다.
+        return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).headers(e.getHeaders()).build();
+    }
+
     @ExceptionHandler({org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,
             org.springframework.web.bind.MissingServletRequestParameterException.class,
             org.springframework.web.method.annotation.HandlerMethodValidationException.class})
