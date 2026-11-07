@@ -8,6 +8,7 @@ import com.i_route.backend.gps.domain.attendance.dto.NfcPendingResponse;
 import com.i_route.backend.gps.domain.attendance.dto.NfcRegisterQueueRequest;
 import com.i_route.backend.gps.domain.attendance.dto.NfcRegisterRequest;
 import com.i_route.backend.gps.domain.attendance.service.AttendanceService;
+import com.i_route.backend.gps.domain.attendance.service.AttendanceRecordAccess;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -24,6 +25,7 @@ import java.util.List;
 public class AttendanceController {
 
     private final AttendanceService attendanceService;
+    private final AttendanceRecordAccess recordAccess;
 
     /**
      * 라즈베리파이(PN532) → NFC 카드 태그 시 호출
@@ -57,6 +59,7 @@ public class AttendanceController {
             @PathVariable Long parentId,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        recordAccess.requireParent(parentId);
         LocalDate target = date != null ? date : LocalDate.now();
         return ResponseEntity.ok(attendanceService.getAttendanceByParent(parentId, target));
     }
@@ -70,6 +73,7 @@ public class AttendanceController {
             @PathVariable Long studentId,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        recordAccess.requireStudent(studentId);
         LocalDate target = date != null ? date : LocalDate.now();
         return ResponseEntity.ok(attendanceService.getStudentHistory(studentId, target));
     }
@@ -82,7 +86,8 @@ public class AttendanceController {
     @GetMapping("/attendance/buses/{busId}")
     public ResponseEntity<List<AttendanceResponse>> getBusAttendance(
             @PathVariable Long busId) {
-        return ResponseEntity.ok(attendanceService.getBusAttendanceToday(busId));
+        Long academyScope = recordAccess.requireBusScope(busId);
+        return ResponseEntity.ok(attendanceService.getBusAttendanceToday(busId, academyScope));
     }
 
     /**

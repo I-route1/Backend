@@ -1,6 +1,7 @@
 package com.i_route.backend.gps.domain.gps.controller;
 
 import com.i_route.backend.global.security.CustomUserDetails;
+import com.i_route.backend.gps.domain.attendance.service.AttendanceRecordAccess;
 import com.i_route.backend.gps.domain.gps.dto.request.GpsLocationRequest;
 import com.i_route.backend.gps.domain.gps.dto.response.BusRouteResponse;
 import com.i_route.backend.gps.domain.gps.dto.response.CurrentBusLocationResponse;
@@ -24,6 +25,7 @@ public class GpsController {
 
     private final GpsCommandService gpsCommandService;
     private final GpsQueryService gpsQueryService;
+    private final AttendanceRecordAccess attendanceAccess;
 
     // 기사 앱: 5초 주기 GPS 전송
     @PostMapping("/locations")
@@ -72,7 +74,8 @@ public class GpsController {
     public List<PassengerResponse> getTodayPassengers(
             @PathVariable Long busId
     ) {
-        return gpsQueryService.getTodayPassengers(busId);
+        Long academyScope = attendanceAccess.requireBusScope(busId);
+        return gpsQueryService.getTodayPassengers(busId, academyScope);
     }
 
     // 기사 앱: 자신의 버스 탑승 명단 조회 (학원 정보 포함)

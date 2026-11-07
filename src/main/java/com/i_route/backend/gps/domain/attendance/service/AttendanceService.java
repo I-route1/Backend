@@ -188,13 +188,15 @@ public class AttendanceService {
     }
 
     @Transactional(readOnly = true)
-    public List<AttendanceResponse> getBusAttendanceToday(Long busId) {
+    public List<AttendanceResponse> getBusAttendanceToday(Long busId, Long academyScope) {
         LocalDateTime from = LocalDate.now().atStartOfDay();
         LocalDateTime to = LocalDate.now().atTime(LocalTime.MAX);
 
         return attendanceRepository
                 .findByBusIdAndTimestampBetweenOrderByTimestampAsc(busId, from, to)
                 .stream()
+                .filter(a -> academyScope == null || studentRepository.findById(a.getStudentId())
+                        .map(s -> academyScope.equals(s.getAcademyId())).orElse(false))
                 .map(a -> {
                     String name = studentRepository.findById(a.getStudentId())
                             .map(Student::getName).orElse("미등록");
