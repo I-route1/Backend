@@ -6,6 +6,7 @@ import com.i_route.backend.ai.service.AiCounselingService;
 import com.i_route.backend.ai.service.StudentRecordAccess;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
 @RestController
@@ -17,7 +18,12 @@ public class MathAiController {
     private final StudentRecordAccess recordAccess;
 
     @GetMapping("/reports")
-    public List<CounselingReportResponse> getReports(@RequestParam("studentId") Long studentId) {
+    public List<CounselingReportResponse> getReports(@RequestParam("studentId") Long studentId,
+                                                      HttpServletRequest request) {
+        String[] ids = request.getParameterValues("studentId");
+        if (ids == null || ids.length != 1 || !ids[0].matches("[0-9]+")) {
+            throw new IllegalArgumentException("studentId는 양의 십진수 정수 하나여야 합니다.");
+        }
         recordAccess.requireStudent(studentId);
         return aiCounselingService.getReportsByStudentId(studentId);
     }
