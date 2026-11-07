@@ -2,6 +2,7 @@ package com.i_route.backend.ai.service;
 
 import com.i_route.backend.ai.dto.AiReportRequest;
 import com.i_route.backend.ai.dto.AiReportResponse;
+import com.i_route.backend.ai.dto.CounselingReportResponse;
 import com.i_route.backend.ai.entity.AiRecommendation;
 import com.i_route.backend.ai.entity.Grade;
 import com.i_route.backend.ai.entity.WrongAnswer;
@@ -15,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.UriBuilder;
@@ -64,14 +66,14 @@ public class AiCounselingService {
     public Mono<AiReportResponse> generateMathReport(Long studentId) {
         log.info("📐 [수학 AI 가동] 학생 ID: {}의 진짜 데이터를 DB에서 조회합니다...", studentId);
         return fetchRealStudentData(studentId, "수학")
-                .flatMap(realRequest -> sendToPythonServer("/api/ai/report/math", realRequest, "수학 메타인지 분석 리포트"));
+                .flatMap(realRequest -> sendToPythonServer("/api/ai/report/math", realRequest, "수학 메타인지 분석 리포트", "수학"));
     }
 
     // 2️⃣ [진로 탐색 및 작문 모델 가동]
     public Mono<AiReportResponse> generateWritingReport(Long studentId) {
         log.info("✍️ [진로/작문 AI 가동] 학생 ID: {}의 진짜 데이터를 DB에서 조회합니다...", studentId);
         return fetchRealStudentData(studentId, "국어")
-                .flatMap(realRequest -> sendToPythonServer("/api/ai/report/writing", realRequest, "인공지능 기반 진로 탐색 리포트"));
+                .flatMap(realRequest -> sendToPythonServer("/api/ai/report/writing", realRequest, "인공지능 기반 진로 탐색 리포트", "국어"));
     }
 
     // 3️⃣ [프리미엄 통합 분석 리포트 가동]
@@ -79,7 +81,7 @@ public class AiCounselingService {
         log.info("🚀 [통합 AI 가동] 학생 ID: {}의 진짜 데이터를 DB에서 조회합니다...", studentId);
         // 과목을 null로 넘기면 오답이 가장 많은 과목을 주 취약 과목(weakSubject)으로 고른다.
         return fetchRealStudentData(studentId, null)
-                .flatMap(realRequest -> sendToPythonServer("/api/ai/report/premium", realRequest, "i-Route 프리미엄 통합 리포트"));
+                .flatMap(realRequest -> sendToPythonServer("/api/ai/report/premium", realRequest, "i-Route 프리미엄 통합 리포트", "통합"));
     }
 
     // 4️⃣ [전 과목 메타인지 리포트 - 영어/과학/사회]
@@ -97,7 +99,7 @@ public class AiCounselingService {
                         uriBuilder -> uriBuilder.path("/api/ai/report/{subject}").build(subject),
                         "/api/ai/report/" + subject,
                         realRequest,
-                        subject + " 메타인지 분석 리포트"
+                        subject + " 메타인지 분석 리포트", subject
                 ));
     }
 
@@ -173,32 +175,32 @@ public class AiCounselingService {
     }
 
     // 🔄 공통 파이썬 통신 + 비동기 DB 저장 헬퍼 메서드
-    private Mono<AiReportResponse> sendToPythonServer(String uri, AiReportRequest request, String reportTitle) {
-        return sendToPythonServer(uriBuilder -> uriBuilder.path(uri).build(), uri, request, reportTitle);
+    private Mono<AiReportResponse> sendToPythonServer(String uri, AiReportRequest request, String reportTitle, String subject) {
+        return sendToPythonServer(uriBuilder -> uriBuilder.path(uri).build(), uri, request, reportTitle, subject);
     }
 
     private Mono<AiReportResponse> sendToPythonServer(Function<UriBuilder, URI> uriFunction, String uriForLog,
-                                                      AiReportRequest request, String reportTitle) {
+                                                      AiReportRequest request, String reportTitle, String subject) {
         // ⭕ 3분짜리 타임아웃 설정이 적용된 fastApiWebClient를 사용하도록 변경!
         return fastApiWebClient.post()
                 .uri(uriFunction)
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(AiReportResponse.class)
-                .doOnSuccess(resource -> {
+                .flatMap(resource -> Mono.fromCallable(() -> {
                     log.info("[AI Core 응답 완료] {} DB 저장을 시작합니다.", reportTitle);
 
-                    Mono.fromRunnable(() -> {
-                        AiRecommendation recommendation = AiRecommendation.builder()
-                                .studentId(resource.getStudentId())
-                                .title(reportTitle)
-                                .careerAnalysis(resource.getCareerAnalysis())
-                                .learningGuide(resource.getLearningGuide())
-                                .createdAt(LocalDateTime.now())
-                                .build();
-                        aiRecommendationRepository.save(recommendation);
-                    }).subscribeOn(Schedulers.boundedElastic()).subscribe();
-                })
+                    AiRecommendation recommendation = AiRecommendation.builder()
+                            .studentId(request.getStudentId())
+                            .title(reportTitle)
+                            .subject(subject)
+                            .careerAnalysis(resource.getCareerAnalysis())
+                            .learningGuide(resource.getLearningGuide())
+                            .createdAt(LocalDateTime.now())
+                            .build();
+                    aiRecommendationRepository.save(recommendation);
+                    return resource;
+                }).subscribeOn(Schedulers.boundedElastic()))
                 .onErrorResume(error -> {
                     log.error("❌ [AI 서버 연결 실패] 주소: {}, 사유: {}", uriForLog, error.getMessage());
                     return Mono.error(new ResponseStatusException(
@@ -208,8 +210,10 @@ public class AiCounselingService {
                 });
     }
 
-    public List<AiRecommendation> getReportsByStudentId(Long studentId) {
+    @Transactional(readOnly = true)
+    public List<CounselingReportResponse> getReportsByStudentId(Long studentId) {
         log.info("[AI 진단 조회] 학생 ID {}의 과거 리포트 내역을 조회합니다.", studentId);
-        return aiRecommendationRepository.findByStudentIdOrderByCreatedAtDesc(studentId);
+        return aiRecommendationRepository.findByStudentIdOrderByCreatedAtDescIdDesc(studentId).stream()
+                .map(CounselingReportResponse::from).toList();
     }
 }
