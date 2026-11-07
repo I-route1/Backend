@@ -63,7 +63,8 @@ class GradeAnalysisServiceIntegrationTest {
     }
     @Test void processStudentGrade_savesEveryContextForRequestedStudent() {
         service.processStudentGrade(999L,55,List.of(55,65,75),"미적분");
-        then(repository).should(times(2)).save(argThat(r -> r.getStudentId().equals(999L)));
+        then(repository).should(times(2)).save(argThat(r -> r.getStudentId().equals(999L)
+                && "수학".equals(r.getSubject()) && "수학 맞춤 복습 리포트".equals(r.getTitle())));
         then(repository).should().save(argThat(r -> "이차방정식 판별식 복습".equals(r.getCareerAnalysis())));
         then(repository).should().save(argThat(r -> "개념 확인 문제".equals(r.getCareerAnalysis())));
     }

@@ -9,5 +9,6 @@ public interface AiRecommendationRepository extends JpaRepository<AiRecommendati
 
     List<AiRecommendation> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
     List<AiRecommendation> findByStudentIdOrderByCreatedAtDesc(Long studentId);
+    List<AiRecommendation> findByStudentIdOrderByCreatedAtDescIdDesc(Long studentId);
     List<AiRecommendation> findByStudentIdAndCreatedAtBetween(Long studentId, LocalDateTime start, LocalDateTime end);
 }

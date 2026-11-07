@@ -77,6 +77,8 @@ public class GradeAnalysisService {
             for (String context : recommendedContexts) {
                 AiRecommendation recommendation = AiRecommendation.builder()
                         .studentId(studentId)
+                        .subject(subject)
+                        .title(subject + " 맞춤 복습 리포트")
                         .careerAnalysis(context)
                         .build();
 

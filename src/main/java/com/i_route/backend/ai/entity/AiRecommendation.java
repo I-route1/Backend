@@ -19,6 +19,9 @@ public class AiRecommendation {
 
     private String title;
 
+    @Column(length = 50)
+    private String subject;
+
     @Column(columnDefinition = "TEXT")
     private String careerAnalysis;
 
@@ -26,4 +29,9 @@ public class AiRecommendation {
     private String learningGuide;
 
     private LocalDateTime createdAt;
+
+    @PrePersist
+    void setCreatedAt() {
+        if (createdAt == null) createdAt = LocalDateTime.now();
+    }
 }

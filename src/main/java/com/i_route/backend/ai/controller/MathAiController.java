@@ -1,9 +1,12 @@
 package com.i_route.backend.ai.controller;
 
 import com.i_route.backend.ai.dto.AiReportResponse;
+import com.i_route.backend.ai.dto.CounselingReportResponse;
 import com.i_route.backend.ai.service.AiCounselingService;
+import com.i_route.backend.ai.service.StudentRecordAccess;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/counseling")
@@ -11,19 +14,29 @@ import org.springframework.web.bind.annotation.*;
 public class MathAiController {
 
     private final AiCounselingService aiCounselingService;
+    private final StudentRecordAccess recordAccess;
+
+    @GetMapping("/reports")
+    public List<CounselingReportResponse> getReports(@RequestParam("studentId") Long studentId) {
+        recordAccess.requireStudent(studentId);
+        return aiCounselingService.getReportsByStudentId(studentId);
+    }
 
     @PostMapping("/math")
     public AiReportResponse generateMathReport(@RequestParam("studentId") Long studentId) {
+        recordAccess.requireStudent(studentId);
         return aiCounselingService.generateMathReport(studentId).block();
     }
 
     @PostMapping("/writing")
     public AiReportResponse generateWritingReport(@RequestParam("studentId") Long studentId) {
+        recordAccess.requireStudent(studentId);
         return aiCounselingService.generateWritingReport(studentId).block();
     }
 
     @PostMapping("/premium")
     public AiReportResponse generatePremiumReport(@RequestParam("studentId") Long studentId) {
+        recordAccess.requireStudent(studentId);
         return aiCounselingService.generatePremiumReport(studentId).block();
     }
 
@@ -34,6 +47,7 @@ public class MathAiController {
     @PostMapping("/{subject}")
     public AiReportResponse generateSubjectReport(@PathVariable("subject") String subject,
                                                   @RequestParam("studentId") Long studentId) {
+        recordAccess.requireStudent(studentId);
         return aiCounselingService.generateSubjectReport(studentId, subject).block();
     }
 }
