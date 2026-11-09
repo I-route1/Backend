@@ -1,30 +1,34 @@
 package com.i_route.backend.user.service;
 
+import com.i_route.backend.auth.entity.EmailVerificationToken;
+import com.i_route.backend.auth.repository.EmailVerificationTokenRepository;
 import com.i_route.backend.user.dto.DuplicateCheckRequest;
 import com.i_route.backend.user.dto.DuplicateCheckResponse;
 import com.i_route.backend.user.dto.UserProfileResponse;
+import com.i_route.backend.user.dto.UserProfileUpdateRequest;
 import com.i_route.backend.user.entity.User;
 import com.i_route.backend.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import com.i_route.backend.user.dto.UserProfileUpdateRequest;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
+    private final EmailVerificationTokenRepository emailVerificationTokenRepository;
 
     public DuplicateCheckResponse checkDuplicate(DuplicateCheckRequest request) {
         String cleanedPhone = request.getPhoneNumber() != null
                 ? request.getPhoneNumber().replaceAll("\\D", "")
                 : null;
 
-        // DB 조회 (하나라도 겹치는게 있는지 확인)
+        // DB 조회 (하나라도 겹치는 게 있는지 확인)
         Optional<User> existingUserOpt = userRepository.findByEmailOrUsernameOrNicknameOrPhoneNumber(
                 request.getEmail(),
                 request.getUsername(),
@@ -49,10 +53,10 @@ public class UserService {
         if (cleanedPhone != null && cleanedPhone.equals(existingUser.getPhoneNumber())) {
             duplicates.add("휴대폰 번호");
         }
-
         if (request.getEmail() != null && request.getEmail().equals(existingUser.getEmail())) {
             duplicates.add("이메일");
         }
+
         String message = "이미 사용중인 " + String.join(", ", duplicates) + "입니다.";
         return new DuplicateCheckResponse(true, duplicates, message);
     }
@@ -62,7 +66,6 @@ public class UserService {
         String fieldName = "";
 
         switch (type) {
-
             case "username":
                 fieldName = "아이디";
                 isDuplicate = userRepository.existsByUsername(value);
@@ -80,10 +83,7 @@ public class UserService {
 
             case "phoneNumber":
                 fieldName = "휴대폰 번호";
-
-                // ✅ 완전 정규화 (핵심)
                 String cleanedPhone = value.replaceAll("\\D", "");
-
                 isDuplicate = userRepository.existsByPhoneNumber(cleanedPhone);
                 break;
 
@@ -120,12 +120,23 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        // 휴대폰 번호 숫자만 추출 (선택 사항)
+        // 휴대폰 번호 정규화 (숫자만 남김)
         String cleanedPhone = request.getPhoneNumber() != null
                 ? request.getPhoneNumber().replaceAll("\\D", "")
                 : user.getPhoneNumber();
 
-        // Entity 필드 업데이트 (Dirty Checking으로 자동 저장)
+        // 이메일 변경 시 인증 여부 검증
+        if (request.getEmail() != null && !request.getEmail().equals(user.getEmail())) {
+            EmailVerificationToken token = emailVerificationTokenRepository
+                    .findTopByEmailOrderByIdDesc(request.getEmail().trim().toLowerCase())
+                    .orElseThrow(() -> new IllegalArgumentException("인증되지 않은 이메일입니다."));
+
+            if (!token.isVerified()) {
+                throw new IllegalArgumentException("이메일 인증이 완료되지 않았습니다.");
+            }
+        }
+
+        // JPA Dirty Checking을 통한 프로필 업데이트
         user.updateProfile(
                 request.getName(),
                 request.getNickname(),

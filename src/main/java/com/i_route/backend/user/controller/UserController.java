@@ -64,4 +64,12 @@ public class UserController {
         UserProfileResponse updatedProfile = userService.updateMyProfile(userDetails.getId(), request);
         return ResponseEntity.ok(updatedProfile);
     }
+
+    @GetMapping("/check-duplicate")
+    public ResponseEntity<com.i_route.backend.user.dto.DuplicateCheckResponse> checkSingleField(
+            @RequestParam("type") String type,
+            @RequestParam("value") String value
+    ) {
+        return ResponseEntity.ok(userService.checkSingleField(type, value));
+    }
 }
