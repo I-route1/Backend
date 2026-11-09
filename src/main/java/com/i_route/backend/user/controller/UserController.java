@@ -2,6 +2,7 @@ package com.i_route.backend.user.controller;
 
 import com.i_route.backend.global.security.CustomUserDetails;
 import com.i_route.backend.user.dto.UserProfileResponse;
+import com.i_route.backend.user.dto.UserProfileUpdateRequest;
 import com.i_route.backend.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -53,5 +54,14 @@ public class UserController {
     ) {
         UserProfileResponse response = userService.getMyProfile(userDetails.getId());
         return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/me")
+    public ResponseEntity<UserProfileResponse> updateMyProfile(
+            @AuthenticationPrincipal CustomUserDetails userDetails, // 프로젝트의 인증 객체에 맞게 사용
+            @RequestBody UserProfileUpdateRequest request
+    ) {
+        UserProfileResponse updatedProfile = userService.updateMyProfile(userDetails.getId(), request);
+        return ResponseEntity.ok(updatedProfile);
     }
 }

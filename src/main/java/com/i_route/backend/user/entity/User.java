@@ -59,6 +59,24 @@ public class User {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private Academy academy;
 
+    /**
+     * 회원 프로필 정보 수정
+     */
+    public void updateProfile(String name, String nickname, String email, String phoneNumber) {
+        if (name != null && !name.isBlank()) {
+            this.name = name;
+        }
+        if (nickname != null && !nickname.isBlank()) {
+            this.nickname = nickname;
+        }
+        if (email != null && !email.isBlank()) {
+            this.email = email;
+        }
+        if (phoneNumber != null) {
+            this.phoneNumber = phoneNumber;
+        }
+    }
+
     // ==========================================
     // Inner Enums (로그인 타입 & 유저 역할)
     // ==========================================

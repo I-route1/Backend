@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import com.i_route.backend.user.dto.UserProfileUpdateRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -103,6 +104,34 @@ public class UserService {
     public UserProfileResponse getMyProfile(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        return new UserProfileResponse(
+                user.getId(),
+                user.getName(),
+                user.getNickname(),
+                user.getEmail(),
+                user.getPhoneNumber(),
+                user.getRole().name()
+        );
+    }
+
+    @Transactional
+    public UserProfileResponse updateMyProfile(Long userId, UserProfileUpdateRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 휴대폰 번호 숫자만 추출 (선택 사항)
+        String cleanedPhone = request.getPhoneNumber() != null
+                ? request.getPhoneNumber().replaceAll("\\D", "")
+                : user.getPhoneNumber();
+
+        // Entity 필드 업데이트 (Dirty Checking으로 자동 저장)
+        user.updateProfile(
+                request.getName(),
+                request.getNickname(),
+                request.getEmail(),
+                cleanedPhone
+        );
 
         return new UserProfileResponse(
                 user.getId(),
