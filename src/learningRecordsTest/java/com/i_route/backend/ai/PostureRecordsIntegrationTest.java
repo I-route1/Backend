@@ -99,6 +99,8 @@ class PostureRecordsIntegrationTest {
 
     @Test void same_submission_retries_and_equivalent_timezones_do_not_duplicate() throws Exception {
         var request = body(own); var first = save(request, academy);
+        assertThat(first.path("startedAt").asText()).isEqualTo("2026-11-10T01:00:00Z");
+        assertThat(save(request, academy)).isEqualTo(first); // Original fractional timestamp after DB round-trip.
         request.put("startedAt", "2026-11-10T01:00:00.123456789Z");
         var second = save(request, parent);
         assertThat(second).isEqualTo(first);

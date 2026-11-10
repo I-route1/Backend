@@ -23,10 +23,11 @@ public class PostureRecordService {
     @Transactional
     public PostureRecordResponse save(PostureRecordRequest request) {
         studentLock.lock(request.getStudentId());
-        var started = request.getStartedAt().withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime().truncatedTo(ChronoUnit.MILLIS);
+        // Production DATETIME columns may have second precision; canonicalize before storing and comparing.
+        var started = request.getStartedAt().withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime().truncatedTo(ChronoUnit.SECONDS);
         var candidate = PostureRecord.builder().studentId(request.getStudentId()).submissionId(request.getSubmissionId())
                 .subject(request.getSubject().strip()).startedAt(started)
-                .createdAt(LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MILLIS))
+                .createdAt(LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS))
                 .durationSeconds(request.getDurationSeconds()).inputSource(request.getInputSource()).modelName(request.getModelName())
                 .totalSamples(request.getTotalSamples()).uprightSamples(request.getUprightSamples()).slouchedSamples(request.getSlouchedSamples())
                 .headDownSamples(request.getHeadDownSamples()).tiltedSamples(request.getTiltedSamples()).unknownSamples(request.getUnknownSamples())

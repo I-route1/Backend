@@ -149,7 +149,8 @@ JWT가 필요하며 본인 자녀·소속 학원 학생·운영자만 접근할 
 
 - 입력 출처는 `CAMERA`, `IMAGE`, `VIDEO`이며 응답의 측정 장치는 `AI_HAT`이다.
 - 모든 표본 수는 정수이며 자세별 7개 표본 수의 합이 `totalSamples`와 같아야 한다.
-  전체 표본 수와 분석 시간(초)은 1~86400이다. 측정 시각은 시간대가 포함된 ISO 형식이다.
+  전체 표본 수와 분석 시간(초)은 1~86400이다. 측정 시각은 시간대가 포함된 ISO 형식이며,
+  저장·비교·응답은 DB 정밀도에 맞춰 UTC 초 단위로 통일한다(소수점 이하 절삭).
 - 응답은 요청 정보와 `id`, `createdAt`, `measurementSource`, `classifiedSamples`,
   `uprightRatio`, `slouchedRatio`, `headDownRatio`, `tiltedRatio`를 포함한다.
   비율의 분모는 네 가지 자세로 판정된 표본 수이며, 판정 표본이 없으면 비율은 명시적 `null`이다.
