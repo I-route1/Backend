@@ -13,8 +13,10 @@ public class PostureRecordRequest {
     @NotNull @Positive @JsonDeserialize(using = ExactStudentIdDeserializer.class)
     private Long studentId;
     @NotBlank @Size(max = 64) @Pattern(regexp = "[A-Za-z0-9][A-Za-z0-9._:-]{0,63}")
+    @JsonDeserialize(using = ExactTextDeserializer.class)
     private String submissionId;
     @NotBlank @Size(max = 255)
+    @JsonDeserialize(using = ExactTextDeserializer.class)
     private String subject;
     @NotNull @JsonDeserialize(using = ExactOffsetDateTimeDeserializer.class)
     private OffsetDateTime startedAt;
@@ -23,6 +25,7 @@ public class PostureRecordRequest {
     @NotNull
     private PostureInputSource inputSource;
     @NotBlank @Size(max = 64) @Pattern(regexp = "[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
+    @JsonDeserialize(using = ExactTextDeserializer.class)
     private String modelName;
     @NotNull @Min(1) @Max(86400) @JsonDeserialize(using = ExactIntegerDeserializer.class)
     private Integer totalSamples;
@@ -40,6 +43,17 @@ public class PostureRecordRequest {
     private Integer noPersonSamples;
     @NotNull @Min(0) @Max(86400) @JsonDeserialize(using = ExactIntegerDeserializer.class)
     private Integer multiplePeopleSamples;
+
+    @JsonIgnore @AssertTrue(message = "과목에는 보이는 문자가 포함되어야 합니다.")
+    public boolean isSubjectVisible() {
+        return subject == null || hasVisibleSubject(subject);
+    }
+
+    public static boolean hasVisibleSubject(String value) {
+        return value != null && (value.codePoints().noneMatch(c -> Character.getType(c) == Character.SURROGATE)
+                && value.codePoints().anyMatch(c -> !Character.isWhitespace(c) && !Character.isSpaceChar(c)
+                && !Character.isISOControl(c) && Character.getType(c) != Character.FORMAT));
+    }
 
     @JsonIgnore @AssertTrue(message = "자세별 표본 수의 합이 전체 표본 수와 일치해야 합니다.")
     public boolean isSampleCountValid() {

@@ -27,7 +27,7 @@ public class PostureRecordController {
         requireSingleDecimal(request, "studentId", true);
         requireSingleDecimal(request, "limit", false);
         if (studentId <= 0 || limit < 1 || limit > 100) throw new IllegalArgumentException("학생 ID와 조회 개수를 확인해주세요.");
-        if (subject != null && (request.getParameterValues("subject").length != 1 || subject.isBlank() || subject.length() > 255))
+        if (subject != null && (request.getParameterValues("subject").length != 1 || !PostureRecordRequest.hasVisibleSubject(subject) || subject.length() > 255))
             throw new IllegalArgumentException("과목은 공백이 아닌 문자열 하나여야 합니다.");
         access.requireStudent(studentId);
         return service.list(studentId, subject == null ? null : subject.strip(), limit);
