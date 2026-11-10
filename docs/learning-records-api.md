@@ -127,3 +127,33 @@ DDL 자동 갱신을 끈 환경에서는 같은 엔티티 스키마를 별도 �
 - 프론트는 같은 자기평가 내용에서 동일한 SHA-256 저장 키를 만든다. 응답 유실 후 재시도·새로고침·여러 탭에서 같은 내용을 저장해도 중복 반영되지 않는다. 대량 오답/채점/문항은 더 보기로 나누어 렌더링한다.
 
 검증은 전체 `test`와 `learningRecordsTest`의 권한/실제 JWT/DB 동시성/입력 경계 테스트 및 프론트 단위·브라우저 회귀 테스트로 수행한다. 라즈베리파이 실기기 연동은 검증 범위에서 제외한다.
+
+## 2026-11-11 AI HAT 자세 기록
+
+`POST /api/posture-records`로 자세 분석을 저장하고,
+`GET /api/posture-records?studentId=2&subject=수학&limit=50`으로 조회한다.
+JWT가 필요하며 본인 자녀·소속 학원 학생·운영자만 접근할 수 있다.
+`subject`는 선택이고, `limit`은 기본 50, 최대 100이다. 측정 시작 시각/ID 최신순으로 반환한다.
+
+요청 예:
+
+```json
+{
+  "studentId": 2, "submissionId": "pose-example-1", "subject": "수학",
+  "startedAt": "2026-11-10T10:00:00+09:00", "durationSeconds": 20,
+  "inputSource": "VIDEO", "modelName": "yolov8s_pose_h8", "totalSamples": 10,
+  "uprightSamples": 4, "slouchedSamples": 2, "headDownSamples": 1, "tiltedSamples": 1,
+  "unknownSamples": 1, "noPersonSamples": 1, "multiplePeopleSamples": 0
+}
+```
+
+- 입력 출처는 `CAMERA`, `IMAGE`, `VIDEO`이며 응답의 측정 장치는 `AI_HAT`이다.
+- 모든 표본 수는 정수이며 자세별 7개 표본 수의 합이 `totalSamples`와 같아야 한다.
+  전체 표본 수와 분석 시간(초)은 1~86400이다. 측정 시각은 시간대가 포함된 ISO 형식이다.
+- 응답은 요청 정보와 `id`, `createdAt`, `measurementSource`, `classifiedSamples`,
+  `uprightRatio`, `slouchedRatio`, `headDownRatio`, `tiltedRatio`를 포함한다.
+  비율의 분모는 네 가지 자세로 판정된 표본 수이며, 판정 표본이 없으면 비율은 명시적 `null`이다.
+- 학생/제출 ID가 같은 동일 내용 재전송은 기존 기록을 반환한다. 내용 변경은 409이며,
+  동시 재전송도 학생 행 잠금과 DB 유일키로 한 건만 저장한다.
+- 원본 영상·사진과 얼굴 집중도 점수를 저장하지 않는다. 자세 결과는 별도 `posture_record`에 저장한다.
+- 이후 추가한 Hailo 실기기 검증은 공식 예제 영상/테스트 입력으로 수행한다. 실제 얼굴 측정과 PN532 연결은 별도이다.
