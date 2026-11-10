@@ -182,6 +182,55 @@ class PostureRecordsIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1)).andExpect(jsonPath("$[0].subject").value("수학"));
     }
 
+    @Test void text_fields_reject_json_coercion_and_invisible_subjects_without_writes() throws Exception {
+        long before = records.count();
+        for (String field : List.of("subject", "submissionId", "modelName")) {
+            for (Object value : List.of(123, true, List.of("수학"), Map.of("name", "수학"))) {
+                var request = body(own); request.put(field, value);
+                mvc.perform(post("/api/posture-records").header("Authorization", "Bearer " + academy)
+                        .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsBytes(request))).andExpect(status().isBadRequest());
+            }
+        }
+        for (String subject : List.of("\u00a0", "\u200b\ufeff", "\u0000", "수\ud800", " \u2003\u00a0\t", "수".repeat(256))) {
+            var request = body(own); request.put("subject", subject);
+            mvc.perform(post("/api/posture-records").header("Authorization", "Bearer " + academy)
+                    .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsBytes(request))).andExpect(status().isBadRequest());
+            mvc.perform(get("/api/posture-records").param("studentId", own.toString()).param("subject", subject)
+                    .header("Authorization", "Bearer " + academy)).andExpect(status().isBadRequest());
+        }
+        assertThat(records.count()).isEqualTo(before);
+    }
+
+    @Test void ownership_is_rechecked_before_replay_and_existing_records_follow_the_student() throws Exception {
+        var request = body(own); var original = save(request, academy);
+        var newParent = user(User.UserRole.PARENT); var newTeacher = user(User.UserRole.ACADEMY);
+        var school = academies.save(Academy.builder().user(newTeacher).academyName("new-school").build());
+        students.saveAndFlush(Student.builder().studentId(own).name("moved")
+                .parentId(newParent.getId()).academyId(school.getAcademyId()).build());
+        for (String oldToken : List.of(parent, academy)) {
+            mvc.perform(get("/api/posture-records").param("studentId", own.toString())
+                    .header("Authorization", "Bearer " + oldToken)).andExpect(status().isForbidden());
+            mvc.perform(post("/api/posture-records").header("Authorization", "Bearer " + oldToken)
+                    .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsBytes(request))).andExpect(status().isForbidden());
+        }
+        for (String token : List.of(jwt.generateToken(newParent.getId()), jwt.generateToken(newTeacher.getId()))) {
+            assertThat(read(own, token)).hasSize(1);
+            assertThat(save(request, token).path("id")).isEqualTo(original.path("id"));
+        }
+    }
+
+    @Test void maximum_session_and_subject_and_same_second_order_are_supported() throws Exception {
+        var request = body(own);
+        request.put("subject", "수".repeat(255)); request.put("durationSeconds", 86400);
+        request.put("totalSamples", 86400); request.put("uprightSamples", 86394);
+        var first = save(request, academy);
+        assertThat(first.path("classifiedSamples").asInt()).isEqualTo(86398);
+        request.put("submissionId", UUID.randomUUID().toString());
+        var second = save(request, academy);
+        assertThat(read(own, parent).get(0).path("id")).isEqualTo(second.path("id"));
+        assertThat(save(request, parent)).isEqualTo(second);
+    }
+
     @Test void malformed_or_duplicate_query_parameters_are_bad_requests() throws Exception {
         for (String value : List.of("0", "-1", "1.0", "1e2", "+1", " 1", "１", "99999999999999999999999"))
             mvc.perform(get("/api/posture-records").param("studentId", value).header("Authorization", "Bearer " + parent)).andExpect(status().isBadRequest());
