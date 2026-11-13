@@ -55,6 +55,7 @@ public class BoardService {
         Board board = Board.builder()
                 .name(request.getName())
                 .description(request.getDescription())
+                .boardType(BoardType.FREE)
                 .createdBy("관리자")
                 .build();
 

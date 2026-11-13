@@ -34,7 +34,9 @@ class BoardServiceTest {
         board.setName("공지사항");
         board.setDescription("공지 게시판");
 
-        given(boardRepository.findAll()).willReturn(List.of(board));
+        given(boardRepository.findAllWithAcademyAndUser())
+                .willReturn(List.of(board));
+
 
         List<Board> result = boardService.getBoards();
 
@@ -84,7 +86,8 @@ class BoardServiceTest {
         request.setName("수정된 이름");
         request.setDescription("수정된 설명");
 
-        given(boardRepository.findById(1L)).willReturn(Optional.of(board));
+        given(boardRepository.findByIdWithAcademyAndUser(1L))
+                .willReturn(Optional.of(board));
 
         Board result = boardService.updateBoard(1L, request);
 
@@ -94,7 +97,8 @@ class BoardServiceTest {
     @Test
     @DisplayName("게시판 수정 - 존재하지 않는 ID로 예외 발생")
     void updateBoard_notFound() {
-        given(boardRepository.findById(999L)).willReturn(Optional.empty());
+        given(boardRepository.findByIdWithAcademyAndUser(999L))
+                .willReturn(Optional.empty());
 
         BoardRequestDto request = new BoardRequestDto();
         request.setName("이름");
@@ -118,8 +122,8 @@ class BoardServiceTest {
         Board board = new Board();
         board.setName("공지사항");
 
-        given(boardRepository.findById(1L)).willReturn(Optional.of(board));
-
+        given(boardRepository.findByIdWithAcademyAndUser(1L))
+                .willReturn(Optional.of(board));
         Board result = boardService.getBoardDetail(1L);
 
         assertThat(result.getName()).isEqualTo("공지사항");
@@ -128,7 +132,8 @@ class BoardServiceTest {
     @Test
     @DisplayName("게시판 상세 조회 - 존재하지 않는 ID로 예외 발생")
     void getBoardDetail_notFound() {
-        given(boardRepository.findById(999L)).willReturn(Optional.empty());
+        given(boardRepository.findByIdWithAcademyAndUser(999L))
+                .willReturn(Optional.empty());
 
         assertThatThrownBy(() -> boardService.getBoardDetail(999L))
                 .isInstanceOf(IllegalArgumentException.class);

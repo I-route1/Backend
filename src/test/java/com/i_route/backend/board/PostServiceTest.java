@@ -36,13 +36,18 @@ class PostServiceTest extends BoardServiceTestSupport {
                 .hasMessageContaining("게시글을 찾을 수 없습니다");
     }
     @Test void createPost_usesAuthenticatedAuthorAndRequestContent() {
-        given(boards.findAll()).willReturn(List.of(board()));
+        var board = board();
+        given(boards.findByIdWithAcademyAndUser(1L)).willReturn(Optional.of(board));
         given(users.findById(7L)).willReturn(Optional.of(author()));
         given(posts.save(any(Post.class))).willAnswer(inv -> { Post p = inv.getArgument(0); p.setId(10L); return p; });
-        var request = new PostRequestDto(); request.setTitle("새 제목"); request.setContent("새 내용"); request.setAuthor("위조 작성자");
+        var request = new PostRequestDto();
+        request.setBoardId(1L);
+        request.setTitle("제목");
+        request.setContent("내용");
+        request.setAuthor("임의 작성자");
         var result = service.createPost(request, 7L);
-        assertThat(result.getTitle()).isEqualTo("새 제목");
-        assertThat(result.getContent()).isEqualTo("새 내용");
+        assertThat(result.getTitle()).isEqualTo("제목");
+        assertThat(result.getContent()).isEqualTo("내용");
         assertThat(result.getAuthor()).isEqualTo("작성자");
         assertThat(result.getCategory()).isEqualTo("자유");
         then(posts).should().save(argThat(p -> p.getUser().getId().equals(7L) && p.getBoard().getId().equals(1L)));
