@@ -15,6 +15,10 @@ public class BoardController {
 
     private final BoardService boardService;
 
+    // ==========================================
+    // 1. 게시판 (Board) API
+    // ==========================================
+
     @GetMapping("/boards")
     public List<BoardResponseDto> getBoards() {
         return boardService.getBoards()
@@ -51,6 +55,29 @@ public class BoardController {
         return BoardResponseDto.from(boardService.getBoardDetail(boardId));
     }
 
+    // [신규 추가] 특정 게시판(boardId)에 속한 게시글 목록 조회
+    @GetMapping("/boards/{boardId}/posts")
+    public List<PostResponseDto> getPostsByBoard(
+            @PathVariable Long boardId,
+            @RequestParam(required = false) Long userId
+    ) {
+        return boardService.getPostsByBoard(boardId, userId);
+    }
+
+    // [신규 추가] 특정 학원(academyId)에 속한 게시글 목록 조회
+    @GetMapping("/academies/{academyId}/posts")
+    public List<PostResponseDto> getPostsByAcademy(
+            @PathVariable Long academyId,
+            @RequestParam(required = false) Long userId
+    ) {
+        return boardService.getPostsByAcademy(academyId, userId);
+    }
+
+    // ==========================================
+    // 2. 게시글 (Post) API
+    // ==========================================
+
+    // 전체 게시글 조회
     @GetMapping("/posts")
     public List<PostResponseDto> getPosts(
             @RequestParam(required = false) Long userId
@@ -65,6 +92,7 @@ public class BoardController {
     ) {
         return boardService.createPost(request, userId);
     }
+
     @GetMapping("/posts/{postId}")
     public PostResponseDto getPostDetail(
             @PathVariable Long postId,
@@ -95,6 +123,10 @@ public class BoardController {
         boardService.deletePost(postId);
     }
 
+    // ==========================================
+    // 3. 좋아요 및 북마크 API
+    // ==========================================
+
     @PostMapping("/posts/{postId}/like")
     public PostResponseDto likePost(
             @PathVariable Long postId,
@@ -110,6 +142,10 @@ public class BoardController {
     ) {
         return boardService.bookmarkPost(postId, userId);
     }
+
+    // ==========================================
+    // 4. 댓글 (Comment) API
+    // ==========================================
 
     @GetMapping("/posts/{postId}/comments")
     public List<CommentResponseDto> getComments(
@@ -154,4 +190,4 @@ public class BoardController {
     ) {
         return boardService.likeComment(commentId, userId);
     }
-}
+}   

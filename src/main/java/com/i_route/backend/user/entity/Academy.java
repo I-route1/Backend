@@ -1,11 +1,16 @@
 package com.i_route.backend.user.entity;
 
+import com.i_route.backend.board.entity.Board;
 import com.i_route.backend.gps.domain.driver.entity.Driver;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "academy")
+@EntityListeners(AcademyEntityListener.class)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -45,4 +50,9 @@ public class Academy {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "driver_id")
     private Driver driver;
+
+    // 학원 삭제 시 연결된 게시판 자동 연쇄 삭제
+    @Builder.Default
+    @OneToMany(mappedBy = "academy", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Board> boards = new ArrayList<>();
 }

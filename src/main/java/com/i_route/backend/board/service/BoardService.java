@@ -30,10 +30,23 @@ public class BoardService {
 
     private final Map<String, LocalDateTime> viewHistory = new ConcurrentHashMap<>();
 
+    // ==========================================
+    // 1. 게시판 (Board) 관리
+    // ==========================================
+
+    // 1. 게시판 목록 조회 (line 41 부근)
+    @Transactional(readOnly = true)
     public List<Board> getBoards() {
-        return boardRepository.findAll();
+        return boardRepository.findAllWithAcademyAndUser();
     }
 
+    // 2. 게시판 단건 조회 헬퍼 (line 327 부근)
+    private Board getBoardOrThrow(Long boardId) {
+        return boardRepository.findByIdWithAcademyAndUser(boardId)
+                .orElseThrow(() -> new IllegalArgumentException("게시판을 찾을 수 없습니다."));
+    }
+
+    @Transactional(readOnly = true)
     public List<Board> searchBoards(String keyword) {
         return boardRepository.findByNameContaining(keyword);
     }
@@ -59,10 +72,19 @@ public class BoardService {
         boardRepository.deleteById(boardId);
     }
 
+    @Transactional(readOnly = true)
     public Board getBoardDetail(Long boardId) {
         return getBoardOrThrow(boardId);
     }
 
+    // ==========================================
+    // 2. 게시글 (Post) 관리
+    // ==========================================
+
+    /**
+     * 전체 게시글 조회
+     */
+    @Transactional(readOnly = true)
     public List<PostResponseDto> getPosts(Long userId) {
         return postRepository.findAll()
                 .stream()
@@ -70,18 +92,35 @@ public class BoardService {
                 .toList();
     }
 
-    public PostResponseDto createPost(
-            PostRequestDto request,
-            Long userId
-    ) {
-
-        Board board = boardRepository.findAll()
+    /**
+     * 특정 게시판(boardId)에 속한 게시글 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public List<PostResponseDto> getPostsByBoard(Long boardId, Long userId) {
+        getBoardOrThrow(boardId); // 게시판 존재 여부 검증
+        return postRepository.findByBoardId(boardId)
                 .stream()
-                .findFirst()
-                .orElseThrow(() ->
-                        new IllegalArgumentException("게시판이 존재하지 않습니다.")
-                );
+                .map(post -> toPostResponse(post, userId))
+                .toList();
+    }
 
+    /**
+     * 특정 학원(academyId)에 속한 게시판들의 글 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public List<PostResponseDto> getPostsByAcademy(Long academyId, Long userId) {
+        return postRepository.findByBoard_Academy_AcademyId(academyId)
+                .stream()
+                .map(post -> toPostResponse(post, userId))
+                .toList();
+    }
+
+    /**
+     * 게시글 작성 (요청 DTO에 담긴 boardId 활용)
+     */
+    public PostResponseDto createPost(PostRequestDto request, Long userId) {
+        // DTO에서 받은 boardId로 게시판 조회 (없으면 예외 발생)
+        Board board = getBoardOrThrow(request.getBoardId());
         User user = getUserOrThrow(userId);
 
         Post post = Post.builder()
@@ -93,11 +132,14 @@ public class BoardService {
                 .author(user.getNickname())
                 .pinned(false)
                 .build();
-        Post savedPost = postRepository.save(post);
 
+        Post savedPost = postRepository.save(post);
         return toPostResponse(savedPost, userId);
     }
 
+    /**
+     * 게시글 상세 조회 (조회수 중복 방지 로직 유지)
+     */
     public PostResponseDto getPostDetail(Long postId, Long userId) {
         Post post = getPostOrThrow(postId);
 
@@ -116,6 +158,7 @@ public class BoardService {
         return toPostResponse(post, userId);
     }
 
+    @Transactional(readOnly = true)
     public List<PostResponseDto> searchPosts(String keyword, Long userId) {
         return postRepository.findByTitleContainingOrContentContaining(keyword, keyword)
                 .stream()
@@ -125,6 +168,12 @@ public class BoardService {
 
     public PostResponseDto updatePost(Long postId, PostRequestDto request, Long userId) {
         Post post = getPostOrThrow(postId);
+
+        // 작성자 본인 확인 검증 (선택적 구현)
+        if (post.getUser() != null && !post.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("작성자만 글을 수정할 수 있습니다.");
+        }
+
         post.update(
                 request.getTitle(),
                 request.getContent(),
@@ -136,6 +185,10 @@ public class BoardService {
     public void deletePost(Long postId) {
         postRepository.deleteById(postId);
     }
+
+    // ==========================================
+    // 3. 좋아요 / 북마크 기능
+    // ==========================================
 
     public PostResponseDto likePost(Long postId, Long userId) {
         Post post = getPostOrThrow(postId);
@@ -161,8 +214,7 @@ public class BoardService {
         Post post = getPostOrThrow(postId);
         User user = getUserOrThrow(userId);
 
-        boolean alreadyBookmarked =
-                postBookmarkRepository.existsByPostIdAndUserId(postId, userId);
+        boolean alreadyBookmarked = postBookmarkRepository.existsByPostIdAndUserId(postId, userId);
 
         if (alreadyBookmarked) {
             postBookmarkRepository.deleteByPostIdAndUserId(postId, userId);
@@ -178,6 +230,11 @@ public class BoardService {
         return toPostResponse(post, userId);
     }
 
+    // ==========================================
+    // 4. 댓글 (Comment) 관리
+    // ==========================================
+
+    @Transactional(readOnly = true)
     public List<CommentResponseDto> getComments(Long postId, Long userId) {
         return commentRepository.findByPostIdOrderByCreatedAtDesc(postId)
                 .stream()
@@ -197,10 +254,10 @@ public class BoardService {
                 .build();
 
         Comment savedComment = commentRepository.save(comment);
-
         return toCommentResponse(savedComment, userId);
     }
 
+    @Transactional(readOnly = true)
     public CommentResponseDto getCommentDetail(Long commentId, Long userId) {
         Comment comment = getCommentOrThrow(commentId);
         return toCommentResponse(comment, userId);
@@ -220,8 +277,7 @@ public class BoardService {
         Comment comment = getCommentOrThrow(commentId);
         User user = getUserOrThrow(userId);
 
-        boolean alreadyLiked =
-                commentLikeRepository.existsByCommentIdAndUserId(commentId, userId);
+        boolean alreadyLiked = commentLikeRepository.existsByCommentIdAndUserId(commentId, userId);
 
         if (alreadyLiked) {
             commentLikeRepository.deleteByCommentIdAndUserId(commentId, userId);
@@ -237,17 +293,18 @@ public class BoardService {
         return toCommentResponse(comment, userId);
     }
 
+    // ==========================================
+    // 5. Helper & DTO 매핑 메서드
+    // ==========================================
+
     private PostResponseDto toPostResponse(Post post, Long userId) {
         Long postId = post.getId();
 
         long likeCount = postLikeRepository.countByPostId(postId);
         long commentCount = commentRepository.countByPostId(postId);
 
-        boolean likedByMe =
-                userId != null && postLikeRepository.existsByPostIdAndUserId(postId, userId);
-
-        boolean bookmarked =
-                userId != null && postBookmarkRepository.existsByPostIdAndUserId(postId, userId);
+        boolean likedByMe = userId != null && postLikeRepository.existsByPostIdAndUserId(postId, userId);
+        boolean bookmarked = userId != null && postBookmarkRepository.existsByPostIdAndUserId(postId, userId);
 
         return PostResponseDto.builder()
                 .id(post.getId())
@@ -282,11 +339,6 @@ public class BoardService {
                 .build();
     }
 
-    private Board getBoardOrThrow(Long boardId) {
-        return boardRepository.findById(boardId)
-                .orElseThrow(() -> new IllegalArgumentException("게시판을 찾을 수 없습니다."));
-    }
-
     private Post getPostOrThrow(Long postId) {
         return postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
@@ -300,5 +352,34 @@ public class BoardService {
     private User getUserOrThrow(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+    }
+
+    // 해당 유저가 이 학원 게시판의 관리자(선생님)인지 확인하는 헬퍼 메서드
+    public boolean isBoardManager(Board board, Long userId) {
+        if (userId == null || board.getAcademy() == null || board.getAcademy().getUser() == null) {
+            return false;
+        }
+        return board.getAcademy().getUser().getId().equals(userId);
+    }
+
+    @Transactional
+    public BoardResponseDto updateBoard(Long boardId, BoardUpdateRequestDto requestDto, Long userId) {
+        Board board = boardRepository.findById(boardId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 게시판입니다."));
+
+        if (!isBoardManager(board, userId)) {
+            throw new IllegalStateException("해당 학원의 선생님(관리자)만 게시판을 수정할 수 있습니다.");
+        }
+
+        // 1. 게시판 이름 및 소개 수정
+        board.updateInfo(requestDto.getName(), requestDto.getDescription());
+
+        // 2. 학원 게시판인 경우 학원 주소도 함께 수정
+        if (board.getAcademy() != null && requestDto.getAcademyAddress() != null) {
+            String trimmedAddress = requestDto.getAcademyAddress().trim();
+            board.getAcademy().setAcademyAddress(trimmedAddress.isEmpty() ? null : trimmedAddress);
+        }
+
+        return BoardResponseDto.from(board);
     }
 }
