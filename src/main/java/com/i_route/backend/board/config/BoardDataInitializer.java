@@ -1,6 +1,7 @@
 package com.i_route.backend.board.config;
 
 import com.i_route.backend.board.entity.Board;
+import com.i_route.backend.board.entity.BoardType;
 import com.i_route.backend.board.repository.BoardRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
@@ -21,8 +22,9 @@ public class BoardDataInitializer implements CommandLineRunner {
         }
 
         Board defaultBoard = Board.builder()
-                .name("자유게시판")
-                .description("자유롭게 이야기를 나누는 게시판입니다.")
+                .name("전체 공지사항")
+                .description("아이루트 전체 공지사항 게시판입니다.")
+                .boardType(BoardType.NOTICE)
                 .createdBy("시스템")
                 .build();
 
