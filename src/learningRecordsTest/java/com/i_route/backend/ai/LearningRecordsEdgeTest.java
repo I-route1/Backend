@@ -39,8 +39,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class LearningRecordsEdgeTest {
     @Configuration @EnableAutoConfiguration
     @EntityScan("com.i_route.backend")
-    @EnableJpaRepositories(basePackages = {"com.i_route.backend.ai.repository", "com.i_route.backend.user.repository",
-            "com.i_route.backend.gps.domain.student.repository"})
+    @EnableJpaRepositories(basePackages = {
+            "com.i_route.backend.ai.repository",
+            "com.i_route.backend.user.repository",
+            "com.i_route.backend.gps.domain.student.repository",
+            "com.i_route.backend.board.repository"})
     @Import({OcrResultController.class, WrongAnswerController.class, LearningActivityController.class,
             OcrResultService.class, WrongAnswerService.class, LearningActivityService.class,
             StudentRecordAccess.class, StudentRecordLock.class, SecurityConfig.class, JwtAuthenticationFilter.class,

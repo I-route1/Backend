@@ -52,7 +52,7 @@ class AttendanceAccessIntegrationTest {
     @EnableJpaRepositories(basePackages = {"com.i_route.backend.gps.domain.attendance.repository",
             "com.i_route.backend.gps.domain.student.repository", "com.i_route.backend.gps.domain.bus.repository",
             "com.i_route.backend.gps.domain.driver.repository", "com.i_route.backend.gps.domain.route.repository",
-            "com.i_route.backend.user.repository"})
+            "com.i_route.backend.user.repository", "com.i_route.backend.board.repository"})
     @Import({AttendanceController.class, AttendanceService.class, AttendanceRecordAccess.class, SecurityConfig.class,
             JwtAuthenticationFilter.class, AiServerKeyFilter.class, JwtUtil.class, GlobalExceptionHandler.class,
             GpsController.class, GpsQueryService.class})

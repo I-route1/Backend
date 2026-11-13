@@ -36,8 +36,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class PostureRecordsIntegrationTest {
     @Configuration(proxyBeanMethods = false) @EnableAutoConfiguration @EntityScan("com.i_route.backend")
-    @EnableJpaRepositories(basePackages = {"com.i_route.backend.ai.repository", "com.i_route.backend.user.repository",
-            "com.i_route.backend.gps.domain.student.repository"})
+    @EnableJpaRepositories(basePackages = {
+            "com.i_route.backend.ai.repository",
+            "com.i_route.backend.user.repository",
+            "com.i_route.backend.gps.domain.student.repository",
+            "com.i_route.backend.board.repository"
+    })
     @Import({PostureRecordController.class, PostureRecordService.class, StudentRecordLock.class, StudentRecordAccess.class,
             SecurityConfig.class, JwtAuthenticationFilter.class, AiServerKeyFilter.class, JwtUtil.class, GlobalExceptionHandler.class})
     static class Config { }
