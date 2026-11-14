@@ -29,4 +29,10 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
     List<Board> findAllWithAcademyAndUser();
 
     List<Board> findAllByBoardTypeOrderByIdAsc(BoardType boardType);
+
+    boolean existsByAcademy_AcademyIdAndBoardType(
+            Long academyId,
+            BoardType boardType
+    );
+
 }
