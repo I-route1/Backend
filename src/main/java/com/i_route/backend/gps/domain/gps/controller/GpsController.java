@@ -58,6 +58,7 @@ public class GpsController {
     }
 
     // 학부모 앱: 학생 탑승 중일 때만 버스 GPS 반환 (하차 후 204)
+    // return ApiResponse.success(result);
     @GetMapping("/students/{studentId}/current-location")
     public ResponseEntity<CurrentBusLocationResponse> getStudentCurrentLocation(
             @PathVariable Long studentId
