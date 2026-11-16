@@ -44,7 +44,7 @@ public class GpsCommandService {
                                 .busId(bus.getId())
                                 .latitude(request.getLatitude())
                                 .longitude(request.getLongitude())
-                                .speed(request.getSpeed())
+                                .speed(request.getSpeed() * 3.6)
                                 .heading(request.getHeading())
                                 .recordedAt(LocalDateTime.now())
                                 .build()
