@@ -1,4 +1,4 @@
-package com.i_route.backend.gps.domain.route.service;
+/*package com.i_route.backend.gps.domain.route.service;
 
 import com.i_route.backend.gps.domain.gps.dto.response.RouteStopResponse;
 import com.i_route.backend.gps.domain.gps.util.GeoUtil;
@@ -85,4 +85,51 @@ public class RouteProgressService {
 
         return nearestIndex;
     }
+}*/
+
+package com.i_route.backend.gps.domain.route.service;
+
+import com.i_route.backend.gps.domain.gps.dto.response.RouteStopResponse;
+import com.i_route.backend.gps.domain.gps.util.GeoUtil;
+import com.i_route.backend.gps.domain.route.entity.RouteStop;
+import com.i_route.backend.gps.domain.route.entity.StopStatus;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class RouteProgressService {
+    private static final double ARRIVAL_RADIUS_METER = 50.0;
+    private static final double ROUTE_DEVIATION_METER = 100.0;
+    private final RouteProjectionCalculator calculator;
+
+    public List<RouteStopResponse> calculateStopStatuses(Double busLat, Double busLng, List<RouteStop> stops) {
+        List<RouteStopResponse> result = new ArrayList<>();
+        if (stops == null || stops.isEmpty()) return result;
+        RouteProjectionCalculator.Projection projection = stops.size() >= 2
+                ? calculator.project(busLat, busLng, stops) : null;
+        for (int i = 0; i < stops.size(); i++) {
+            RouteStop stop = stops.get(i);
+            double distance = GeoUtil.distanceMeter(busLat, busLng, stop.getLatitude(), stop.getLongitude());
+            StopStatus status;
+            if (projection == null || projection.distanceFromRouteMeters() > ROUTE_DEVIATION_METER) {
+                // Without a valid projection do not assert that any stop has been passed.
+                status = StopStatus.BEFORE_ARRIVAL;
+            } else if (distance <= ARRIVAL_RADIUS_METER) {
+                status = StopStatus.ARRIVED;
+            } else if (projection.stopDistances()[i] < projection.progressMeters()) {
+                status = StopStatus.PASSED;
+            } else {
+                status = StopStatus.BEFORE_ARRIVAL;
+            }
+            result.add(RouteStopResponse.builder()
+                    .stopId(stop.getId()).stopName(stop.getStopName())
+                    .latitude(stop.getLatitude()).longitude(stop.getLongitude())
+                    .stopOrder(stop.getStopOrder()).status(status).etaMinutes(null).build());
+        }
+        return result;
+    }
 }
+
