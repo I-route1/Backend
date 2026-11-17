@@ -18,6 +18,9 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 import java.util.Map;
 
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
+
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
@@ -56,12 +59,22 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    @PatchMapping("/me")
+    @PatchMapping(value = "/me", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<UserProfileResponse> updateMyProfile(
-            @AuthenticationPrincipal CustomUserDetails userDetails, // 프로젝트의 인증 객체에 맞게 사용
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody UserProfileUpdateRequest request
     ) {
         UserProfileResponse updatedProfile = userService.updateMyProfile(userDetails.getId(), request);
+        return ResponseEntity.ok(updatedProfile);
+    }
+
+    @PatchMapping(value = "/me", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserProfileResponse> updateMyProfileWithImage(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestPart("data") UserProfileUpdateRequest request,
+            @RequestPart(value = "profileImage", required = false) MultipartFile profileImage
+    ) {
+        UserProfileResponse updatedProfile = userService.updateMyProfile(userDetails.getId(), request, profileImage);
         return ResponseEntity.ok(updatedProfile);
     }
 

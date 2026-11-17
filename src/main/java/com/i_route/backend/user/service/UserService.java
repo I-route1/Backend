@@ -2,6 +2,7 @@ package com.i_route.backend.user.service;
 
 import com.i_route.backend.auth.entity.EmailVerificationToken;
 import com.i_route.backend.auth.repository.EmailVerificationTokenRepository;
+import com.i_route.backend.global.service.FileStorageService;
 import com.i_route.backend.user.dto.DuplicateCheckRequest;
 import com.i_route.backend.user.dto.DuplicateCheckResponse;
 import com.i_route.backend.user.dto.UserProfileResponse;
@@ -11,6 +12,7 @@ import com.i_route.backend.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +24,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
+    private final FileStorageService fileStorageService;
 
     public DuplicateCheckResponse checkDuplicate(DuplicateCheckRequest request) {
         String cleanedPhone = request.getPhoneNumber() != null
@@ -111,12 +114,25 @@ public class UserService {
                 user.getNickname(),
                 user.getEmail(),
                 user.getPhoneNumber(),
-                user.getRole().name()
+                user.getRole().name(),
+                user.getProfileImageUrl()
         );
     }
 
     @Transactional
-    public UserProfileResponse updateMyProfile(Long userId, UserProfileUpdateRequest request) {
+    public UserProfileResponse updateMyProfile(
+            Long userId,
+            UserProfileUpdateRequest request
+    ) {
+        return updateMyProfile(userId, request, null);
+    }
+
+    @Transactional
+    public UserProfileResponse updateMyProfile(
+            Long userId,
+            UserProfileUpdateRequest request,
+            MultipartFile profileImage
+    ) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
@@ -126,22 +142,33 @@ public class UserService {
                 : user.getPhoneNumber();
 
         // 이메일 변경 시 인증 여부 검증
-        if (request.getEmail() != null && !request.getEmail().equals(user.getEmail())) {
+        if (request.getEmail() != null
+                && !request.getEmail().equals(user.getEmail())) {
             EmailVerificationToken token = emailVerificationTokenRepository
-                    .findTopByEmailOrderByIdDesc(request.getEmail().trim().toLowerCase())
-                    .orElseThrow(() -> new IllegalArgumentException("인증되지 않은 이메일입니다."));
+                    .findTopByEmailOrderByIdDesc(
+                            request.getEmail().trim().toLowerCase()
+                    )
+                    .orElseThrow(() ->
+                            new IllegalArgumentException("인증되지 않은 이메일입니다.")
+                    );
 
             if (!token.isVerified()) {
                 throw new IllegalArgumentException("이메일 인증이 완료되지 않았습니다.");
             }
         }
 
-        // JPA Dirty Checking을 통한 프로필 업데이트
+        // 새 이미지 파일이 업로드된 경우 저장 후 URL 갱신, 없으면 기존 URL/요청 URL 유지
+        String finalProfileImageUrl = request.getProfileImageUrl();
+        if (profileImage != null && !profileImage.isEmpty()) {
+            finalProfileImageUrl = fileStorageService.storeProfileImage(profileImage);
+        }
+
         user.updateProfile(
                 request.getName(),
                 request.getNickname(),
                 request.getEmail(),
-                cleanedPhone
+                cleanedPhone,
+                finalProfileImageUrl
         );
 
         return new UserProfileResponse(
@@ -150,7 +177,8 @@ public class UserService {
                 user.getNickname(),
                 user.getEmail(),
                 user.getPhoneNumber(),
-                user.getRole().name()
+                user.getRole().name(),
+                user.getProfileImageUrl()
         );
     }
 }

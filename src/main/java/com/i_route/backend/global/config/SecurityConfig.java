@@ -53,6 +53,7 @@ public class SecurityConfig {
                                 "/api/oauth/**",
                                 "/api/boards",
                                 "/api/boards/search",
+                                "/uploads/profiles/**",
                                 "/error",
                                 "/favicon.ico",
 

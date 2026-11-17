@@ -59,23 +59,27 @@ public class User {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private Academy academy;
 
+    // 프로필 이미지(메신저 기능 추가)
+    @Column(length = 500)
+    private String profileImageUrl;
+
     /**
-     * 회원 프로필 정보 수정
+     * 회원 프로필 정보 수정, 이미지 추가
      */
-    public void updateProfile(String name, String nickname, String email, String phoneNumber) {
-        if (name != null && !name.isBlank()) {
-            this.name = name;
-        }
-        if (nickname != null && !nickname.isBlank()) {
-            this.nickname = nickname;
-        }
-        if (email != null && !email.isBlank()) {
-            this.email = email;
-        }
-        if (phoneNumber != null) {
-            this.phoneNumber = phoneNumber;
-        }
+    public void updateProfile(
+            String name,
+            String nickname,
+            String email,
+            String phoneNumber,
+            String profileImageUrl
+    ) {
+        if (name != null && !name.isBlank()) this.name = name;
+        if (nickname != null && !nickname.isBlank()) this.nickname = nickname;
+        if (email != null && !email.isBlank()) this.email = email;
+        if (phoneNumber != null) this.phoneNumber = phoneNumber;
+        if (profileImageUrl != null) this.profileImageUrl = profileImageUrl;
     }
+
 
     // ==========================================
     // Inner Enums (로그인 타입 & 유저 역할)
@@ -109,4 +113,5 @@ public class User {
         if (phoneNumber != null) this.phoneNumber = phoneNumber;
         if (role != null) this.role = role;
     }
+
 }

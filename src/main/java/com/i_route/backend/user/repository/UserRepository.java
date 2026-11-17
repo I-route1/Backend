@@ -29,5 +29,6 @@ public interface UserRepository
     Optional<User> findByResetToken(String resetToken);
 
     boolean existsByUsername(String username);
+
 }
 
