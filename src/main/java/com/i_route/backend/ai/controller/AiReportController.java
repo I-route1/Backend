@@ -13,7 +13,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @RestController
@@ -73,25 +75,11 @@ public class AiReportController {
                 .findByStudentIdAndSubjectOrderByExamDateDesc(studentId, subject);
 
         // 취약 개념 태그 추출 (가장 최근 성적 기준)
-        String targetConcept = grades.stream()
+        Optional<String> recordedConcept = grades.stream()
                 .filter(g -> g.getWeakConceptTag() != null && !g.getWeakConceptTag().isBlank())
                 .map(Grade::getWeakConceptTag)
-                .findFirst()
-                .orElse(subject + " 기본 개념");
-
-        // 평균 점수 계산
-        double avgScore = grades.stream()
-                .mapToInt(Grade::getScore)
-                .average()
-                .orElse(0.0);
-
-        // 점수 추세 파악 (최근 2회)
-        String trend = "유지";
-        if (grades.size() >= 2) {
-            int gap = grades.get(0).getScore() - grades.get(1).getScore();
-            if (gap > 0) trend = "상승";
-            else if (gap < 0) trend = "하락";
-        }
+                .findFirst();
+        String targetConcept = recordedConcept.orElse(subject + " 기본 개념");
 
         // 1순위: AI 서버에 위임. 과목별 파인튜닝 어댑터 + RAG 검색을 쓰므로
         // 아래 규칙 기반 템플릿보다 내용이 구체적이다.
@@ -102,7 +90,7 @@ public class AiReportController {
 
         // 2순위: AI 서버가 꺼져 있거나 실패하면 규칙 기반으로 폴백한다.
         // 응답 형식이 같아서 호출하는 쪽은 차이를 알 필요가 없다.
-        String report = buildRecommendationReport(subject, targetConcept, avgScore, trend);
+        String report = buildRecommendationReport(subject, recordedConcept, grades);
 
         Map<String, Object> result = new HashMap<>();
         result.put("studentId", studentId);
@@ -137,26 +125,24 @@ public class AiReportController {
         return null;
     }
 
-    private String buildRecommendationReport(String subject, String concept, double avg, String trend) {
-        String levelDesc;
-        String strategy;
-
-        if (avg >= 85) {
-            levelDesc = "상위권";
-            strategy = "심화 문제와 실전 모의고사 위주로 학습하여 실수를 줄이세요.";
-        } else if (avg >= 70) {
-            levelDesc = "중위권";
-            strategy = "개념 정리와 유형별 반복 학습을 병행하세요.";
+    private String buildRecommendationReport(String subject, Optional<String> concept, List<Grade> grades) {
+        String scoreSummary;
+        String practice;
+        if (grades.isEmpty()) {
+            scoreSummary = "등록된 시험 성적이 없습니다. 첫 시험을 등록하면 점수에 맞춰 안내합니다.";
+            practice = "최근 배운 단원의 예제 한 문제를 풀고 풀이에서 사용한 개념을 적어 보세요.";
         } else {
-            levelDesc = "기초 다지기 단계";
-            strategy = "핵심 개념부터 탄탄하게 정리하고 기본 문제를 반복 풀이하세요.";
+            double mean = grades.stream().mapToInt(Grade::getScore).average().orElseThrow();
+            scoreSummary = String.format(Locale.ROOT, "등록된 시험 %d회 평균 %.1f점. %s",
+                    grades.size(), mean, describeRecentScores(grades));
+            if (mean >= 85) {
+                practice = "응용 문제를 시간 안에 풀고, 빠뜨린 조건이 있는지 확인하세요.";
+            } else if (mean >= 70) {
+                practice = "개념을 한 문장으로 정리한 뒤 같은 유형 두 문제에 적용해 보세요.";
+            } else {
+                practice = "기본 예제의 풀이를 읽고 답안을 가린 뒤 첫 단계부터 다시 풀어 보세요.";
+            }
         }
-
-        String trendComment = switch (trend) {
-            case "상승" -> "최근 성적이 오르고 있습니다. 지금 방식을 유지하세요.";
-            case "하락" -> "최근 성적이 하락하고 있습니다. 학습 방법 점검이 필요합니다.";
-            default -> "성적이 안정적으로 유지되고 있습니다.";
-        };
 
         String studySteps = switch (subject) {
             case "수학" -> "1. 공식·정리 정확히 암기 후 유도과정 이해\n" +
@@ -185,15 +171,28 @@ public class AiReportController {
                        "4. 실전 문제로 마무리";
         };
 
-        return String.format(
-                "[%s] %s 취약 개념 분석 리포트\n\n" +
-                "현재 수준: %s (평균 %.0f점)\n" +
-                "추세: %s\n\n" +
-                "취약 개념: %s\n\n" +
-                "AI 추천 학습 전략: %s\n\n" +
-                "추천 학습 순서:\n%s",
-                subject, concept, levelDesc, avg, trendComment, concept, strategy, studySteps
-        );
+        String focus = concept.map(tag -> "시험에 기록된 복습 개념은 ‘" + tag + "’입니다.")
+                .orElse("시험에 기록된 취약 개념이 없어 과목의 기본 복습 순서를 안내합니다.");
+        return "[" + subject + " 학습 가이드]\n\n" + scoreSummary
+                + "\n\n" + focus + "\n" + practice + "\n\n추천 학습 순서\n" + studySteps;
+    }
+
+    private String describeRecentScores(List<Grade> grades) {
+        Grade latest = grades.get(0);
+        if (grades.size() == 1) {
+            return "첫 시험은 " + latest.getScore() + "점입니다. 다음 시험부터 변화를 비교할 수 있습니다.";
+        }
+        Grade previous = grades.get(1);
+        if (latest.getExamDate() == null || previous.getExamDate() == null
+                || !latest.getExamDate().isAfter(previous.getExamDate())) {
+            return "최근 두 시험의 날짜로 전후 순서를 구분하기 어렵습니다.";
+        }
+        int change = latest.getScore() - previous.getScore();
+        if (change == 0) {
+            return "최근 두 시험의 점수가 " + latest.getScore() + "점으로 같습니다.";
+        }
+        return "직전 " + previous.getScore() + "점에서 최근 " + latest.getScore()
+                + "점으로 " + Math.abs(change) + "점 " + (change > 0 ? "올랐습니다." : "내려갔습니다.");
     }
 
     @Data
