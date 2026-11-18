@@ -12,6 +12,7 @@ import os
 import sys
 import time
 from pathlib import Path
+from uuid import uuid4
 
 import board
 import busio
@@ -61,12 +62,19 @@ def login(username, password):
 
 
 def tag_attendance(nfc_card_id):
-    return requests.post(
-        f"{BACKEND_URL}/api/gps/attendance",
-        json={"busId": BUS_ID, "nfcCardId": nfc_card_id},
-        headers=HEADERS,
-        timeout=5
-    )
+    payload = {"busId": BUS_ID, "nfcCardId": nfc_card_id, "scanId": str(uuid4())}
+    for attempt in range(3):
+        try:
+            response = requests.post(
+                f"{BACKEND_URL}/api/gps/attendance", json=payload, headers=HEADERS, timeout=5
+            )
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            if attempt == 2:
+                raise
+        else:
+            if response.status_code not in (502, 503, 504) or attempt == 2:
+                return response
+        time.sleep(0.5 * (attempt + 1))
 
 
 def register_nfc(student_id, nfc_card_id, token):
@@ -81,7 +89,14 @@ def register_nfc(student_id, nfc_card_id, token):
 
 
 spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
-cs_pin = DigitalInOut(board.CE0)
+cs_gpio = os.getenv("NFC_CS_GPIO")
+cs_board_pin = board.CE0
+if cs_gpio:
+    gpio = int(cs_gpio)
+    if gpio in (7, 8, 9, 10, 11):
+        raise ValueError("NFC_CS_GPIO must be a free GPIO outside SPI0 pins 7–11")
+    cs_board_pin = getattr(board, f"D{gpio}")
+cs_pin = DigitalInOut(cs_board_pin)
 pn532 = PN532_SPI(spi, cs_pin, debug=False)
 pn532.SAM_configuration()
 
@@ -93,23 +108,28 @@ except Exception as e:
     exit(1)
 print("NFC 리더 준비 완료. 카드를 갖다 대주세요...")
 
-last_uid = None
-last_tag_time = 0
+held_uid = None
+absent_since = None
+RELEASE_CONFIRM_SECONDS = 1.0
 
 while True:
     uid = pn532.read_passive_target(timeout=0.5)
 
     if uid is None:
-        last_uid = None
+        if held_uid is not None:
+            now = time.monotonic()
+            if absent_since is None:
+                absent_since = now
+            elif now - absent_since >= RELEASE_CONFIRM_SECONDS:
+                held_uid = None
         continue
 
+    absent_since = None
     uid_hex = uid.hex().upper()
-    now = time.time()
-    if uid_hex == last_uid and now - last_tag_time < 3:
+    if uid_hex == held_uid:
         continue
 
-    last_uid = uid_hex
-    last_tag_time = now
+    held_uid = uid_hex
 
     print(f"카드 UID: {uid_hex}")
 
@@ -131,12 +151,12 @@ while True:
             except requests.HTTPError as e:
                 print(f"등록 실패: {e.response.status_code} - {e.response.text}")
 
+        elif resp.status_code == 422:
+            print(f"버스 또는 학생 배정을 확인하세요: {resp.text}")
         else:
             print(f"오류: {resp.status_code} - {resp.text}")
 
-    except requests.exceptions.ConnectionError:
-        print("서버 연결 실패")
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+        print("서버 연결 실패. 출결 기록을 확인하세요.")
     except Exception as e:
         print(f"오류 발생: {e}")
-
-    time.sleep(0.5)

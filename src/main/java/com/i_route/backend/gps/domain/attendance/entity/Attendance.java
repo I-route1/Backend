@@ -6,7 +6,8 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "attendance")
+@Table(name = "attendance", uniqueConstraints = @UniqueConstraint(
+        name = "uk_attendance_student_scan", columnNames = {"student_id", "scan_id"}))
 @Getter
 @Builder
 @NoArgsConstructor
@@ -22,6 +23,9 @@ public class Attendance {
 
     @Column(nullable = false)
     private Long busId;
+
+    @Column(name = "scan_id", length = 36)
+    private String scanId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

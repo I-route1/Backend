@@ -2,6 +2,10 @@ package com.i_route.backend.gps.domain.student.repository;
 
 import com.i_route.backend.gps.domain.student.entity.Student;
 import org.springframework.data.jpa.repository.JpaRepository;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import java.util.Optional;
 
 import java.util.List;
@@ -11,6 +15,16 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     List<Student> findByBusId(Long busId);
 
     Optional<Student> findByNfcCardId(String nfcCardId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Student> findLockedByNfcCardId(String nfcCardId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Student> findLockedByStudentId(Long studentId);
+
+    @Modifying
+    @Query("update Student s set s.nfcCardId = :nfcCardId where s.studentId = :studentId")
+    int updateNfcCardId(Long studentId, String nfcCardId);
 
     List<Student> findByParentId(Long parentId);
 
