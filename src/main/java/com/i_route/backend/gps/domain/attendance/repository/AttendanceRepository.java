@@ -10,7 +10,9 @@ import java.util.Optional;
 public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
 
     // 가장 최근 출결 기록 (승/하차 판단용)
-    Optional<Attendance> findTopByStudentIdOrderByTimestampDesc(Long studentId);
+    Optional<Attendance> findTopByStudentIdOrderByTimestampDescIdDesc(Long studentId);
+
+    Optional<Attendance> findByStudentIdAndScanId(Long studentId, String scanId);
 
     // 특정 기간 이력 조회 (학부모용)
     List<Attendance> findByStudentIdAndTimestampBetweenOrderByTimestampDesc(

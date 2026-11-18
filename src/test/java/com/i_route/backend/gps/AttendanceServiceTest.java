@@ -41,6 +41,7 @@ class AttendanceServiceTest {
 
     @Mock private AttendanceRepository attendanceRepository;
     @Mock private StudentRepository studentRepository;
+    @Mock private com.i_route.backend.gps.domain.bus.repository.BusRepository busRepository;
     @Mock private SimpMessagingTemplate messagingTemplate;
     @Mock private com.i_route.backend.gps.domain.attendance.repository.NfcRegisterQueueRedisRepository nfcQueue;
     @Mock private com.i_route.backend.gps.domain.attendance.repository.StudentBoardingRedisRepository boarding;
@@ -73,6 +74,7 @@ class AttendanceServiceTest {
     }
 
     private AttendanceTagRequest tagRequest(Long busId, String nfcCardId) {
+        given(busRepository.existsById(busId)).willReturn(true);
         AttendanceTagRequest req = new AttendanceTagRequest();
         ReflectionTestUtils.setField(req, "busId", busId);
         ReflectionTestUtils.setField(req, "nfcCardId", nfcCardId);
@@ -85,8 +87,8 @@ class AttendanceServiceTest {
     @DisplayName("NFC 태그 처리 성공 - 오늘 첫 태그는 BOARD")
     void processTag_firstTagToday_isBoard() {
         Student s = student(7L, "A1B2C3D4", 100L);
-        given(studentRepository.findByNfcCardId("A1B2C3D4")).willReturn(Optional.of(s));
-        given(attendanceRepository.findTopByStudentIdOrderByTimestampDesc(7L)).willReturn(Optional.empty());
+        given(studentRepository.findLockedByNfcCardId("A1B2C3D4")).willReturn(Optional.of(s));
+        given(attendanceRepository.findTopByStudentIdOrderByTimestampDescIdDesc(7L)).willReturn(Optional.empty());
         Attendance saved = attendance(1L, 7L, AttendanceEventType.BOARD, LocalDateTime.now());
         given(attendanceRepository.save(any(Attendance.class))).willReturn(saved);
 
@@ -103,8 +105,8 @@ class AttendanceServiceTest {
         Student s = student(7L, "A1B2C3D4", 100L);
         Attendance lastBoard = attendance(1L, 7L, AttendanceEventType.BOARD, LocalDate.now().atStartOfDay());
 
-        given(studentRepository.findByNfcCardId("A1B2C3D4")).willReturn(Optional.of(s));
-        given(attendanceRepository.findTopByStudentIdOrderByTimestampDesc(7L)).willReturn(Optional.of(lastBoard));
+        given(studentRepository.findLockedByNfcCardId("A1B2C3D4")).willReturn(Optional.of(s));
+        given(attendanceRepository.findTopByStudentIdOrderByTimestampDescIdDesc(7L)).willReturn(Optional.of(lastBoard));
         Attendance saved = attendance(2L, 7L, AttendanceEventType.EXIT, LocalDateTime.now());
         given(attendanceRepository.save(any(Attendance.class))).willReturn(saved);
 
@@ -119,8 +121,8 @@ class AttendanceServiceTest {
         Student s = student(7L, "A1B2C3D4", 100L);
         Attendance lastExit = attendance(2L, 7L, AttendanceEventType.EXIT, LocalDate.now().atStartOfDay());
 
-        given(studentRepository.findByNfcCardId("A1B2C3D4")).willReturn(Optional.of(s));
-        given(attendanceRepository.findTopByStudentIdOrderByTimestampDesc(7L)).willReturn(Optional.of(lastExit));
+        given(studentRepository.findLockedByNfcCardId("A1B2C3D4")).willReturn(Optional.of(s));
+        given(attendanceRepository.findTopByStudentIdOrderByTimestampDescIdDesc(7L)).willReturn(Optional.of(lastExit));
         Attendance saved = attendance(3L, 7L, AttendanceEventType.BOARD, LocalDateTime.now());
         given(attendanceRepository.save(any(Attendance.class))).willReturn(saved);
 
@@ -133,8 +135,8 @@ class AttendanceServiceTest {
     @DisplayName("NFC 태그 처리 성공 - 학부모에게 WebSocket 알림 전송")
     void processTag_sendsWebSocketToParent() {
         Student s = student(7L, "A1B2C3D4", 100L);
-        given(studentRepository.findByNfcCardId("A1B2C3D4")).willReturn(Optional.of(s));
-        given(attendanceRepository.findTopByStudentIdOrderByTimestampDesc(7L)).willReturn(Optional.empty());
+        given(studentRepository.findLockedByNfcCardId("A1B2C3D4")).willReturn(Optional.of(s));
+        given(attendanceRepository.findTopByStudentIdOrderByTimestampDescIdDesc(7L)).willReturn(Optional.empty());
         Attendance saved = attendance(1L, 7L, AttendanceEventType.BOARD, LocalDateTime.now());
         given(attendanceRepository.save(any(Attendance.class))).willReturn(saved);
 
@@ -149,8 +151,8 @@ class AttendanceServiceTest {
     @DisplayName("NFC 태그 처리 성공 - parentId 없으면 WebSocket 전송 안 함")
     void processTag_noParent_noWebSocket() {
         Student s = student(7L, "A1B2C3D4", null);
-        given(studentRepository.findByNfcCardId("A1B2C3D4")).willReturn(Optional.of(s));
-        given(attendanceRepository.findTopByStudentIdOrderByTimestampDesc(7L)).willReturn(Optional.empty());
+        given(studentRepository.findLockedByNfcCardId("A1B2C3D4")).willReturn(Optional.of(s));
+        given(attendanceRepository.findTopByStudentIdOrderByTimestampDescIdDesc(7L)).willReturn(Optional.empty());
         Attendance saved = attendance(1L, 7L, AttendanceEventType.BOARD, LocalDateTime.now());
         given(attendanceRepository.save(any(Attendance.class))).willReturn(saved);
 
@@ -162,7 +164,7 @@ class AttendanceServiceTest {
     @Test
     @DisplayName("NFC 태그 처리 실패 - 등록되지 않은 카드")
     void processTag_unknownCard_throws404() {
-        given(studentRepository.findByNfcCardId("UNKNOWN")).willReturn(Optional.empty());
+        given(studentRepository.findLockedByNfcCardId("UNKNOWN")).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> attendanceService.processTag(tagRequest(1L, "UNKNOWN")))
                 .isInstanceOf(ResponseStatusException.class)
@@ -176,8 +178,8 @@ class AttendanceServiceTest {
         Attendance yesterday = attendance(1L, 7L, AttendanceEventType.BOARD,
                 LocalDate.now().minusDays(1).atTime(8, 0));
 
-        given(studentRepository.findByNfcCardId("A1B2C3D4")).willReturn(Optional.of(s));
-        given(attendanceRepository.findTopByStudentIdOrderByTimestampDesc(7L)).willReturn(Optional.of(yesterday));
+        given(studentRepository.findLockedByNfcCardId("A1B2C3D4")).willReturn(Optional.of(s));
+        given(attendanceRepository.findTopByStudentIdOrderByTimestampDescIdDesc(7L)).willReturn(Optional.of(yesterday));
         Attendance saved = attendance(2L, 7L, AttendanceEventType.BOARD, LocalDateTime.now());
         given(attendanceRepository.save(any(Attendance.class))).willReturn(saved);
 
@@ -263,20 +265,18 @@ class AttendanceServiceTest {
     @Test
     @DisplayName("NFC 카드 등록 성공")
     void registerNfcCard_success() {
-        Student s = student(7L, null, null);
         given(studentRepository.findByNfcCardId("A1B2C3D4")).willReturn(Optional.empty());
-        given(studentRepository.findById(7L)).willReturn(Optional.of(s));
+        given(studentRepository.updateNfcCardId(7L, "A1B2C3D4")).willReturn(1);
 
         attendanceService.registerNfcCard(7L, "A1B2C3D4");
 
-        then(studentRepository).should().save(any(Student.class));
+        then(studentRepository).should().updateNfcCardId(7L, "A1B2C3D4");
     }
 
     @Test
     @DisplayName("NFC 카드 등록 실패 - 학생 없음")
     void registerNfcCard_studentNotFound() {
         given(studentRepository.findByNfcCardId("A1B2C3D4")).willReturn(Optional.empty());
-        given(studentRepository.findById(99L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> attendanceService.registerNfcCard(99L, "A1B2C3D4"))
                 .isInstanceOf(ResponseStatusException.class)
@@ -299,7 +299,6 @@ class AttendanceServiceTest {
     void registerNfcCard_sameStudentReRegister_allowed() {
         Student s = student(7L, "A1B2C3D4", null);
         given(studentRepository.findByNfcCardId("A1B2C3D4")).willReturn(Optional.of(s));
-        given(studentRepository.findById(7L)).willReturn(Optional.of(s));
 
         assertThatCode(() -> attendanceService.registerNfcCard(7L, "A1B2C3D4"))
                 .doesNotThrowAnyException();

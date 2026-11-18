@@ -30,6 +30,7 @@ public class Student {
 
     private Long academyId;
 
+    @Column(unique = true)
     private String nfcCardId;
 
     private String gradeStudentId;

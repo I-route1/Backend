@@ -31,11 +31,16 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.*;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import java.time.*;
 import java.util.*;
+import java.util.concurrent.*;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -74,6 +79,7 @@ class AttendanceAccessIntegrationTest {
     @Autowired BusRepository buses;
     @Autowired DriverRepository drivers;
     @Autowired AttendanceRepository attendance;
+    @Autowired StudentBoardingRedisRepository boarding;
     Long parentId, otherParentId, own, sameSchool, otherSchool, otherBusStudent, empty, busId, otherBusId;
     String parent, otherParent, academy, driver, unassigned, admin, noAcademy;
     LocalDate date;
@@ -191,5 +197,125 @@ class AttendanceAccessIntegrationTest {
         assertThat(ids(path, driver)).containsExactlyInAnyOrder(own, sameSchool, otherSchool);
         assertThat(ids(path, admin)).containsExactlyInAnyOrder(own, sameSchool, otherSchool);
         denied("/api/gps/buses/" + otherBusId + "/passengers/today", driver);
+    }
+
+    private String uid() {
+        return UUID.randomUUID().toString().replace("-", "").substring(0, 14).toUpperCase(Locale.ROOT);
+    }
+
+    private Student cardHolder(String uid) {
+        return students.saveAndFlush(Student.builder().name("NFC 합성 학생").nfcCardId(uid)
+                .busId(busId).parentId(parentId).academyId(students.findById(own).orElseThrow().getAcademyId())
+                .routeStopId(4L).expectedDropOffTime(LocalTime.of(16, 30)).gradeStudentId("linked")
+                .grade("중1").profileImage("/test.png").currentLevel(2).learningTendency(Student.LearningTendency.VISUAL)
+                .currentKoreanGrade(80.0).studyTime(12.0).studentNote("test").recommendContext("test").build());
+    }
+
+    private ResultActions tag(Long bus, String uid, String scanId) throws Exception {
+        Map<String, Object> body = new HashMap<>(Map.of("busId", bus, "nfcCardId", uid));
+        if (scanId != null) body.put("scanId", scanId);
+        return mvc.perform(post("/api/gps/attendance").contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(body)));
+    }
+
+    private ResultActions register(Long student, String uid) throws Exception {
+        return mvc.perform(patch("/api/gps/students/" + student + "/nfc").header("Authorization", "Bearer " + academy)
+                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of("nfcCardId", uid))));
+    }
+
+    @Test void concurrentRetriesCommitOneBoardAndReplayItEvenAfterExit() throws Exception {
+        var s = cardHolder(uid());
+        String first = UUID.randomUUID().toString();
+        var start = new CountDownLatch(1);
+        var pool = Executors.newFixedThreadPool(4);
+        try {
+            List<Future<String>> requests = new ArrayList<>();
+            for (int i = 0; i < 4; i++) {
+                requests.add(pool.submit(() -> {
+                    start.await();
+                    return tag(busId, s.getNfcCardId(), first).andExpect(status().isOk())
+                            .andExpect(jsonPath("$.eventType").value("BOARD")).andReturn().getResponse().getContentAsString();
+                }));
+            }
+            start.countDown();
+            String original = requests.get(0).get(10, TimeUnit.SECONDS);
+            for (var response : requests) assertThat(response.get(10, TimeUnit.SECONDS)).isEqualTo(original);
+            tag(busId, s.getNfcCardId(), UUID.randomUUID().toString()).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.eventType").value("EXIT"));
+            tag(busId, s.getNfcCardId(), first.toUpperCase(Locale.ROOT)).andExpect(status().isOk())
+                    .andExpect(content().string(original));
+            assertThat(attendance.findByStudentIdAndTimestampBetweenOrderByTimestampDesc(s.getStudentId(),
+                    date.atStartOfDay(), date.plusDays(1).atStartOfDay())).extracting(Attendance::getEventType)
+                    .containsExactly(AttendanceEventType.EXIT, AttendanceEventType.BOARD);
+            verify(boarding, times(1)).markBoarded(s.getStudentId(), busId);
+            verify(boarding, times(1)).markExited(s.getStudentId());
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test void legacyReaderShortRepeatReturnsOriginalRecord() throws Exception {
+        var s = cardHolder(uid());
+        String first = tag(busId, s.getNfcCardId(), null).andExpect(status().isOk())
+                .andExpect(jsonPath("$.eventType").value("BOARD")).andReturn().getResponse().getContentAsString();
+        tag(busId, s.getNfcCardId(), null).andExpect(status().isOk()).andExpect(content().string(first));
+        verify(boarding, times(1)).markBoarded(s.getStudentId(), busId);
+    }
+
+    @Test void unknownOrWrongBusNeverRegistersAttendanceOrOffersCardRegistration() throws Exception {
+        var s = cardHolder(uid());
+        String scan = UUID.randomUUID().toString();
+        long before = attendance.count();
+        tag(Long.MAX_VALUE, s.getNfcCardId(), scan).andExpect(status().isUnprocessableEntity());
+        tag(otherBusId, s.getNfcCardId(), scan).andExpect(status().isUnprocessableEntity());
+        tag(Long.MAX_VALUE, uid(), scan).andExpect(status().isUnprocessableEntity());
+        tag(0L, s.getNfcCardId(), scan).andExpect(status().isBadRequest());
+        tag(busId, s.getNfcCardId(), "broken").andExpect(status().isBadRequest());
+        tag(busId, uid(), scan).andExpect(status().isNotFound());
+        mvc.perform(post("/api/gps/attendance/manual").header("Authorization", "Bearer " + driver)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of("studentId", empty, "eventType", "BOARD"))))
+                .andExpect(status().isUnprocessableEntity());
+        assertThat(attendance.count()).isEqualTo(before);
+    }
+
+    @Test void cardReplacementKeepsAllOtherStudentDataAndDisablesPreviousCard() throws Exception {
+        var s = cardHolder(uid());
+        var another = cardHolder(uid());
+        String replacement = uid();
+        register(s.getStudentId(), replacement).andExpect(status().isOk());
+        register(s.getStudentId(), replacement).andExpect(status().isOk());
+        register(another.getStudentId(), replacement).andExpect(status().isConflict());
+        var updated = students.findById(s.getStudentId()).orElseThrow();
+        assertThat(updated.getNfcCardId()).isEqualTo(replacement);
+        assertThat(updated).usingRecursiveComparison().ignoringFields("nfcCardId").isEqualTo(s);
+        assertThat(students.findById(another.getStudentId()).orElseThrow().getNfcCardId()).isEqualTo(another.getNfcCardId());
+        tag(busId, s.getNfcCardId(), null).andExpect(status().isNotFound());
+        tag(busId, replacement, null).andExpect(status().isOk()).andExpect(jsonPath("$.eventType").value("BOARD"));
+    }
+
+    @Test void concurrentRegistrationOfOneCardHasOnlyOneOwner() throws Exception {
+        var first = cardHolder(uid());
+        var second = cardHolder(uid());
+        String replacement = uid();
+        var start = new CountDownLatch(1);
+        var pool = Executors.newFixedThreadPool(2);
+        try {
+            List<Future<Integer>> registrations = new ArrayList<>();
+            for (var student : List.of(first, second)) {
+                registrations.add(pool.submit(() -> {
+                    start.await();
+                    return register(student.getStudentId(), replacement).andReturn().getResponse().getStatus();
+                }));
+            }
+            start.countDown();
+            assertThat(List.of(registrations.get(0).get(10, TimeUnit.SECONDS), registrations.get(1).get(10, TimeUnit.SECONDS)))
+                    .containsExactlyInAnyOrder(200, 409);
+            var winner = students.findByNfcCardId(replacement).orElseThrow().getStudentId();
+            var loser = winner.equals(first.getStudentId()) ? second : first;
+            assertThat(students.findById(loser.getStudentId()).orElseThrow().getNfcCardId()).isEqualTo(loser.getNfcCardId());
+        } finally {
+            pool.shutdownNow();
+        }
     }
 }

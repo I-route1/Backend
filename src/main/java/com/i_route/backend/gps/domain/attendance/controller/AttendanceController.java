@@ -30,7 +30,7 @@ public class AttendanceController {
     /**
      * 라즈베리파이(PN532) → NFC 카드 태그 시 호출
      * POST /api/gps/attendance
-     * Body: { "busId": 1, "nfcCardId": "A1B2C3D4" }
+     * Body: { "busId": 1, "nfcCardId": "A1B2C3D4", "scanId": "bca097c7-9a60-45e4-991d-791c98dc547c" }
      */
     @PostMapping("/attendance")
     public ResponseEntity<AttendanceResponse> tagCard(
