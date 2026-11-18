@@ -42,6 +42,11 @@ public class LearningActivity {
 
     private Double drowsyRatio;
 
+    private Integer elapsedSeconds;
+    private Double uprightRatio;
+    private Integer postureSampleCount;
+    private Integer forwardHeadCount;
+
     @Enumerated(EnumType.STRING)
     @Column(length = 16)
     private MeasurementSource measurementSource;

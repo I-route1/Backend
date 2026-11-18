@@ -11,6 +11,7 @@ public interface LearningActivityRepository extends JpaRepository<LearningActivi
     List<LearningActivity> findByStudentIdAndSubjectAndStudyDateAndStudyStartTimeOrderByIdDesc(
             Long studentId, String subject, LocalDate studyDate, LocalTime studyStartTime);
     Optional<LearningActivity> findByStudentIdAndSubmissionId(Long studentId, String submissionId);
+    Optional<LearningActivity> findByIdAndStudentId(Long id, Long studentId);
     List<LearningActivity> findByStudentIdOrderByStudyDateDescStudyStartTimeDescIdDesc(Long studentId);
     List<LearningActivity> findByStudentIdOrderByStudyDateDesc(Long studentId);
     List<LearningActivity> findByStudentId(Long studentId);

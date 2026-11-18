@@ -20,6 +20,10 @@ public class LearningActivityResponse {
     private int concentrationScore;
     private Double focusedRatio;
     private Double drowsyRatio;
+    private Integer elapsedSeconds;
+    private Double uprightRatio;
+    private Integer postureSampleCount;
+    private Integer forwardHeadCount;
     private MeasurementSource measurementSource;
     private String instructorFeedback;
 
@@ -36,6 +40,10 @@ public class LearningActivityResponse {
                 .concentrationScore(activity.getConcentrationScore())
                 .focusedRatio(activity.getFocusedRatio())
                 .drowsyRatio(activity.getDrowsyRatio())
+                .elapsedSeconds(activity.getElapsedSeconds())
+                .uprightRatio(activity.getUprightRatio())
+                .postureSampleCount(activity.getPostureSampleCount())
+                .forwardHeadCount(activity.getForwardHeadCount())
                 .measurementSource(activity.getMeasurementSource() == null
                         ? MeasurementSource.MANUAL : activity.getMeasurementSource())
                 .instructorFeedback(activity.getInstructorFeedback())

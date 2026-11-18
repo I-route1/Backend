@@ -1,8 +1,10 @@
 package com.i_route.backend.ai;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.i_route.backend.ai.controller.*;
 import com.i_route.backend.ai.dto.*;
+import com.i_route.backend.ai.entity.MeasurementSource;
 import com.i_route.backend.ai.repository.*;
 import com.i_route.backend.ai.service.*;
 import com.i_route.backend.global.config.*;
@@ -84,6 +86,14 @@ class LearningRecordsEdgeTest {
         r.setSubject("국어"); r.setStudyDate(LocalDate.of(2026,11,5)); r.setStudyStartTime(LocalTime.of(10,17));
         r.setStudyDurationMinutes(8); r.setUnderstandingScore(5); r.setConcentrationScore(1); return r;
     }
+
+    private ObjectNode cameraEvaluation(String submission) {
+        var request = evaluation(submission);
+        request.setMeasurementSource(MeasurementSource.CAMERA);
+        request.setFocusedRatio(0.75);
+        request.setDrowsyRatio(0.125);
+        return json.valueToTree(request);
+    }
     @Test void enforcesParentAcademyDriverAndAdminOwnershipAcrossReadsAndWrites() throws Exception {
         for (String path : List.of("/api/activities/", "/api/wrong-answer/", "/api/ocr-results?studentId=")) {
             mvc.perform(get(path + own).header("Authorization", "Bearer " + parent)).andExpect(status().isOk());
@@ -134,6 +144,97 @@ class LearningRecordsEdgeTest {
                 .andExpect(status().isForbidden());
         assertThat(activities.getActivitiesByStudent(otherAcademy)).isEmpty();
     }
+
+    @Test void cameraDetailsRoundTripThroughAnExactRecordAndRetriesRemainIdempotent() throws Exception {
+        var body = cameraEvaluation("camera-details");
+        body.put("elapsedSeconds", 43);
+        body.put("uprightRatio", 0.75);
+        body.put("postureSampleCount", 8);
+        body.put("forwardHeadCount", 0);
+        var response = mvc.perform(post("/api/activities").header("Authorization", "Bearer " + academy)
+                .contentType("application/json").content(body.toString())).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        var saved = json.readTree(response);
+        long id = saved.path("id").asLong();
+        assertThat(id).isPositive();
+        var detailedFields = Map.of("elapsedSeconds", 44, "uprightRatio", 0.5,
+                "postureSampleCount", 9, "forwardHeadCount", 1);
+        for (String field : detailedFields.keySet()) {
+            assertThat(saved.path(field)).isEqualTo(body.path(field));
+            var changed = body.deepCopy();
+            changed.set(field, json.valueToTree(detailedFields.get(field)));
+            mvc.perform(post("/api/activities").header("Authorization", "Bearer " + academy)
+                    .contentType("application/json").content(changed.toString())).andExpect(status().isConflict());
+        }
+        mvc.perform(post("/api/activities").header("Authorization", "Bearer " + parent)
+                .contentType("application/json").content(body.toString())).andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id));
+
+        var path = "/api/activities/" + own + "/records/" + id;
+        for (String token : List.of(parent, academy)) {
+            var exact = mvc.perform(get(path).header("Authorization", "Bearer " + token))
+                    .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+            assertThat(json.readTree(exact)).isEqualTo(saved);
+        }
+        mvc.perform(get(path)).andExpect(status().isUnauthorized());
+        mvc.perform(get(path).header("Authorization", "Bearer " + driver)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/activities/" + foreign + "/records/" + id)
+                .header("Authorization", "Bearer " + academy)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/activities/" + foreign + "/records/" + id)
+                .header("Authorization", "Bearer " + parent)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/activities/" + own + "/records/999999")
+                .header("Authorization", "Bearer " + academy)).andExpect(status().isNotFound());
+        assertThat(activities.getActivitiesByStudent(own)).hasSize(1);
+    }
+
+    @Test void cameraDetailsAreOptionalPairedWhenNeededAndValidatedBeforeWrite() throws Exception {
+        var legacy = cameraEvaluation("legacy-camera");
+        mvc.perform(post("/api/activities").header("Authorization", "Bearer " + academy)
+                .contentType("application/json").content(legacy.toString())).andExpect(status().isOk())
+                .andExpect(jsonPath("$.elapsedSeconds").doesNotExist())
+                .andExpect(jsonPath("$.uprightRatio").doesNotExist())
+                .andExpect(jsonPath("$.postureSampleCount").doesNotExist())
+                .andExpect(jsonPath("$.forwardHeadCount").doesNotExist());
+
+        var independent = cameraEvaluation("unclassified-posture");
+        independent.put("elapsedSeconds", 0);
+        independent.put("forwardHeadCount", 3);
+        mvc.perform(post("/api/activities").header("Authorization", "Bearer " + academy)
+                .contentType("application/json").content(independent.toString())).andExpect(status().isOk())
+                .andExpect(jsonPath("$.elapsedSeconds").value(0))
+                .andExpect(jsonPath("$.forwardHeadCount").value(3))
+                .andExpect(jsonPath("$.uprightRatio").doesNotExist());
+
+        var zero = cameraEvaluation("zero-upright");
+        zero.put("elapsedSeconds", 86400);
+        zero.put("uprightRatio", -0.0);
+        zero.put("postureSampleCount", 1);
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mvc.perform(post("/api/activities").header("Authorization", "Bearer " + academy)
+                    .contentType("application/json").content(zero.toString())).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.uprightRatio").value(0.0));
+        }
+
+        for (Map<String, ?> details : List.<Map<String, ?>>of(
+                Map.of("elapsedSeconds", -1), Map.of("elapsedSeconds", 86401), Map.of("elapsedSeconds", 1.5),
+                Map.of("uprightRatio", 0.5), Map.of("postureSampleCount", 4),
+                Map.of("uprightRatio", 0.5, "postureSampleCount", 0),
+                Map.of("uprightRatio", 0.5, "postureSampleCount", 1.5),
+                Map.of("uprightRatio", -0.1, "postureSampleCount", 4),
+                Map.of("uprightRatio", 1.1, "postureSampleCount", 4),
+                Map.of("uprightRatio", "NaN", "postureSampleCount", 4),
+                Map.of("forwardHeadCount", -1), Map.of("forwardHeadCount", 1.5),
+                Map.of("measurementSource", "MANUAL", "elapsedSeconds", 1),
+                Map.of("measurementSource", "MANUAL", "forwardHeadCount", 0),
+                Map.of("measurementSource", "MANUAL", "uprightRatio", 0.5, "postureSampleCount", 4))) {
+            var invalid = cameraEvaluation("invalid-camera-details");
+            details.forEach((field, value) -> invalid.set(field, json.valueToTree(value)));
+            mvc.perform(post("/api/activities").header("Authorization", "Bearer " + academy)
+                    .contentType("application/json").content(invalid.toString())).andExpect(status().isBadRequest());
+        }
+        assertThat(activities.getActivitiesByStudent(own)).hasSize(3);
+    }
+
     @Test void academyCalendarBoundariesPersistAndUnsupportedYearsDoNotWrite() throws Exception {
         int index = 0;
         for (String date : List.of("1000-01-01", "2000-02-29", "2024-02-29", "9999-12-31")) {

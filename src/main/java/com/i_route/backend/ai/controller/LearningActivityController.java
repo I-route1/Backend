@@ -36,6 +36,12 @@ public class LearningActivityController {
         return ResponseEntity.ok(responses);
     }
 
+    @GetMapping("/{studentId}/records/{activityId}")
+    public ResponseEntity<LearningActivityResponse> getActivity(@PathVariable Long studentId, @PathVariable Long activityId) {
+        access.requireStudent(studentId);
+        return ResponseEntity.ok(learningActivityService.getActivityByStudent(studentId, activityId));
+    }
+
     // 🌟 강사 피드백 입력/수정 (PATCH)
     @PatchMapping("/{activityId}/feedback")
     public ResponseEntity<LearningActivityResponse> updateFeedback(
