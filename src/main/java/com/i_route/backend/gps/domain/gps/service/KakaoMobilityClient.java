@@ -21,10 +21,10 @@ public class KakaoMobilityClient {
 
 
 
-    @Value("${kakao.mobility.base-url:}")
+    @Value("${mobility.base-url}")
     private String baseUrl;
 
-    @Value("${kakao.mobility.rest-api-key:}")
+    @Value("${mobility.rest-api-key:}")
     private String restApiKey;
 
     public Integer getDurationSeconds(

@@ -21,8 +21,11 @@ public class RoadPolylineService {
     private final RouteStopRepository stopsRepository;
     private final RestTemplate restTemplate;
     private final Map<Long, List<Point>> cache = new ConcurrentHashMap<>();
-    @Value("${kakao.mobility.base-url:}") private String baseUrl;
-    @Value("${kakao.mobility.rest-api-key:}") private String apiKey;
+    @Value("${mobility.base-url}")
+    private String baseUrl;
+
+    @Value("${mobility.rest-api-key:}")
+    private String apiKey;
 
     public List<Point> getRoad(Long routeId) {
         return cache.computeIfAbsent(routeId, this::fetchRoad);
