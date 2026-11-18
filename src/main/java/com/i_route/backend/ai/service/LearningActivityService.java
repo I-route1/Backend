@@ -62,6 +62,10 @@ public class LearningActivityService {
                 .concentrationScore(request.getConcentrationScore())
                 .focusedRatio(request.getFocusedRatio())
                 .drowsyRatio(request.getDrowsyRatio())
+                .elapsedSeconds(request.getElapsedSeconds())
+                .uprightRatio(request.getUprightRatio())
+                .postureSampleCount(request.getPostureSampleCount())
+                .forwardHeadCount(request.getForwardHeadCount())
                 .measurementSource(source)
                 .build();
 
@@ -78,6 +82,10 @@ public class LearningActivityService {
                 && a.getConcentrationScore() == request.getConcentrationScore()
                 && Objects.equals(a.getFocusedRatio(), request.getFocusedRatio())
                 && Objects.equals(a.getDrowsyRatio(), request.getDrowsyRatio())
+                && Objects.equals(a.getElapsedSeconds(), request.getElapsedSeconds())
+                && Objects.equals(a.getUprightRatio(), request.getUprightRatio())
+                && Objects.equals(a.getPostureSampleCount(), request.getPostureSampleCount())
+                && Objects.equals(a.getForwardHeadCount(), request.getForwardHeadCount())
                 && (a.getMeasurementSource() == null ? MeasurementSource.MANUAL : a.getMeasurementSource()) == source;
     }
 
@@ -88,6 +96,13 @@ public class LearningActivityService {
                 .stream()
                 .map(LearningActivityResponse::from)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public LearningActivityResponse getActivityByStudent(Long studentId, Long activityId) {
+        return learningActivityRepository.findByIdAndStudentId(activityId, studentId)
+                .map(LearningActivityResponse::from)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "학습 기록을 찾을 수 없습니다."));
     }
 
     // 🌟 강사 피드백 수정

@@ -100,11 +100,26 @@
 - 기존 DB 행의 출처가 null인 경우 응답에서 `MANUAL`로 취급한다. 과거 카메라 기록은 구분할
   근거가 없으므로 소급 복원하지 않는다. 비율이 없는 경우 JSON 설정에 따라 필드가 생략될 수 있다.
 
+Pi 콘솔은 `CAMERA` 활동에 아래 값도 선택적으로 보낼 수 있다. 같은 활동과 트랜잭션에서
+저장하고 응답과 조회에 포함한다. 기존 기록, 이전 Pi 클라이언트, 직접 입력에는 값이 없을 수 있다.
+
+| 필드 | 의미 |
+|---|---|
+| `elapsedSeconds` | 측정 경과 초, 0~86400의 정수 |
+| `uprightRatio` | 자세 판정 표본 중 바른 자세 비율, 0~1 |
+| `postureSampleCount` | 자세 판정 표본 수, 양의 정수. `uprightRatio`와 함께 보낸다. |
+| `forwardHeadCount` | 거북목 주의 구간 횟수, 0 이상의 정수. 자세 비율과 별개로 보낼 수 있다. |
+
+`GET /api/activities/{studentId}/records/{activityId}`는 지정한 학생의 활동 한 건을
+조회한다. 기존과 동일한 학생 접근 권한이 필요하며, 활동이 없거나 해당 학생의 활동이 아니면
+`404`다. 같은 제출 키로 다시 저장할 때에는 선택 상세값까지 같아야 한다.
+
 ## 스키마와 검증
 
 기존 설정 `spring.jpa.hibernate.ddl-auto=update`를 사용하면 시작 시 `ocr_grading_result`,
 `ocr_question_result` 테이블과 `learning_activity`의 nullable 컬럼 `focused_ratio`,
-`drowsy_ratio`, `measurement_source`를 생성한다. 운영 DB에는 이 작업에서 접속하거나 변경하지 않았다.
+`drowsy_ratio`, `measurement_source`를 생성한다. Pi 콘솔 상세값도
+`elapsed_seconds`, `upright_ratio`, `posture_sample_count`, `forward_head_count` nullable 컬럼으로 추가한다.
 DDL 자동 갱신을 끈 환경에서는 같은 엔티티 스키마를 별도 마이그레이션으로 반영해야 한다.
 
 ```bash
