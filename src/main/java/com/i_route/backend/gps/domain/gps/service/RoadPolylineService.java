@@ -21,7 +21,7 @@ public class RoadPolylineService {
     private final RouteStopRepository stopsRepository;
     private final RestTemplate restTemplate;
     private final Map<Long, List<Point>> cache = new ConcurrentHashMap<>();
-    @Value("${mobility.base-url}")
+    @Value("${mobility.base-url:}")
     private String baseUrl;
 
     @Value("${mobility.rest-api-key:}")

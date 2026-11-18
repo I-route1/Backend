@@ -21,7 +21,7 @@ public class KakaoMobilityClient {
 
 
 
-    @Value("${mobility.base-url}")
+    @Value("${mobility.base-url:}")
     private String baseUrl;
 
     @Value("${mobility.rest-api-key:}")
