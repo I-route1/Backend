@@ -59,6 +59,21 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/{id}/profile-card")
+    public ProfileCard getProfileCard(@PathVariable Long id,
+                                      @AuthenticationPrincipal CustomUserDetails viewer) {
+        if (viewer == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        }
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        String email = id.equals(viewer.getId()) ? user.getEmail() : null;
+        return new ProfileCard(user.getNickname(), user.getProfileImageUrl(), email);
+    }
+
+    public record ProfileCard(String nickname, String profileImageUrl, String email) {}
+
     @PatchMapping(value = "/me", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<UserProfileResponse> updateMyProfile(
             @AuthenticationPrincipal CustomUserDetails userDetails,

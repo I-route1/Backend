@@ -3,6 +3,7 @@ package com.i_route.backend.user.repository;
 import com.i_route.backend.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface UserRepository
@@ -17,6 +18,8 @@ public interface UserRepository
     Optional<User> findByPhoneNumber(String PhoneNumber);
 
     Optional<User> findByNickname(String Nickname);
+
+    List<User> findTop20ByNicknameContainingIgnoreCaseAndIdNotOrderByNicknameAsc(String nickname, Long id);
 
     Optional<User> findByEmailOrUsernameOrNicknameOrPhoneNumber(String Email, String username, String nickname, String phoneNumber);
 

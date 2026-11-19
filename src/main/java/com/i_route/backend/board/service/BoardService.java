@@ -8,8 +8,11 @@ import com.i_route.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,6 +33,11 @@ public class BoardService {
 
     private final Map<String, LocalDateTime> viewHistory = new ConcurrentHashMap<>();
 
+    private static final String NOTICE_CATEGORY = "공지";
+
+    private final BoardBookmarkRepository boardBookmarkRepository;
+    private final BoardNoticeService boardNoticeService;
+
     // ==========================================
     // 1. 게시판 (Board) 관리
     // ==========================================
@@ -38,6 +46,17 @@ public class BoardService {
     @Transactional(readOnly = true)
     public List<Board> getBoards() {
         return boardRepository.findAllWithAcademyAndUser();
+    }
+
+    @Transactional(readOnly = true)
+    public List<BoardResponseDto> getBoardSummaries() {
+        Map<Long, Long> counts = new HashMap<>();
+        boardBookmarkRepository.countGroupedByBoard()
+                .forEach(row -> counts.put(row.getBoardId(), row.getTotal()));
+
+        return getBoards().stream()
+                .map(board -> BoardResponseDto.from(board, counts.getOrDefault(board.getId(), 0L)))
+                .toList();
     }
 
     // 2. 게시판 단건 조회 헬퍼 (line 327 부근)
@@ -120,21 +139,33 @@ public class BoardService {
      * 게시글 작성 (요청 DTO에 담긴 boardId 활용)
      */
     public PostResponseDto createPost(PostRequestDto request, Long userId) {
-        // DTO에서 받은 boardId로 게시판 조회 (없으면 예외 발생)
         Board board = getBoardOrThrow(request.getBoardId());
         User user = getUserOrThrow(userId);
+
+        String category = request.getCategory() == null
+                ? "자유"
+                : request.getCategory().trim();
+        boolean academyNotice = isAcademyNotice(board, category);
+
+        if (academyNotice) {
+            requireAcademyManager(board, user);
+        }
 
         Post post = Post.builder()
                 .board(board)
                 .user(user)
                 .title(request.getTitle())
                 .content(request.getContent())
-                .category(request.getCategory() != null ? request.getCategory() : "자유")
+                .category(category)
                 .author(user.getNickname())
                 .pinned(false)
                 .build();
 
         Post savedPost = postRepository.save(post);
+        if (academyNotice) {
+            boardNoticeService.saveFor(savedPost);
+        }
+
         return toPostResponse(savedPost, userId);
     }
 
@@ -169,17 +200,27 @@ public class BoardService {
 
     public PostResponseDto updatePost(Long postId, PostRequestDto request, Long userId) {
         Post post = getPostOrThrow(postId);
+        User user = post.getUser();
 
-        // 작성자 본인 확인 검증 (선택적 구현)
-        if (post.getUser() != null && !post.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("작성자만 글을 수정할 수 있습니다.");
+        if (user == null || !user.getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "작성자만 수정할 수 있습니다.");
         }
 
-        post.update(
-                request.getTitle(),
-                request.getContent(),
-                request.getCategory() != null ? request.getCategory() : post.getCategory()
-        );
+        String category = request.getCategory() == null
+                ? post.getCategory()
+                : request.getCategory().trim();
+        boolean wasNotice = isAcademyNotice(post.getBoard(), post.getCategory());
+        boolean willBeNotice = isAcademyNotice(post.getBoard(), category);
+
+        if (wasNotice || willBeNotice) {
+            requireAcademyManager(post.getBoard(), user);
+        }
+
+        post.update(request.getTitle(), request.getContent(), category);
+        if (!wasNotice && willBeNotice) {
+            boardNoticeService.saveFor(post);
+        }
+
         return toPostResponse(post, userId);
     }
 
@@ -383,4 +424,33 @@ public class BoardService {
 
         return BoardResponseDto.from(board);
     }
+
+    private boolean isAcademyNotice(Board board, String category) {
+        return board.getBoardType() == BoardType.ACADEMY
+                && NOTICE_CATEGORY.equals(category);
+    }
+
+    private void requireAcademyManager(Board board, User user) {
+        if (user.getRole() != User.UserRole.ACADEMY || !isBoardManager(board, user.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "해당 학원 관리자만 공지를 작성할 수 있습니다.");
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public List<Long> getBookmarkedBoardIds(Long userId) {
+        return boardBookmarkRepository.findBoardIdsByUserId(userId);
+    }
+
+    public void addBoardBookmark(Long boardId, Long userId) {
+        getBoardOrThrow(boardId);
+        if (!boardBookmarkRepository.existsByBoardIdAndUserId(boardId, userId)) {
+            boardBookmarkRepository.save(new BoardBookmark(boardId, userId));
+        }
+    }
+
+    public void removeBoardBookmark(Long boardId, Long userId) {
+        boardBookmarkRepository.deleteByBoardIdAndUserId(boardId, userId);
+    }
+    
 }

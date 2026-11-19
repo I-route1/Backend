@@ -1,8 +1,11 @@
 package com.i_route.backend.ai.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Getter
@@ -31,6 +34,24 @@ public class ReviewNotification {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Builder.Default
+    @Getter(AccessLevel.NONE)
+    @JsonIgnore
+    @ElementCollection
+    @CollectionTable(name = "review_notification_dismissal",
+            joinColumns = @JoinColumn(name = "notification_id"),
+            uniqueConstraints = @UniqueConstraint(columnNames = {"notification_id", "user_id"}))
+    @Column(name = "user_id", nullable = false)
+    private Set<Long> dismissedBy = new HashSet<>();
+
+    public boolean isDismissedBy(Long userId) {
+        return dismissedBy.contains(userId);
+    }
+
+    public void dismissFor(Long userId) {
+        dismissedBy.add(userId);
+    }
 
     @PrePersist
     public void prePersist() {

@@ -6,6 +6,11 @@ import com.i_route.backend.board.service.BoardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import com.i_route.backend.global.security.CustomUserDetails;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.util.List;
 
 @RestController
@@ -21,10 +26,7 @@ public class BoardController {
 
     @GetMapping("/boards")
     public List<BoardResponseDto> getBoards() {
-        return boardService.getBoards()
-                .stream()
-                .map(BoardResponseDto::from)
-                .toList();
+        return boardService.getBoardSummaries();
     }
 
     @GetMapping("/boards/search")
@@ -87,10 +89,10 @@ public class BoardController {
 
     @PostMapping("/posts")
     public PostResponseDto createPost(
-            @RequestParam(required = false) Long userId,
+            @AuthenticationPrincipal CustomUserDetails user,
             @RequestBody PostRequestDto request
     ) {
-        return boardService.createPost(request, userId);
+        return boardService.createPost(request, authenticatedUserId(user));
     }
 
     @GetMapping("/posts/{postId}")
@@ -112,10 +114,10 @@ public class BoardController {
     @PutMapping("/posts/{postId}")
     public PostResponseDto updatePost(
             @PathVariable Long postId,
-            @RequestParam(required = false) Long userId,
+            @AuthenticationPrincipal CustomUserDetails user,
             @RequestBody PostRequestDto request
     ) {
-        return boardService.updatePost(postId, request, userId);
+        return boardService.updatePost(postId, request, authenticatedUserId(user));
     }
 
     @DeleteMapping("/posts/{postId}")
@@ -189,5 +191,35 @@ public class BoardController {
             @RequestParam Long userId
     ) {
         return boardService.likeComment(commentId, userId);
+    }
+
+    @GetMapping("/boards/bookmarks")
+    public List<Long> getBookmarkedBoardIds(@AuthenticationPrincipal CustomUserDetails user) {
+        return boardService.getBookmarkedBoardIds(authenticatedUserId(user));
+    }
+
+    @PutMapping("/boards/{boardId}/bookmark")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void addBoardBookmark(
+            @PathVariable Long boardId,
+            @AuthenticationPrincipal CustomUserDetails user
+    ) {
+        boardService.addBoardBookmark(boardId, authenticatedUserId(user));
+    }
+
+    @DeleteMapping("/boards/{boardId}/bookmark")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeBoardBookmark(
+            @PathVariable Long boardId,
+            @AuthenticationPrincipal CustomUserDetails user
+    ) {
+        boardService.removeBoardBookmark(boardId, authenticatedUserId(user));
+    }
+
+    private Long authenticatedUserId(CustomUserDetails user) {
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        }
+        return user.getId();
     }
 }   
