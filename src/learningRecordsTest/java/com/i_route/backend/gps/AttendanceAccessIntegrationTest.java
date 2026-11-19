@@ -38,6 +38,8 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import com.i_route.backend.gps.domain.gps.service.RoadPolylineService;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest(classes = AttendanceAccessIntegrationTest.Config.class, properties = {
         "spring.datasource.url=jdbc:h2:mem:attendanceaccess;MODE=MySQL;DB_CLOSE_DELAY=-1",
@@ -56,15 +58,51 @@ class AttendanceAccessIntegrationTest {
     @Import({AttendanceController.class, AttendanceService.class, AttendanceRecordAccess.class, SecurityConfig.class,
             JwtAuthenticationFilter.class, AiServerKeyFilter.class, JwtUtil.class, GlobalExceptionHandler.class,
             GpsController.class, GpsQueryService.class})
+
     static class Config {
-        @Bean SimpMessagingTemplate messages() { return mock(SimpMessagingTemplate.class); }
-        @Bean NfcRegisterQueueRedisRepository queue() { return mock(NfcRegisterQueueRedisRepository.class); }
-        @Bean StudentBoardingRedisRepository boarding() { return mock(StudentBoardingRedisRepository.class); }
-        @Bean GpsCommandService commands() { return mock(GpsCommandService.class); }
-        @Bean CurrentLocationRedisRepository locations() { return mock(CurrentLocationRedisRepository.class); }
-        @Bean RouteProgressService progress() { return mock(RouteProgressService.class); }
-        @Bean EtaService eta() { return mock(EtaService.class); }
+
+        @Bean
+        SimpMessagingTemplate messages() {
+            return mock(SimpMessagingTemplate.class);
+        }
+
+        @Bean
+        NfcRegisterQueueRedisRepository queue() {
+            return mock(NfcRegisterQueueRedisRepository.class);
+        }
+
+        @Bean
+        StudentBoardingRedisRepository boarding() {
+            return mock(StudentBoardingRedisRepository.class);
+        }
+
+        @Bean
+        GpsCommandService commands() {
+            return mock(GpsCommandService.class);
+        }
+
+        @Bean
+        CurrentLocationRedisRepository locations() {
+            return mock(CurrentLocationRedisRepository.class);
+        }
+
+        @Bean
+        RouteProgressService progress() {
+            return mock(RouteProgressService.class);
+        }
+
+        @Bean
+        EtaService eta() {
+            return mock(EtaService.class);
+        }
+
+        // 새롭게 추가할 부분
+        @Bean
+        RoadPolylineService roadPolylineService() {
+            return mock(RoadPolylineService.class);
+        }
     }
+
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
     @Autowired JwtUtil jwt;

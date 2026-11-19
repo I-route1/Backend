@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import com.i_route.backend.gps.domain.gps.service.RoadPolylineService;
+import com.i_route.backend.gps.domain.gps.dto.response.BusRouteResponse.RoutePathPoint;
 
 @Service
 @RequiredArgsConstructor
@@ -46,6 +48,7 @@ public class GpsQueryService {
     private final AttendanceRepository attendanceRepository;
     private final AcademyRepository academyRepository;
     private final UserRepository userRepository;
+    private final RoadPolylineService roadPolylineService;
 
     public CurrentBusLocationResponse getCurrentLocation(Long busId) {
 
@@ -60,20 +63,25 @@ public class GpsQueryService {
                 .orElseThrow(() -> new CustomException(ErrorCode.CURRENT_LOCATION_NOT_FOUND));
     }
 
+
     public BusRouteResponse getBusRoute(Long busId) {
 
         Bus bus = busRepository.findById(busId)
-                .orElseThrow(() -> new CustomException(ErrorCode.BUS_NOT_FOUND));
+                .orElseThrow(() ->
+                        new CustomException(ErrorCode.BUS_NOT_FOUND));
+
+        Long routeId = bus.getRoute().getId();
 
         CurrentBusLocationResponse current =
                 currentLocationRedisRepository.findByBusId(busId)
-                        .orElseThrow(() -> new CustomException(ErrorCode.CURRENT_LOCATION_NOT_FOUND));
+                        .orElseThrow(() ->
+                                new CustomException(
+                                        ErrorCode.CURRENT_LOCATION_NOT_FOUND));
 
         List<RouteStop> stops =
-                routeStopRepository.findByRouteIdOrderByStopOrderAsc(
-                        bus.getRoute().getId()
-                );
+                routeStopRepository.findByRouteIdOrderByStopOrderAsc(routeId);
 
+        // 기존 정류장 진행 상태 계산
         List<RouteStopResponse> stopResponses =
                 routeProgressService.calculateStopStatuses(
                         current.getLatitude(),
@@ -81,16 +89,28 @@ public class GpsQueryService {
                         stops
                 );
 
+        // 실제 도로 경로 좌표 조회
+        List<RoutePathPoint> path =
+                roadPolylineService.getRoad(routeId)
+                        .stream()
+                        .map(point -> new RoutePathPoint(
+                                point.latitude(),
+                                point.longitude()
+                        ))
+                        .toList();
+
         return BusRouteResponse.builder()
                 .busId(bus.getId())
-                .routeId(bus.getRoute().getId())
+                .routeId(routeId)
                 .routeName(bus.getRoute().getRouteName())
                 .busNumber(bus.getBusNumber())
                 .driverName(bus.getDriver().getName())
                 .driverPhoneNumber(bus.getDriver().getPhoneNumber())
                 .stops(stopResponses)
+                .path(path)
                 .build();
     }
+
 
     public List<EtaResponse> getStudentEtas(Long busId) {
         return etaService.calculateStudentEtas(busId);
