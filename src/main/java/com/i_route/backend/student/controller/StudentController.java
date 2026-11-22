@@ -37,10 +37,14 @@ public class StudentController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long studentId,
             @RequestBody AcademyLinkRequest request) {
-        return studentService.updateChildAcademy(userDetails.getId(), studentId, request.code());
+        List<String> addCodes = request.addCodes();
+        if (addCodes == null && request.code() != null) {
+            addCodes = List.of(request.code());
+        }
+        return studentService.updateChildAcademies(userDetails.getId(), studentId, addCodes, request.removeAcademyIds());
     }
 
-    public record AcademyLinkRequest(String code) {}
+    public record AcademyLinkRequest(List<String> addCodes, List<Long> removeAcademyIds, String code) {}
 
     // 학부모: 내 자녀 목록 조회
     @GetMapping("/my-children")

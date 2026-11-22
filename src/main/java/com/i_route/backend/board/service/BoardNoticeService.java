@@ -41,11 +41,7 @@ public class BoardNoticeService {
         Long academyId = post.getBoard().getAcademy().getAcademyId();
         Set<Long> recipients = new HashSet<>(bookmarks.findUserIdsByBoardId(boardId));
 
-        students.findByAcademyId(academyId).forEach(student -> {
-            if (student.getParentId() != null) {
-                recipients.add(student.getParentId());
-            }
-        });
+        recipients.addAll(students.findEnrolledParentIds(academyId));
 
         recipients.removeAll(notifications.findRecipientIdsByPostId(post.getId()));
         if (recipients.isEmpty()) {

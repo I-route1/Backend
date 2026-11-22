@@ -15,7 +15,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,52 +34,67 @@ public class StudentService {
     // 자녀 추가 및 저장 (ChildCreateRequest 활용)
     @Transactional
     public StudentResponse addChild(Long parentId, ChildCreateRequest request) {
-        Long academyId = null;
-
-        // 학원 코드(InviteCode)로 학원 조회
-        if (request.getAcademies() != null && !request.getAcademies().isEmpty()) {
-            String academyCode = request.getAcademies().get(0).getCode();
-            if (academyCode != null && !academyCode.isBlank()) {
-                academyId = getAcademyByCode(academyCode).getAcademyId();
-            }
-        }
-
-        // 기존 Student 엔티티 변경 없이 builder 그대로 활용 (grade 저장 추가)
+        List<String> codes = request.getAcademies() == null ? List.of() : request.getAcademies().stream()
+                .filter(Objects::nonNull)
+                .map(ChildCreateRequest.AcademyInfo::getCode)
+                .toList();
+        List<Long> academyIds = resolveAcademyIds(codes);
         Student student = Student.builder()
                 .name(request.getName())
-                .grade(request.getGrade()) // 👈 학년 매핑 추가
+                .grade(request.getGrade())
                 .parentId(parentId)
-                .academyId(academyId)     // 👈 학원 ID 매핑
+                .academyId(academyIds.isEmpty() ? null : academyIds.get(0))
                 .build();
-
+        student.replaceAcademyEnrollments(Set.copyOf(academyIds));
         Student saved = studentRepository.save(student);
 
-        if (saved.getAcademyId() != null) {
-            boardService.addAcademyBoardBookmarks(saved.getAcademyId(), parentId);
-            Academy academy = academyRepository.findById(saved.getAcademyId()).orElse(null);
-            String academyName = academy != null ? academy.getAcademyName() : null;
-            String academyCode = academy != null ? academy.getInviteCode() : null;
-            return StudentResponse.from(saved, academyName, academyCode);
-        }
-
-        return StudentResponse.from(saved);
+        academyIds.stream().sorted().forEach(id -> boardService.addAcademyBoardBookmarks(id, parentId));
+        return withEnrollments(saved);
     }
 
     @Transactional
-    public StudentResponse updateChildAcademy(Long parentId, Long studentId, String code) {
-        Student student = studentRepository.findById(studentId)
+    public StudentResponse updateChildAcademies(Long parentId, Long studentId,
+                                                List<String> addCodes, List<Long> removeAcademyIds) {
+        Student student = studentRepository.findLockedByStudentId(studentId)
                 .filter(child -> parentId.equals(child.getParentId()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "자녀 정보를 찾을 수 없습니다."));
 
-        if (code == null || code.isBlank()) {
-            student.changeAcademy(null);
-            return StudentResponse.from(student);
+        List<Long> addedIds = resolveAcademyIds(addCodes);
+        Set<Long> previous = student.academyEnrollmentIds();
+        Set<Long> next = new HashSet<>(previous);
+        if (removeAcademyIds != null) {
+            next.removeAll(removeAcademyIds);
         }
+        next.addAll(addedIds);
+        if (!next.equals(previous)) {
+            student.replaceAcademyEnrollments(next);
+            addedIds.stream().filter(id -> !previous.contains(id)).sorted()
+                    .forEach(id -> boardService.addAcademyBoardBookmarks(id, parentId));
+        }
+        return withEnrollments(student);
+    }
 
-        Academy academy = getAcademyByCode(code);
-        student.changeAcademy(academy.getAcademyId());
-        boardService.addAcademyBoardBookmarks(academy.getAcademyId(), parentId);
-        return StudentResponse.from(student, academy.getAcademyName(), academy.getInviteCode());
+    private List<Long> resolveAcademyIds(List<String> codes) {
+        return codes == null ? List.of() : codes.stream()
+                .filter(code -> code != null && !code.isBlank())
+                .map(String::trim)
+                .distinct()
+                .map(code -> getAcademyByCode(code).getAcademyId())
+                .distinct()
+                .toList();
+    }
+
+    private StudentResponse withEnrollments(Student student) {
+        var academies = academyRepository.findAllById(student.academyEnrollmentIds()).stream()
+                .sorted(Comparator.comparing((Academy a) -> !Objects.equals(a.getAcademyId(), student.getAcademyId()))
+                        .thenComparing(Academy::getAcademyId))
+                .map(academy -> StudentResponse.AcademyInfo.builder()
+                        .id(academy.getAcademyId())
+                        .name(academy.getAcademyName())
+                        .code(academy.getInviteCode())
+                        .build())
+                .toList();
+        return StudentResponse.from(student, academies);
     }
 
     private Academy getAcademyByCode(String code) {
@@ -86,15 +105,7 @@ public class StudentService {
     @Transactional(readOnly = true)
     public List<StudentResponse> getMyChildren(Long parentId) {
         return studentRepository.findByParentId(parentId).stream()
-                .map(student -> {
-                    if (student.getAcademyId() != null) {
-                        Academy academy = academyRepository.findById(student.getAcademyId()).orElse(null);
-                        String academyName = academy != null ? academy.getAcademyName() : null;
-                        String academyCode = academy != null ? academy.getInviteCode() : null;
-                        return StudentResponse.from(student, academyName, academyCode);
-                    }
-                    return StudentResponse.from(student);
-                })
+                .map(this::withEnrollments)
                 .collect(Collectors.toList());
     }
 

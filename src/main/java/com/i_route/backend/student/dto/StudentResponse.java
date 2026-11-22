@@ -30,20 +30,20 @@ public class StudentResponse {
     }
 
     public static StudentResponse from(Student student) {
-        return StudentResponse.builder()
-                .studentId(student.getStudentId())
-                .name(student.getName())
-                .grade(student.getGrade())
-                .gradeStudentId(student.getGradeStudentId())
-                .parentId(student.getParentId())
-                .busId(student.getBusId())
-                .routeStopId(student.getRouteStopId())
-                .academyId(student.getAcademyId())
+        return base(student).academyId(student.getAcademyId())
                 .academies(List.of())
                 .build();
     }
 
-    public static StudentResponse from(Student student, String academyName, String academyCode) {
+    public static StudentResponse from(Student student, List<AcademyInfo> academies) {
+        return base(student)
+                .academyId(academies.isEmpty() ? null : academies.get(0).getId())
+                .academyName(academies.isEmpty() ? null : academies.get(0).getName())
+                .academies(academies)
+                .build();
+    }
+
+    private static StudentResponseBuilder base(Student student) {
         return StudentResponse.builder()
                 .studentId(student.getStudentId())
                 .name(student.getName())
@@ -51,16 +51,6 @@ public class StudentResponse {
                 .gradeStudentId(student.getGradeStudentId())
                 .parentId(student.getParentId())
                 .busId(student.getBusId())
-                .routeStopId(student.getRouteStopId())
-                .academyId(student.getAcademyId())
-                .academyName(academyName)
-                .academies(academyName != null ? List.of(
-                    AcademyInfo.builder()
-                        .id(student.getAcademyId())
-                        .name(academyName)
-                        .code(academyCode)
-                        .build()
-                ) : List.of())
-                .build();
+                .routeStopId(student.getRouteStopId());
     }
 }

@@ -5,6 +5,8 @@ import lombok.*;
 
 
 import java.time.LocalTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Getter
@@ -30,6 +32,17 @@ public class Student {
 
     private Long academyId;
 
+    private Boolean enrollmentManaged;
+
+    @Builder.Default
+    @ElementCollection
+    @CollectionTable(name = "student_academy_enrollment",
+            joinColumns = @JoinColumn(name = "student_id"),
+            uniqueConstraints = @UniqueConstraint(columnNames = {"student_id", "academy_id"}),
+            indexes = @Index(columnList = "academy_id"))
+    @Column(name = "academy_id", nullable = false)
+    private Set<Long> enrolledAcademyIds = new HashSet<>();
+
     @Column(unique = true)
     private String nfcCardId;
 
@@ -53,8 +66,17 @@ public class Student {
 
     private String recommendContext;
 
-    public void changeAcademy(Long academyId) {
-        this.academyId = academyId;
+    public Set<Long> academyEnrollmentIds() {
+        if (Boolean.TRUE.equals(enrollmentManaged)) {
+            return Set.copyOf(enrolledAcademyIds);
+        }
+        return academyId == null ? Set.of() : Set.of(academyId);
+    }
+
+    public void replaceAcademyEnrollments(Set<Long> academyIds) {
+        enrolledAcademyIds.clear();
+        enrolledAcademyIds.addAll(academyIds);
+        enrollmentManaged = true;
     }
 
     public enum LearningTendency {
