@@ -31,6 +31,20 @@ class PostServiceTest extends BoardServiceTestSupport {
         service.getPostDetail(10L, 8L);
         assertThat(post.getViewCount()).isEqualTo(2);
     }
+    @Test void anonymousPost_hidesIdentityButKeepsOwnership() {
+        var post = post();
+        post.setAnonymous(true);
+        given(posts.findAll()).willReturn(List.of(post));
+        var other = service.getPosts(8L).get(0);
+        var owner = service.getPosts(7L).get(0);
+        assertThat(other.getAuthor()).isEqualTo("익명");
+        assertThat(other.getUserId()).isNull();
+        assertThat(other.isOwnedByMe()).isFalse();
+        assertThat(owner.getAuthor()).isEqualTo("익명");
+        assertThat(owner.getUserId()).isNull();
+        assertThat(owner.isOwnedByMe()).isTrue();
+    }
+
     @Test void getPostDetail_missingPostThrows() {
         assertThatThrownBy(() -> service.getPostDetail(999L, 7L)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("게시글을 찾을 수 없습니다");
@@ -62,7 +76,13 @@ class PostServiceTest extends BoardServiceTestSupport {
         assertThat(result.getUpdatedAt()).isNotNull();
     }
     @Test void deletePost_deletesRequestedPost() {
-        service.deletePost(10L); then(posts).should().deleteById(10L);
+        var post = post();
+        given(posts.findById(10L)).willReturn(Optional.of(post));
+        assertThatThrownBy(() -> service.deletePost(10L, 8L))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        then(posts).should(never()).delete(any(Post.class));
+        service.deletePost(10L, 7L);
+        then(posts).should().delete(post);
     }
     private void existingPostAndUser() {
         given(posts.findById(10L)).willReturn(Optional.of(post()));

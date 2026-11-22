@@ -53,6 +53,10 @@ public class Student {
 
     private String recommendContext;
 
+    public void changeAcademy(Long academyId) {
+        this.academyId = academyId;
+    }
+
     public enum LearningTendency {
         VISUAL, AUDITORY, KINESTHETIC
     }

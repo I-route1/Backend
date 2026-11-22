@@ -115,7 +115,9 @@ public class UserService {
                 user.getEmail(),
                 user.getPhoneNumber(),
                 user.getRole().name(),
-                user.getProfileImageUrl()
+                user.getProfileImageUrl(),
+                user.isEmailPublic(),
+                user.isPhoneNumberPublic()
         );
     }
 
@@ -170,6 +172,7 @@ public class UserService {
                 cleanedPhone,
                 finalProfileImageUrl
         );
+        user.updateContactVisibility(request.getEmailPublic(), request.getPhoneNumberPublic());
 
         return new UserProfileResponse(
                 user.getId(),
@@ -178,7 +181,9 @@ public class UserService {
                 user.getEmail(),
                 user.getPhoneNumber(),
                 user.getRole().name(),
-                user.getProfileImageUrl()
+                user.getProfileImageUrl(),
+                user.isEmailPublic(),
+                user.isPhoneNumberPublic()
         );
     }
 }

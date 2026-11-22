@@ -1,7 +1,6 @@
 package com.i_route.backend.board.controller;
 
 import com.i_route.backend.board.dto.*;
-import com.i_route.backend.board.entity.Board;
 import com.i_route.backend.board.service.BoardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -30,21 +29,21 @@ public class BoardController {
     }
 
     @GetMapping("/boards/search")
-    public List<Board> searchBoards(@RequestParam String keyword) {
-        return boardService.searchBoards(keyword);
+    public List<BoardResponseDto> searchBoards(@RequestParam String keyword) {
+        return boardService.searchBoards(keyword).stream().map(BoardResponseDto::from).toList();
     }
 
     @PostMapping("/boards")
-    public Board createBoard(@RequestBody BoardRequestDto request) {
-        return boardService.createBoard(request);
+    public BoardResponseDto createBoard(@RequestBody BoardRequestDto request) {
+        return BoardResponseDto.from(boardService.createBoard(request));
     }
 
     @PutMapping("/boards/{boardId}")
-    public Board updateBoard(
+    public BoardResponseDto updateBoard(
             @PathVariable Long boardId,
             @RequestBody BoardRequestDto request
     ) {
-        return boardService.updateBoard(boardId, request);
+        return BoardResponseDto.from(boardService.updateBoard(boardId, request));
     }
 
     @DeleteMapping("/boards/{boardId}")
@@ -61,18 +60,18 @@ public class BoardController {
     @GetMapping("/boards/{boardId}/posts")
     public List<PostResponseDto> getPostsByBoard(
             @PathVariable Long boardId,
-            @RequestParam(required = false) Long userId
+            @AuthenticationPrincipal CustomUserDetails user
     ) {
-        return boardService.getPostsByBoard(boardId, userId);
+        return boardService.getPostsByBoard(boardId, user == null ? null : user.getId());
     }
 
     // [신규 추가] 특정 학원(academyId)에 속한 게시글 목록 조회
     @GetMapping("/academies/{academyId}/posts")
     public List<PostResponseDto> getPostsByAcademy(
             @PathVariable Long academyId,
-            @RequestParam(required = false) Long userId
+            @AuthenticationPrincipal CustomUserDetails user
     ) {
-        return boardService.getPostsByAcademy(academyId, userId);
+        return boardService.getPostsByAcademy(academyId, user == null ? null : user.getId());
     }
 
     // ==========================================
@@ -82,9 +81,9 @@ public class BoardController {
     // 전체 게시글 조회
     @GetMapping("/posts")
     public List<PostResponseDto> getPosts(
-            @RequestParam(required = false) Long userId
+            @AuthenticationPrincipal CustomUserDetails user
     ) {
-        return boardService.getPosts(userId);
+        return boardService.getPosts(user == null ? null : user.getId());
     }
 
     @PostMapping("/posts")
@@ -98,17 +97,17 @@ public class BoardController {
     @GetMapping("/posts/{postId}")
     public PostResponseDto getPostDetail(
             @PathVariable Long postId,
-            @RequestParam(required = false) Long userId
+            @AuthenticationPrincipal CustomUserDetails user
     ) {
-        return boardService.getPostDetail(postId, userId);
+        return boardService.getPostDetail(postId, user == null ? null : user.getId());
     }
 
     @GetMapping("/posts/search")
     public List<PostResponseDto> searchPosts(
             @RequestParam String keyword,
-            @RequestParam(required = false) Long userId
+            @AuthenticationPrincipal CustomUserDetails user
     ) {
-        return boardService.searchPosts(keyword, userId);
+        return boardService.searchPosts(keyword, user == null ? null : user.getId());
     }
 
     @PutMapping("/posts/{postId}")
@@ -121,8 +120,8 @@ public class BoardController {
     }
 
     @DeleteMapping("/posts/{postId}")
-    public void deletePost(@PathVariable Long postId) {
-        boardService.deletePost(postId);
+    public void deletePost(@PathVariable Long postId, @AuthenticationPrincipal CustomUserDetails user) {
+        boardService.deletePost(postId, authenticatedUserId(user));
     }
 
     // ==========================================
@@ -132,17 +131,17 @@ public class BoardController {
     @PostMapping("/posts/{postId}/like")
     public PostResponseDto likePost(
             @PathVariable Long postId,
-            @RequestParam Long userId
+            @AuthenticationPrincipal CustomUserDetails user
     ) {
-        return boardService.likePost(postId, userId);
+        return boardService.likePost(postId, authenticatedUserId(user));
     }
 
     @PostMapping("/posts/{postId}/bookmark")
     public PostResponseDto bookmarkPost(
             @PathVariable Long postId,
-            @RequestParam Long userId
+            @AuthenticationPrincipal CustomUserDetails user
     ) {
-        return boardService.bookmarkPost(postId, userId);
+        return boardService.bookmarkPost(postId, authenticatedUserId(user));
     }
 
     // ==========================================

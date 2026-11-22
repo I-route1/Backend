@@ -13,4 +13,6 @@ public class UserProfileResponse {
     private String phoneNumber;
     private String role;
     private String profileImageUrl;
+    private boolean emailPublic;
+    private boolean phoneNumberPublic;
 }

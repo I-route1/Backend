@@ -158,6 +158,7 @@ public class BoardService {
                 .content(request.getContent())
                 .category(category)
                 .author(user.getNickname())
+                .anonymous(Boolean.TRUE.equals(request.getAnonymous()))
                 .pinned(false)
                 .build();
 
@@ -216,6 +217,9 @@ public class BoardService {
             requireAcademyManager(post.getBoard(), user);
         }
 
+        if (request.getAnonymous() != null) {
+            post.setAnonymous(request.getAnonymous());
+        }
         post.update(request.getTitle(), request.getContent(), category);
         if (!wasNotice && willBeNotice) {
             boardNoticeService.saveFor(post);
@@ -224,8 +228,12 @@ public class BoardService {
         return toPostResponse(post, userId);
     }
 
-    public void deletePost(Long postId) {
-        postRepository.deleteById(postId);
+    public void deletePost(Long postId, Long userId) {
+        Post post = getPostOrThrow(postId);
+        if (post.getUser() == null || !post.getUser().getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "작성자만 삭제할 수 있습니다.");
+        }
+        postRepository.delete(post);
     }
 
     // ==========================================
@@ -351,10 +359,12 @@ public class BoardService {
         return PostResponseDto.builder()
                 .id(post.getId())
                 .boardId(post.getBoard().getId())
-                .userId(post.getUser() != null ? post.getUser().getId() : null)
+                .userId(!post.isAnonymous() && post.getUser() != null ? post.getUser().getId() : null)
+                .anonymous(post.isAnonymous())
+                .ownedByMe(userId != null && post.getUser() != null && userId.equals(post.getUser().getId()))
                 .category(post.getCategory())
                 .title(post.getTitle())
-                .author(post.getAuthor())
+                .author(post.isAnonymous() ? "익명" : post.getAuthor())
                 .content(post.getContent())
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
@@ -442,15 +452,26 @@ public class BoardService {
         return boardBookmarkRepository.findBoardIdsByUserId(userId);
     }
 
+    public void addAcademyBoardBookmarks(Long academyId, Long userId) {
+        boardRepository.findByAcademy_AcademyId(academyId).stream()
+                .filter(board -> board.getBoardType() == BoardType.ACADEMY)
+                .map(Board::getId)
+                .sorted()
+                .forEach(boardId -> addBoardBookmark(boardId, userId));
+    }
+
     public void addBoardBookmark(Long boardId, Long userId) {
-        getBoardOrThrow(boardId);
+        boardRepository.findByIdForBookmarkUpdate(boardId)
+                .orElseThrow(() -> new IllegalArgumentException("게시판을 찾을 수 없습니다."));
         if (!boardBookmarkRepository.existsByBoardIdAndUserId(boardId, userId)) {
             boardBookmarkRepository.save(new BoardBookmark(boardId, userId));
         }
     }
 
     public void removeBoardBookmark(Long boardId, Long userId) {
-        boardBookmarkRepository.deleteByBoardIdAndUserId(boardId, userId);
+        if (boardRepository.findByIdForBookmarkUpdate(boardId).isPresent()) {
+            boardBookmarkRepository.deleteByBoardIdAndUserId(boardId, userId);
+        }
     }
     
 }

@@ -31,4 +31,6 @@ public class PostResponseDto {
     private boolean pinned;
 
     private Long userId;
+    private boolean anonymous;
+    private boolean ownedByMe;
 }

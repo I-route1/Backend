@@ -5,11 +5,14 @@ import com.i_route.backend.gps.domain.student.repository.StudentRepository;
 import com.i_route.backend.student.dto.ChildCreateRequest;
 import com.i_route.backend.student.dto.StudentResponse;
 import com.i_route.backend.user.entity.Academy;
+import com.i_route.backend.board.service.BoardService;
 import com.i_route.backend.user.entity.User;
 import com.i_route.backend.user.repository.AcademyRepository;
 import com.i_route.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -21,6 +24,7 @@ public class StudentService {
 
     private final StudentRepository studentRepository;
     private final AcademyRepository academyRepository;
+    private final BoardService boardService;
     private final UserRepository userRepository;
 
     // 자녀 추가 및 저장 (ChildCreateRequest 활용)
@@ -32,11 +36,7 @@ public class StudentService {
         if (request.getAcademies() != null && !request.getAcademies().isEmpty()) {
             String academyCode = request.getAcademies().get(0).getCode();
             if (academyCode != null && !academyCode.isBlank()) {
-                Academy academy = academyRepository.findByInviteCode(academyCode.trim())
-                        .orElse(null);
-                if (academy != null) {
-                    academyId = academy.getAcademyId();
-                }
+                academyId = getAcademyByCode(academyCode).getAcademyId();
             }
         }
 
@@ -51,6 +51,7 @@ public class StudentService {
         Student saved = studentRepository.save(student);
 
         if (saved.getAcademyId() != null) {
+            boardService.addAcademyBoardBookmarks(saved.getAcademyId(), parentId);
             Academy academy = academyRepository.findById(saved.getAcademyId()).orElse(null);
             String academyName = academy != null ? academy.getAcademyName() : null;
             String academyCode = academy != null ? academy.getInviteCode() : null;
@@ -58,6 +59,28 @@ public class StudentService {
         }
 
         return StudentResponse.from(saved);
+    }
+
+    @Transactional
+    public StudentResponse updateChildAcademy(Long parentId, Long studentId, String code) {
+        Student student = studentRepository.findById(studentId)
+                .filter(child -> parentId.equals(child.getParentId()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "자녀 정보를 찾을 수 없습니다."));
+
+        if (code == null || code.isBlank()) {
+            student.changeAcademy(null);
+            return StudentResponse.from(student);
+        }
+
+        Academy academy = getAcademyByCode(code);
+        student.changeAcademy(academy.getAcademyId());
+        boardService.addAcademyBoardBookmarks(academy.getAcademyId(), parentId);
+        return StudentResponse.from(student, academy.getAcademyName(), academy.getInviteCode());
+    }
+
+    private Academy getAcademyByCode(String code) {
+        return academyRepository.findByInviteCode(code.trim())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "등록된 학원 코드가 아닙니다."));
     }
 
     @Transactional(readOnly = true)

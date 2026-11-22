@@ -7,6 +7,7 @@ import com.i_route.backend.auth.entity.RefreshToken;
 import com.i_route.backend.board.repository.*;
 import com.i_route.backend.gps.domain.student.repository.StudentRepository;
 import com.i_route.backend.user.entity.Academy;
+import com.i_route.backend.board.service.BoardService;
 import com.i_route.backend.user.entity.User;
 import com.i_route.backend.user.repository.*;
 import com.i_route.backend.global.jwt.JwtUtil;
@@ -36,6 +37,7 @@ public class AuthService {
     private final UserRepository userRepository;
 
     private final AcademyRepository academyRepository;
+    private final BoardService boardService;
 
     private final RefreshTokenRepository refreshTokenRepository;
 
@@ -249,7 +251,10 @@ public class AuthService {
         if (role == User.UserRole.ACADEMY) {
             academy.ensureInviteCode();
         }
-        academyRepository.save(academy);
+        Academy savedAcademy = academyRepository.save(academy);
+        if (role == User.UserRole.ACADEMY) {
+            boardService.addAcademyBoardBookmarks(savedAcademy.getAcademyId(), user.getId());
+        }
         emailVerificationTokenRepository.deleteByEmail(request.getEmail());
     }
 

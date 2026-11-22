@@ -27,6 +27,11 @@ public class Post {
     private String content;
 
     private String author;
+    private Boolean anonymous;
+
+    public boolean isAnonymous() {
+        return Boolean.TRUE.equals(anonymous);
+    }
 
     @Column(nullable = false)
     private String category;

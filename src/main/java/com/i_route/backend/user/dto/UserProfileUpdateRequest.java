@@ -11,4 +11,6 @@ public class UserProfileUpdateRequest {
     private String email;
     private String phoneNumber;
     private String profileImageUrl;
+    private Boolean emailPublic;
+    private Boolean phoneNumberPublic;
 }

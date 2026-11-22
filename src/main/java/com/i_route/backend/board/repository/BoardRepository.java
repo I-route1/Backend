@@ -2,6 +2,8 @@ package com.i_route.backend.board.repository;
 
 import com.i_route.backend.board.entity.Board;
 import com.i_route.backend.board.entity.BoardType;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,6 +21,10 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
 
     // 게시판 종류별 존재 여부 확인
     boolean existsByBoardType(BoardType boardType);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select b from Board b where b.id = :id")
+    Optional<Board> findByIdForBookmarkUpdate(@Param("id") Long id);
 
     // 게시판 상세 조회 시 Academy와 담당 User까지 한 번에 로딩
     @Query("SELECT b FROM Board b LEFT JOIN FETCH b.academy a LEFT JOIN FETCH a.user WHERE b.id = :id")

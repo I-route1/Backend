@@ -10,6 +10,7 @@ public class PostRequestDto {
     private String content;
     private String category;
     private String author;
+    private Boolean anonymous;
 
     private Long boardId;
 }

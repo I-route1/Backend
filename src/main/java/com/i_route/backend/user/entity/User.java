@@ -38,6 +38,23 @@ public class User {
     @Column(nullable = true)
     private String phoneNumber;
 
+    private Boolean emailPublic;
+
+    private Boolean phoneNumberPublic;
+
+    public boolean isEmailPublic() {
+        return Boolean.TRUE.equals(emailPublic);
+    }
+
+    public boolean isPhoneNumberPublic() {
+        return Boolean.TRUE.equals(phoneNumberPublic);
+    }
+
+    public void updateContactVisibility(Boolean emailPublic, Boolean phoneNumberPublic) {
+        if (emailPublic != null) this.emailPublic = emailPublic;
+        if (phoneNumberPublic != null) this.phoneNumberPublic = phoneNumberPublic;
+    }
+
     @Column(unique = true)
     private Long kakaoId;
 

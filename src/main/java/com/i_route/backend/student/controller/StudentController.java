@@ -31,6 +31,17 @@ public class StudentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PatchMapping("/{studentId}/academy")
+    @PreAuthorize("hasRole('PARENT')")
+    public StudentResponse updateStudentAcademy(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long studentId,
+            @RequestBody AcademyLinkRequest request) {
+        return studentService.updateChildAcademy(userDetails.getId(), studentId, request.code());
+    }
+
+    public record AcademyLinkRequest(String code) {}
+
     // 학부모: 내 자녀 목록 조회
     @GetMapping("/my-children")
     @PreAuthorize("hasRole('PARENT')")

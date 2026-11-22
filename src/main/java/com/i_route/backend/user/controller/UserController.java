@@ -68,11 +68,12 @@ public class UserController {
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        String email = id.equals(viewer.getId()) ? user.getEmail() : null;
-        return new ProfileCard(user.getNickname(), user.getProfileImageUrl(), email);
+        String email = user.isEmailPublic() ? user.getEmail() : null;
+        String phoneNumber = user.isPhoneNumberPublic() ? user.getPhoneNumber() : null;
+        return new ProfileCard(user.getNickname(), user.getProfileImageUrl(), email, phoneNumber);
     }
 
-    public record ProfileCard(String nickname, String profileImageUrl, String email) {}
+    public record ProfileCard(String nickname, String profileImageUrl, String email, String phoneNumber) {}
 
     @PatchMapping(value = "/me", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<UserProfileResponse> updateMyProfile(
