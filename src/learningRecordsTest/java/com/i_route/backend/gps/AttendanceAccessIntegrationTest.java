@@ -34,6 +34,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.transaction.support.TransactionTemplate;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -114,6 +115,7 @@ class AttendanceAccessIntegrationTest {
     @Autowired UserRepository users;
     @Autowired AcademyRepository academies;
     @Autowired StudentRepository students;
+    @Autowired TransactionTemplate transactions;
     @Autowired BusRepository buses;
     @Autowired DriverRepository drivers;
     @Autowired AttendanceRepository attendance;
@@ -318,15 +320,21 @@ class AttendanceAccessIntegrationTest {
     }
 
     @Test void cardReplacementKeepsAllOtherStudentDataAndDisablesPreviousCard() throws Exception {
-        var s = cardHolder(uid());
+        var s = transactions.execute(status -> {
+            var student = cardHolder(uid());
+            student.replaceAcademyEnrollments(Set.of(student.getAcademyId()));
+            return student;
+        });
         var another = cardHolder(uid());
         String replacement = uid();
         register(s.getStudentId(), replacement).andExpect(status().isOk());
         register(s.getStudentId(), replacement).andExpect(status().isOk());
         register(another.getStudentId(), replacement).andExpect(status().isConflict());
-        var updated = students.findById(s.getStudentId()).orElseThrow();
-        assertThat(updated.getNfcCardId()).isEqualTo(replacement);
-        assertThat(updated).usingRecursiveComparison().ignoringFields("nfcCardId").isEqualTo(s);
+        transactions.executeWithoutResult(status -> {
+            var updated = students.findById(s.getStudentId()).orElseThrow();
+            assertThat(updated.getNfcCardId()).isEqualTo(replacement);
+            assertThat(updated).usingRecursiveComparison().ignoringFields("nfcCardId").isEqualTo(s);
+        });
         assertThat(students.findById(another.getStudentId()).orElseThrow().getNfcCardId()).isEqualTo(another.getNfcCardId());
         tag(busId, s.getNfcCardId(), null).andExpect(status().isNotFound());
         tag(busId, replacement, null).andExpect(status().isOk()).andExpect(jsonPath("$.eventType").value("BOARD"));
