@@ -1,13 +1,18 @@
 package com.i_route.backend.user.controller;
 
-import com.i_route.backend.user.entity.Academy;
+import com.i_route.backend.global.security.CustomUserDetails;
 import com.i_route.backend.user.repository.AcademyRepository;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,10 +32,26 @@ public class AcademyController {
                         .academyId(a.getAcademyId())
                         .academyName(a.getAcademyName())
                         .academyAddress(a.getAcademyAddress())
-                        .inviteCode(a.getInviteCode())
                         .build())
                 .collect(Collectors.toList());
     }
+
+    @PostMapping("/me/invite-code")
+    @Transactional
+    public InviteCodeResponse getOrIssueInviteCode(@AuthenticationPrincipal CustomUserDetails user) {
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        }
+        if (user.getAuthorities().stream().noneMatch(role -> role.getAuthority().equals("ROLE_ACADEMY"))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+
+        var academy = academyRepository.findOwnedAcademyForUpdate(user.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        return new InviteCodeResponse(academy.ensureInviteCode());
+    }
+
+    public record InviteCodeResponse(String inviteCode) {}
 
     @Getter
     @Builder
@@ -38,6 +59,5 @@ public class AcademyController {
         private Long academyId;
         private String academyName;
         private String academyAddress;
-        private String inviteCode;
     }
 }

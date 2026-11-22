@@ -245,7 +245,11 @@ public class AuthService {
                     .inviteCode(request.getInviteCode());
         }
 
-        academyRepository.save(academyBuilder.build());
+        Academy academy = academyBuilder.build();
+        if (role == User.UserRole.ACADEMY) {
+            academy.ensureInviteCode();
+        }
+        academyRepository.save(academy);
         emailVerificationTokenRepository.deleteByEmail(request.getEmail());
     }
 

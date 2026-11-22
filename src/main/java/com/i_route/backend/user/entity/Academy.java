@@ -7,6 +7,7 @@ import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "academy")
@@ -38,9 +39,15 @@ public class Academy {
     @Column(nullable = true, unique = true)
     private String vehicleNumber;
 
-    // 차량 기사일 때만 사용
     @Column(nullable = true, unique = true)
     private String inviteCode;
+
+    public String ensureInviteCode() {
+        if (inviteCode == null || inviteCode.isBlank()) {
+            inviteCode = "ACAD-" + UUID.randomUUID().toString().replace("-", "");
+        }
+        return inviteCode;
+    }
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")

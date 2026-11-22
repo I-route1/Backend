@@ -3,12 +3,20 @@ package com.i_route.backend.user.repository;
 
 import com.i_route.backend.user.entity.Academy;
 import com.i_route.backend.user.entity.User;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 
 public interface AcademyRepository extends JpaRepository<Academy, Long> {
     Optional<Academy> findByUser_Id(Long userId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select a from Academy a where a.user.id = :userId")
+    Optional<Academy> findOwnedAcademyForUpdate(@Param("userId") Long userId);
 
     // 회원으로 학원 조회
     Optional<Academy> findByUser(User user);
