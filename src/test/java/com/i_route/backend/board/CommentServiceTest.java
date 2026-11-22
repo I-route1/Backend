@@ -24,7 +24,7 @@ class CommentServiceTest extends BoardServiceTestSupport {
         assertThat(result.getContent()).isEqualTo("댓글");
     }
     @Test void createComment_usesAuthenticatedAuthor() {
-        given(posts.findById(10L)).willReturn(Optional.of(post()));
+        given(posts.findByIdForActivity(10L)).willReturn(Optional.of(post()));
         given(users.findById(7L)).willReturn(Optional.of(author()));
         given(comments.save(any(Comment.class))).willAnswer(inv -> { Comment c = inv.getArgument(0); c.setId(20L); return c; });
         var request = new CommentRequestDto(); request.setContent("새 댓글"); request.setAuthor("위조 작성자");

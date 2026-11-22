@@ -32,11 +32,26 @@ public class BoardNoticeNotification {
 
     private Instant readAt;
 
-    public BoardNoticeNotification(Long recipientId, Long postId, String title) {
+    @Enumerated(EnumType.STRING)
+    private Kind kind;
+
+    public enum Kind { ACADEMY_NOTICE, ACADEMY_POST, POST_LIKE, POST_COMMENT }
+
+    public BoardNoticeNotification(Long recipientId, Long postId, String title, Kind kind) {
         this.recipientId = recipientId;
         this.postId = postId;
+        refresh(title, kind);
+    }
+
+    public Kind notificationKind() {
+        return kind == null ? Kind.ACADEMY_NOTICE : kind;
+    }
+
+    public void refresh(String title, Kind kind) {
         this.title = title;
+        this.kind = kind;
         this.createdAt = Instant.now();
+        this.readAt = null;
     }
 
     public void markRead() {

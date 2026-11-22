@@ -2,6 +2,7 @@ package com.i_route.backend.board.service;
 
 import com.i_route.backend.board.dto.*;
 import com.i_route.backend.board.entity.*;
+import com.i_route.backend.board.entity.BoardNoticeNotification.Kind;
 import com.i_route.backend.board.repository.*;
 import com.i_route.backend.user.entity.User;
 import com.i_route.backend.user.repository.UserRepository;
@@ -165,6 +166,8 @@ public class BoardService {
         Post savedPost = postRepository.save(post);
         if (academyNotice) {
             boardNoticeService.saveFor(savedPost);
+        } else if (board.getBoardType() == BoardType.ACADEMY) {
+            boardNoticeService.notifyAcademyManager(savedPost);
         }
 
         return toPostResponse(savedPost, userId);
@@ -241,7 +244,8 @@ public class BoardService {
     // ==========================================
 
     public PostResponseDto likePost(Long postId, Long userId) {
-        Post post = getPostOrThrow(postId);
+        Post post = postRepository.findByIdForActivity(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
         User user = getUserOrThrow(userId);
 
         boolean alreadyLiked = postLikeRepository.existsByPostIdAndUserId(postId, userId);
@@ -255,6 +259,7 @@ public class BoardService {
                             .user(user)
                             .build()
             );
+            boardNoticeService.notifyPostAuthor(post, userId, Kind.POST_LIKE);
         }
 
         return toPostResponse(post, userId);
@@ -293,7 +298,8 @@ public class BoardService {
     }
 
     public CommentResponseDto createComment(Long postId, CommentRequestDto request, Long userId) {
-        Post post = getPostOrThrow(postId);
+        Post post = postRepository.findByIdForActivity(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
         User user = getUserOrThrow(userId);
 
         Comment comment = Comment.builder()
@@ -304,6 +310,7 @@ public class BoardService {
                 .build();
 
         Comment savedComment = commentRepository.save(comment);
+        boardNoticeService.notifyPostAuthor(post, userId, Kind.POST_COMMENT);
         return toCommentResponse(savedComment, userId);
     }
 

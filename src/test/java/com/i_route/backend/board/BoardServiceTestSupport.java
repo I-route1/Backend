@@ -2,6 +2,7 @@ package com.i_route.backend.board;
 
 import com.i_route.backend.board.entity.*;
 import com.i_route.backend.board.repository.*;
+import com.i_route.backend.board.service.BoardNoticeService;
 import com.i_route.backend.board.service.BoardService;
 import com.i_route.backend.user.entity.User;
 import com.i_route.backend.user.repository.UserRepository;
@@ -11,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 abstract class BoardServiceTestSupport {
+    @Mock BoardNoticeService boardNoticeService;
     @InjectMocks BoardService service;
     @Mock BoardRepository boards;
     @Mock PostRepository posts;

@@ -1,6 +1,8 @@
 package com.i_route.backend.board.service;
 
 import com.i_route.backend.board.entity.BoardNoticeNotification;
+import com.i_route.backend.board.entity.BoardNoticeNotification.Kind;
+import com.i_route.backend.user.entity.User;
 import com.i_route.backend.board.entity.Post;
 import com.i_route.backend.board.repository.BoardBookmarkRepository;
 import com.i_route.backend.board.repository.BoardNoticeNotificationRepository;
@@ -35,10 +37,6 @@ public class BoardNoticeService {
 
     @Transactional
     public void saveFor(Post post) {
-        if (notifications.existsByPostId(post.getId())) {
-            return;
-        }
-
         Long boardId = post.getBoard().getId();
         Long academyId = post.getBoard().getAcademy().getAcademyId();
         Set<Long> recipients = new HashSet<>(bookmarks.findUserIdsByBoardId(boardId));
@@ -49,15 +47,46 @@ public class BoardNoticeService {
             }
         });
 
+        recipients.removeAll(notifications.findRecipientIdsByPostId(post.getId()));
         if (recipients.isEmpty()) {
             return;
         }
 
         notifications.saveAll(recipients.stream()
-                .map(id -> new BoardNoticeNotification(id, post.getId(), post.getTitle()))
+                .map(id -> new BoardNoticeNotification(id, post.getId(), post.getTitle(), Kind.ACADEMY_NOTICE))
                 .toList());
 
         events.publishEvent(new NoticeSaved(Set.copyOf(recipients)));
+    }
+
+    @Transactional
+    public void notifyAcademyManager(Post post) {
+        var academy = post.getBoard().getAcademy();
+        User manager = academy == null ? null : academy.getUser();
+        if (manager == null || manager.getRole() != User.UserRole.ACADEMY
+                || manager.getId().equals(post.getUser().getId())) {
+            return;
+        }
+        saveActivity(post, manager.getId(), Kind.ACADEMY_POST);
+    }
+
+    @Transactional
+    public void notifyPostAuthor(Post post, Long actorId, Kind kind) {
+        User author = post.getUser();
+        if (author == null || actorId.equals(author.getId())) {
+            return;
+        }
+        saveActivity(post, author.getId(), kind);
+    }
+
+    private void saveActivity(Post post, Long recipientId, Kind kind) {
+        var existing = notifications.findByRecipientIdAndPostId(recipientId, post.getId());
+        if (existing.isPresent()) {
+            existing.get().refresh(post.getTitle(), kind);
+        } else {
+            notifications.save(new BoardNoticeNotification(recipientId, post.getId(), post.getTitle(), kind));
+        }
+        events.publishEvent(new NoticeSaved(Set.of(recipientId)));
     }
 
     @Transactional(readOnly = true)
@@ -65,7 +94,7 @@ public class BoardNoticeService {
         return notifications.findByRecipientIdOrderByCreatedAtDesc(userId).stream()
                 .map(n -> new NoticeItem(
                         n.getId(), n.getPostId(), n.getTitle(),
-                        n.getCreatedAt(), n.getReadAt()))
+                        n.getCreatedAt(), n.getReadAt(), n.notificationKind()))
                 .toList();
     }
 
@@ -128,5 +157,5 @@ public class BoardNoticeService {
     public record NoticeSaved(Set<Long> recipientIds) {}
 
     public record NoticeItem(
-            Long id, Long postId, String title, Instant createdAt, Instant readAt) {}
+            Long id, Long postId, String title, Instant createdAt, Instant readAt, Kind kind) {}
 }

@@ -159,10 +159,10 @@ public class BoardController {
     @PostMapping("/posts/{postId}/comments")
     public CommentResponseDto createComment(
             @PathVariable Long postId,
-            @RequestParam(required = false) Long userId,
+            @AuthenticationPrincipal CustomUserDetails user,
             @RequestBody CommentRequestDto request
     ) {
-        return boardService.createComment(postId, request, userId);
+        return boardService.createComment(postId, request, authenticatedUserId(user));
     }
 
     @GetMapping("/posts/{postId}/comments/{commentId}")

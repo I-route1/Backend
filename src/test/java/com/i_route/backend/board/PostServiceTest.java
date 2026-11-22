@@ -89,13 +89,15 @@ class PostServiceTest extends BoardServiceTestSupport {
         given(users.findById(7L)).willReturn(Optional.of(author()));
     }
     @Test void likePost_addsLikeForAuthenticatedUser() {
-        existingPostAndUser();
+        given(posts.findByIdForActivity(10L)).willReturn(Optional.of(post()));
+        given(users.findById(7L)).willReturn(Optional.of(author()));
         given(postLikes.existsByPostIdAndUserId(10L, 7L)).willReturn(false, true);
         assertThat(service.likePost(10L, 7L).isLikedByMe()).isTrue();
         then(postLikes).should().save(argThat(l -> l.getPost().getId().equals(10L) && l.getUser().getId().equals(7L)));
     }
     @Test void likePost_removesExistingLike() {
-        existingPostAndUser();
+        given(posts.findByIdForActivity(10L)).willReturn(Optional.of(post()));
+        given(users.findById(7L)).willReturn(Optional.of(author()));
         given(postLikes.existsByPostIdAndUserId(10L, 7L)).willReturn(true, false);
         assertThat(service.likePost(10L, 7L).isLikedByMe()).isFalse();
         then(postLikes).should().deleteByPostIdAndUserId(10L, 7L);
