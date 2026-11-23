@@ -23,6 +23,7 @@ import com.i_route.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClientException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -72,32 +73,30 @@ public class GpsQueryService {
 
         Long routeId = bus.getRoute().getId();
 
-        CurrentBusLocationResponse current =
-                currentLocationRedisRepository.findByBusId(busId)
-                        .orElseThrow(() ->
-                                new CustomException(
-                                        ErrorCode.CURRENT_LOCATION_NOT_FOUND));
+        Optional<CurrentBusLocationResponse> current =
+                currentLocationRedisRepository.findByBusId(busId);
 
         List<RouteStop> stops =
                 routeStopRepository.findByRouteIdOrderByStopOrderAsc(routeId);
 
-        // 기존 정류장 진행 상태 계산
         List<RouteStopResponse> stopResponses =
-                routeProgressService.calculateStopStatuses(
-                        current.getLatitude(),
-                        current.getLongitude(),
-                        stops
-                );
+                current.map(location -> routeProgressService.calculateStopStatuses(
+                                location.getLatitude(), location.getLongitude(), stops))
+                        .orElseGet(() -> routeProgressService.calculateStopStatuses(null, null, stops));
 
-        // 실제 도로 경로 좌표 조회
-        List<RoutePathPoint> path =
-                roadPolylineService.getRoad(routeId)
+        List<RoutePathPoint> path;
+        try {
+            path = roadPolylineService.getRoad(routeId)
                         .stream()
                         .map(point -> new RoutePathPoint(
                                 point.latitude(),
                                 point.longitude()
                         ))
                         .toList();
+        } catch (CustomException | RestClientException | IllegalStateException error) {
+            if (current.isPresent()) throw error;
+            path = List.of();
+        }
 
         return BusRouteResponse.builder()
                 .busId(bus.getId())
@@ -105,7 +104,7 @@ public class GpsQueryService {
                 .routeName(bus.getRoute().getRouteName())
                 .busNumber(bus.getBusNumber())
                 .driverName(bus.getDriver().getName())
-                .driverPhoneNumber(bus.getDriver().getPhoneNumber())
+                .driverPhoneNumber(current.isPresent() ? bus.getDriver().getPhoneNumber() : null)
                 .stops(stopResponses)
                 .path(path)
                 .build();
