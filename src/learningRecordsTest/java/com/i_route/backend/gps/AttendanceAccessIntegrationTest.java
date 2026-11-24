@@ -52,7 +52,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
         "spring.datasource.driver-class-name=org.h2.Driver", "spring.datasource.username=sa", "spring.datasource.password=",
         "spring.jpa.hibernate.ddl-auto=create-drop", "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
         "jwt.secret=attendance-test-signing-key-not-a-production-secret-12345678901234567890",
-        "jwt.expiration=60000", "jwt.refresh-expiration=120000", "ai.server.key=local-test-key"})
+        "jwt.expiration=60000", "jwt.refresh-expiration=120000", "ai.server.key=local-test-key",
+        "app.frontend-additional-origin=https://new-frontend.example"})
 @AutoConfigureMockMvc
 class AttendanceAccessIntegrationTest {
     @Configuration(proxyBeanMethods = false) @EnableAutoConfiguration
@@ -229,6 +230,15 @@ class AttendanceAccessIntegrationTest {
         mvc.perform(options(studentPath(own)).header("Origin", "https://d2nos5u98g310z.cloudfront.net")
                 .header("Access-Control-Request-Method", "GET").header("Access-Control-Request-Headers", "Authorization"))
                 .andExpect(status().isOk());
+    }
+    @Test void preflightAllowsAdditionalFrontendOriginExactly() throws Exception {
+        String origin = "https://new-frontend.example";
+        mvc.perform(options(studentPath(own)).header("Origin", origin)
+                .header("Access-Control-Request-Method", "GET"))
+                .andExpect(status().isOk()).andExpect(header().string("Access-Control-Allow-Origin", origin));
+        mvc.perform(options(studentPath(own)).header("Origin", origin + ".other.example")
+                .header("Access-Control-Request-Method", "GET"))
+                .andExpect(status().isForbidden()).andExpect(header().doesNotExist("Access-Control-Allow-Origin"));
     }
     @Test void passengerListCannotBypassAttendanceOwnership() throws Exception {
         String path = "/api/gps/buses/" + busId + "/passengers/today";
