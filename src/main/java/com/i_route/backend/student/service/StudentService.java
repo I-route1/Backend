@@ -2,6 +2,7 @@ package com.i_route.backend.student.service;
 
 import com.i_route.backend.gps.domain.student.entity.Student;
 import com.i_route.backend.gps.domain.student.repository.StudentRepository;
+import com.i_route.backend.student.dto.AdminStudentResponse;
 import com.i_route.backend.student.dto.ChildCreateRequest;
 import com.i_route.backend.student.dto.StudentResponse;
 import com.i_route.backend.user.entity.Academy;
@@ -139,5 +140,10 @@ public class StudentService {
         return studentRepository.findByAcademyId(academyId).stream()
                 .map(StudentResponse::from)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminStudentResponse> getAdminStudents() {
+        return studentRepository.findAdminRoster();
     }
 }
