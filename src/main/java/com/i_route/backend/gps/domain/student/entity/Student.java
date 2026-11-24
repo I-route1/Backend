@@ -2,6 +2,8 @@ package com.i_route.backend.gps.domain.student.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 
 import java.time.LocalTime;
@@ -26,6 +28,7 @@ public class Student {
 
     private String name;
 
+    @JdbcTypeCode(SqlTypes.LOCAL_TIME)
     private LocalTime expectedDropOffTime;
 
     private Long parentId;
