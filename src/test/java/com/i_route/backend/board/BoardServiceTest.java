@@ -2,6 +2,7 @@ package com.i_route.backend.board;
 
 import com.i_route.backend.board.dto.BoardRequestDto;
 import com.i_route.backend.board.entity.Board;
+import com.i_route.backend.board.repository.BoardBookmarkRepository;
 import com.i_route.backend.board.repository.BoardRepository;
 import com.i_route.backend.board.service.BoardService;
 import org.junit.jupiter.api.DisplayName;
@@ -26,6 +27,9 @@ class BoardServiceTest {
 
     @Mock
     private BoardRepository boardRepository;
+
+    @Mock
+    private BoardBookmarkRepository boardBookmarkRepository;
 
     @Test
     @DisplayName("게시판 전체 조회 - 성공")
@@ -110,10 +114,13 @@ class BoardServiceTest {
     @Test
     @DisplayName("게시판 삭제 - 성공")
     void deleteBoard_success() {
-        willDoNothing().given(boardRepository).deleteById(1L);
+        Board board = new Board();
+        given(boardRepository.findByIdForBookmarkUpdate(1L)).willReturn(Optional.of(board));
 
-        assertThatCode(() -> boardService.deleteBoard(1L))
-                .doesNotThrowAnyException();
+        boardService.deleteBoard(1L);
+
+        then(boardBookmarkRepository).should().deleteByBoardId(1L);
+        then(boardRepository).should().delete(board);
     }
 
     @Test

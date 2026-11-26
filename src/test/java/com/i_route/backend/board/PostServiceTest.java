@@ -69,6 +69,7 @@ class PostServiceTest extends BoardServiceTestSupport {
     @Test void updatePost_updatesTextAndPreservesCategoryIfOmitted() {
         var post = post(); given(posts.findById(10L)).willReturn(Optional.of(post));
         var request = new PostRequestDto(); request.setTitle("수정 제목"); request.setContent("수정 내용");
+        given(users.findById(7L)).willReturn(Optional.of(author()));
         var result = service.updatePost(10L, request, 7L);
         assertThat(result.getTitle()).isEqualTo("수정 제목");
         assertThat(result.getContent()).isEqualTo("수정 내용");
@@ -78,6 +79,11 @@ class PostServiceTest extends BoardServiceTestSupport {
     @Test void deletePost_deletesRequestedPost() {
         var post = post();
         given(posts.findById(10L)).willReturn(Optional.of(post));
+        var otherUser = author();
+        otherUser.setId(8L);
+        given(users.findById(8L)).willReturn(Optional.of(otherUser));
+        given(users.findById(7L)).willReturn(Optional.of(author()));
+
         assertThatThrownBy(() -> service.deletePost(10L, 8L))
                 .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
         then(posts).should(never()).delete(any(Post.class));
