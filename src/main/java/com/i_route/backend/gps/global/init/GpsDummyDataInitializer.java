@@ -15,6 +15,7 @@ import com.i_route.backend.user.entity.Academy;
 import com.i_route.backend.user.repository.AcademyRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
@@ -24,6 +25,7 @@ import java.util.*;
 @Component
 @Profile("local")
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "app.demo-seed.enabled", havingValue = "true", matchIfMissing = true)
 public class GpsDummyDataInitializer implements CommandLineRunner {
 
     private final DriverRepository driverRepository;

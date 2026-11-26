@@ -1,8 +1,10 @@
 package com.i_route.backend.global.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -13,7 +15,11 @@ import java.nio.file.Paths;
 import java.util.Collections;
 
 @Configuration
+@RequiredArgsConstructor
+@Import(FrontendOrigins.class)
 public class WebConfig {
+
+    private final FrontendOrigins frontendOrigins;
 
     @Value("${file.upload-dir:./uploads/profiles/}")
     private String uploadDir;
@@ -24,12 +30,12 @@ public class WebConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOriginPatterns(
+                        .allowedOriginPatterns(frontendOrigins.includeIn(
                                 "https://d2nos5u98g310z.cloudfront.net",
                                 "https://d2t8h2oy220lpg.cloudfront.net",
                                 "https://*.ngrok-free.dev",
                                 "http://localhost:3000"
-                        )
+                        ))
                         .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .exposedHeaders("*")

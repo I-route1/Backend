@@ -18,6 +18,9 @@ public class RouteProgressService {
 
     public List<RouteStopResponse> calculateStopStatuses(Double lat, Double lng, List<RouteStop> stops) {
         if (stops.isEmpty()) return List.of();
+        if (lat == null || lng == null) {
+            return stops.stream().map(stop -> response(stop, StopStatus.BEFORE_ARRIVAL)).toList();
+        }
         Long routeId=stops.get(0).getRouteId();
         RoadProjectionService.Projection bus=projector.project(routeId,lat,lng);
         // Do not claim PASSED from an off-route location.
@@ -29,10 +32,21 @@ public class RouteProgressService {
             StopStatus status = onRoute && direct<=ARRIVAL_METERS ? StopStatus.ARRIVED
                     : onRoute && stopProgress<bus.progressMeters() ? StopStatus.PASSED
                     : StopStatus.BEFORE_ARRIVAL;
-            out.add(RouteStopResponse.builder().stopId(stop.getId()).stopName(stop.getStopName())
-                    .latitude(stop.getLatitude()).longitude(stop.getLongitude())
-                    .stopOrder(stop.getStopOrder()).status(status).etaMinutes(null).build());
+            out.add(response(stop, status));
         }
         return out;
+    }
+
+    private RouteStopResponse response(RouteStop stop, StopStatus status) {
+        return RouteStopResponse.builder()
+                .stopId(stop.getId())
+                .stopName(stop.getStopName())
+                .latitude(stop.getLatitude())
+                .longitude(stop.getLongitude())
+                .stopOrder(stop.getStopOrder())
+                .scheduledArrivalTime(stop.getScheduledArrivalTime())
+                .status(status)
+                .etaMinutes(null)
+                .build();
     }
 }

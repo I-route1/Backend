@@ -1,11 +1,13 @@
 package com.i_route.backend.student.controller;
 
 import com.i_route.backend.global.security.CustomUserDetails;
+import com.i_route.backend.student.dto.AdminStudentResponse;
 import com.i_route.backend.student.dto.ChildCreateRequest;
 import com.i_route.backend.student.dto.StudentResponse;
 import com.i_route.backend.student.service.StudentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -72,5 +74,13 @@ public class StudentController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         List<StudentResponse> students = studentService.getAcademyStudents(userDetails.getId());
         return ResponseEntity.ok(students);
+    }
+
+    @GetMapping("/admin/students")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<AdminStudentResponse>> getAdminStudents() {
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(studentService.getAdminStudents());
     }
 }

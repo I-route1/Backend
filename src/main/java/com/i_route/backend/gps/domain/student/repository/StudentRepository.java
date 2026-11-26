@@ -1,6 +1,7 @@
 package com.i_route.backend.gps.domain.student.repository;
 
 import com.i_route.backend.gps.domain.student.entity.Student;
+import com.i_route.backend.student.dto.AdminStudentResponse;
 import org.springframework.data.jpa.repository.JpaRepository;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.Lock;
@@ -30,6 +31,14 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     List<Student> findByParentId(Long parentId);
 
     List<Student> findByAcademyId(Long academyId);
+
+    @Query("""
+            select new com.i_route.backend.student.dto.AdminStudentResponse(
+                s.studentId, s.name, s.grade, s.gradeStudentId)
+            from Student s
+            order by s.studentId
+            """)
+    List<AdminStudentResponse> findAdminRoster();
 
     @Query("""
             select distinct s.parentId from Student s
