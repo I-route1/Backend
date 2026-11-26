@@ -23,6 +23,8 @@ public interface BoardBookmarkRepository extends JpaRepository<BoardBookmark, Lo
 
     boolean existsByBoardIdAndUserId(Long boardId, Long userId);
 
+    void deleteByBoardId(Long boardId);
+
     void deleteByBoardIdAndUserId(Long boardId, Long userId);
 
     @Query("select b.userId from BoardBookmark b where b.boardId = :boardId")

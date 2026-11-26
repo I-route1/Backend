@@ -90,7 +90,10 @@ public class BoardService {
     }
 
     public void deleteBoard(Long boardId) {
-        boardRepository.deleteById(boardId);
+        boardRepository.findByIdForBookmarkUpdate(boardId).ifPresent(board -> {
+            boardBookmarkRepository.deleteByBoardId(boardId);
+            boardRepository.delete(board);
+        });
     }
 
     @Transactional(readOnly = true)
@@ -204,10 +207,9 @@ public class BoardService {
 
     public PostResponseDto updatePost(Long postId, PostRequestDto request, Long userId) {
         Post post = getPostOrThrow(postId);
-        User user = post.getUser();
-
-        if (user == null || !user.getId().equals(userId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "작성자만 수정할 수 있습니다.");
+        User user = getUserOrThrow(userId);
+        if (user.getRole() != User.UserRole.ADMIN && !isPostAuthor(post, userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "작성자 또는 서비스 관리자만 수정할 수 있습니다.");
         }
 
         String category = request.getCategory() == null
@@ -233,10 +235,16 @@ public class BoardService {
 
     public void deletePost(Long postId, Long userId) {
         Post post = getPostOrThrow(postId);
-        if (post.getUser() == null || !post.getUser().getId().equals(userId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "작성자만 삭제할 수 있습니다.");
+        User user = getUserOrThrow(userId);
+        if (user.getRole() != User.UserRole.ADMIN && !isPostAuthor(post, userId)
+                && !canManageAcademyBoard(post.getBoard(), user)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "게시글 삭제 권한이 없습니다.");
         }
         postRepository.delete(post);
+    }
+
+    private boolean isPostAuthor(Post post, Long userId) {
+        return post.getUser() != null && post.getUser().getId().equals(userId);
     }
 
     // ==========================================
@@ -447,8 +455,12 @@ public class BoardService {
                 && NOTICE_CATEGORY.equals(category);
     }
 
+    private boolean canManageAcademyBoard(Board board, User user) {
+        return user.getRole() == User.UserRole.ACADEMY && isBoardManager(board, user.getId());
+    }
+
     private void requireAcademyManager(Board board, User user) {
-        if (user.getRole() != User.UserRole.ACADEMY || !isBoardManager(board, user.getId())) {
+        if (user.getRole() != User.UserRole.ADMIN && !canManageAcademyBoard(board, user)) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN, "해당 학원 관리자만 공지를 작성할 수 있습니다.");
         }

@@ -44,6 +44,9 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/boards").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/boards/{boardId}").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/boards/{boardId}").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/gps/attendance/**").authenticated()
                         .requestMatchers(HttpMethod.HEAD, "/api/gps/attendance/**").authenticated()
                         .requestMatchers("/api/gps/buses/*/passengers/today").authenticated()
